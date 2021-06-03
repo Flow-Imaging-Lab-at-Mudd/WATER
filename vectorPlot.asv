@@ -1,0 +1,26 @@
+function plt = vectorPlot(X, Y, range)
+
+if ndims(X) ~= 4 || ndims(Y) ~= 4
+    error('4D formatted vector field required!')
+end
+
+if ~exist('range', 'var')
+    range = [1 size(X,1); 1 size(X,2); 1 size(X,3)];
+end
+
+% Indices on grids that are plotted.
+xa = range(1, 1);
+xb = range(1, 2);
+ya = range(2, 1);
+yb = range(2, 2);
+za = range(3, 1);
+zb = range(3, 2);
+
+quiver3(X(xa:,xb:,:,1),
+        X(:,:,:,2),
+        X(:,:,:,3),
+        Y(:,:,:,1),
+        Y(:,:,:,2),
+        Y(:,:,:,3))
+        
+        
