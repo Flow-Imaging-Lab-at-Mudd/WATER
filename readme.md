@@ -11,3 +11,13 @@ Via various import functions, common formats of data from 3D PIV experiment can 
 ```matlab
 vf = import_grid_separate(xw, yw, zw, uw, vw, zw)
 ```
+
+The velocity field can be visualized over the entire grid, adding no noise, as
+
+```matlab
+plt = vf.plotVelocity(noise = 0)
+```
+
+Which produces
+![Image of Yaktocat](https://octodex.github.com/images/yaktocat.png)
+
