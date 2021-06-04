@@ -94,21 +94,35 @@ classdef VelocityField < handle
         end
         
         % Plotters
-        function plt = plotNoisyVelocity(vf, range)
+        function plt = plotVelocity(vf, with_noise, range)
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
-            plt = plotVF(vf.X, vf.U + vf.N, vf.quiverScale, range);
+            if with_noise
+                plt = plotVF(vf.X, vf.U + vf.N, vf.quiverScale, range);
+            else
+                plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
+            end
         end
         
-        % Plotters
-        function plt = plotVelocity(vf, range)
+        function plt = plotVelocityPlane(vf, x, eq, with_noise, range)
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
-            plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
+            % Use given normal vector and base position.
+            if sum(size(x), 'all') == 0
+                onPlane = skewPlaneMatrix(vf.X, eq(0), eq(1));
+            else
+                [~, ~, onPlane] = getPlaneEq(x);
+                onPlane = onPlane(vf.X);
+            end
+            
+            if with_noise
+                plt = plotVF(vf.X, (vf.U + vf.N) .* onPlane, vf.quiverScale, range);
+            else
+                plt = plotVF(vf.X, vf.U .* onPlane, vf.quiverScale, range);
+            end
         end
-        
         
     end
 end
