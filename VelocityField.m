@@ -11,6 +11,9 @@ classdef VelocityField < handle
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
         
+        % Adjustable scale of vector length in plot.
+        quiverScale = 1;
+        
         % Derived fields.
         
         % Lower and upper bounds of x values.
@@ -48,23 +51,37 @@ classdef VelocityField < handle
     
     methods
         % Constructor
-        function obj = VelocityField(X, U)
-            obj.X = X;
-            obj.U = U;
+        function vf = VelocityField(X, U)
+            vf.X = X;
+            vf.U = U;
             if ~isequal(size(X), size(U))
                 error('Mismatching grid dimensions for position and velocity data')
             end
             dim = size(X);
-            obj.dim = dim(1:3);
+            vf.dim = dim(1:3);
             % Init null additional noise.
-            N = zeros(size(U));
-            obj.xbounds = [X(1,1,1,1) X(1,end,1,1)];
+            vf.N = zeros(size(U));
+            vf.xbounds = [X(1,1,1,1) X(1,end,1,1)];
             % Suppose our data is not planar.
-            obj.xresol = X(1,2,1,1) - X(1,1,1,1);
-            obj.ybounds = [X(1,1,1,2) X(end,1,1,2)];
-            obj.yresol = X(2,1,1,2) - X(1,1,1,2);
-            obj.zbounds = [X(1,1,1,3) X(1,1,end,3)];
-            obj.zresol = X(1,1,2,3) - X(1,1,1,3);
+            vf.xresol = X(1,2,1,1) - X(1,1,1,1);
+            vf.ybounds = [X(1,1,1,2) X(end,1,1,2)];
+            vf.yresol = X(2,1,1,2) - X(1,1,1,2);
+            vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
+            vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+        end
+
+        % Convert spatial coordinates to indices. The position is rounded
+        % to the nearest coordinate corresponding to an index.
+        function i = getIndex_x(vf, x)
+            i = round((x - vf.xbounds(1))/vf.xresol) + 1;
+        end
+        
+        function j = getIndex_y(vf, y)
+            j = round((y - vf.ybounds(1))/vf.yresol) + 1;
+        end
+        
+        function k = getIndex_z(vf, z)
+            k = round((z - vf.zbounds(1))/vf.zresol) + 1;
         end
         
         % Introduce species of noise.
@@ -81,7 +98,7 @@ classdef VelocityField < handle
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
-            plt = plotVF(vf.X, vf.U + vf.N, range);
+            plt = plotVF(vf.X, vf.U + vf.N, vf.quiverScale, range);
         end
         
         % Plotters
@@ -89,7 +106,7 @@ classdef VelocityField < handle
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
-            plt = plotVF(vf.X, vf.U, range);
+            plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
         end
         
         
