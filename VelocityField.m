@@ -69,7 +69,7 @@ classdef VelocityField < handle
         
         % Introduce species of noise.
         function N = noise_uniform(vf, mag, in_place)
-            N = rand(size(vf.U))*mag;
+            N = rand(size(vf.U))*mag/sqrt(3);
             if exist('in_place', 'var')
                 vf.N = N;
                 vf.plotNoisyVelocity();
