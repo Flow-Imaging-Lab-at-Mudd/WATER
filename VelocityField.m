@@ -20,6 +20,8 @@ classdef VelocityField < handle
         xbounds
         % Resolution of x.
         xresol
+        
+        % y and z value may progres from positive to negative.
         % Lower and upper bounds of y values.
         ybounds
         % Resolution of y.
@@ -45,6 +47,11 @@ classdef VelocityField < handle
             U(:,:,:,3) = ww;
             
             VF = VelocityField(X, U);
+        end
+        
+         % Helper for vectorized indices on 4D array.
+        function v = getVector(V, index)
+            v = squeeze(V(index(1), index(2), index(3), :));
         end
         
     end
@@ -84,6 +91,7 @@ classdef VelocityField < handle
             k = round((z - vf.zbounds(1))/vf.zresol) + 1;
         end
         
+        
         % Introduce species of noise.
         function N = noise_uniform(vf, mag, in_place)
             N = rand(size(vf.U))*mag/sqrt(3);
@@ -105,23 +113,40 @@ classdef VelocityField < handle
             end
         end
         
-        function plt = plotVelocityPlane(vf, x, eq, with_noise, range)
+        function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, range)
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
             % Use given normal vector and base position.
             if sum(size(x), 'all') == 0
-                onPlane = skewPlaneMatrix(vf.X, eq(0), eq(1));
+                onPlane = skewPlaneMatrix(vf.X, eq(:,1), eq(:,2));
             else
                 [~, ~, onPlane] = getPlaneEq(x);
                 onPlane = onPlane(vf.X);
             end
             
             if with_noise
-                plt = plotVF(vf.X, (vf.U + vf.N) .* onPlane, vf.quiverScale, range);
+                plt = plotVF(vf.X, (V + vf.N) .* onPlane, vf.quiverScale, range);
             else
-                plt = plotVF(vf.X, vf.U .* onPlane, vf.quiverScale, range);
+                plt = plotVF(vf.X, V .* onPlane, vf.quiverScale, range);
             end
+        end
+        
+        function plt = plotPlane(vf, V, with_noise, index, range)
+            % index = [0 0 k], where the nonzero index can be
+            % at any dimension, whose values specifies the index of the
+            % plane.
+            
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dim'];
+            end
+            % Derive equation for plane.
+            eq = zeros(3, 2);
+            eq(:, 1) = (index/norm(index))';
+            % Obtains a position on the plane.
+            eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0))
+            
+            plt = vf.plotPlaneSkewed(V, [], eq, with_noise, range);
         end
         
     end
