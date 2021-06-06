@@ -53,7 +53,7 @@ classdef VelocityField < handle
         
         % Helper for vectorized indices on 4D array.
         function v = getVector(V, index)
-            v = squeeze(V(index(1), index(2), index(3), :));
+            v = squeeze(V(index(2), index(1), index(3), :));
         end
         
     end
