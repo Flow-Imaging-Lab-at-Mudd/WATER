@@ -116,6 +116,9 @@ classdef VelocityField < handle
         end
         
         function N = noise_wgn(vf, sd, snr, range)
+            % Add white gaussian noise specified by either a standard
+            % deviation or a signal-to-noise ratio.
+            
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
@@ -149,7 +152,7 @@ classdef VelocityField < handle
         
         % The two plotPlane functions can be used to plot any vector field
         % over the grid.
-        function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, title_str, range)
+        function plt = plotPlaneSkewed(vf, V, x, eq, noise, title_str, range)
             % Plots an arbitrary plane in 3D space given either three
             % non-colinear points or a normal vector + base position paris
             % formula.
@@ -166,15 +169,11 @@ classdef VelocityField < handle
                 onPlane = onPlane(vf.X);
             end
             
-            if with_noise
-                plt = plotVF(vf.X, (V + vf.N) .* onPlane, vf.quiverScale, range);
-            else
-                plt = plotVF(vf.X, V .* onPlane, vf.quiverScale, range);
-            end
+            plt = plotVF(vf.X, (V + noise) .* onPlane, vf.quiverScale, range);
             title(title_str, 'Interpreter', 'latex')
         end
         
-        function plt = plotPlane(vf, V, with_noise, index, title_str, range)
+        function plt = plotPlane(vf, V, noise, index, title_str, range)
             % index = [0 0 k], where the nonzero index can be
             % at any dimension, whose values specifies the index of the
             % plane. This is in the usual (x, y, z) orientation.
@@ -190,7 +189,7 @@ classdef VelocityField < handle
             % index + (index==0) pads one to the zero-valued components to
             % obtain a valid position index.
             
-            plt = vf.plotPlaneSkewed(V, [], eq, with_noise, title_str, range);
+            plt = vf.plotPlaneSkewed(V, [], eq, noise, title_str, range);
         end
         
     end
