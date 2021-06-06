@@ -144,11 +144,12 @@ classdef VelocityField < handle
             else
                 plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
             end
+            title('Velocity $\vec{u}$', 'Interpreter', 'latex')
         end
         
         % The two plotPlane functions can be used to plot any vector field
         % over the grid.
-        function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, range)
+        function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, title_str, range)
             % Plots an arbitrary plane in 3D space given either three
             % non-colinear points or a normal vector + base position paris
             % formula.
@@ -170,9 +171,10 @@ classdef VelocityField < handle
             else
                 plt = plotVF(vf.X, V .* onPlane, vf.quiverScale, range);
             end
+            title(title_str, 'Interpreter', 'latex')
         end
         
-        function plt = plotPlane(vf, V, with_noise, index, range)
+        function plt = plotPlane(vf, V, with_noise, index, title_str, range)
             % index = [0 0 k], where the nonzero index can be
             % at any dimension, whose values specifies the index of the
             % plane. This is in the usual (x, y, z) orientation.
@@ -188,7 +190,7 @@ classdef VelocityField < handle
             % index + (index==0) pads one to the zero-valued components to
             % obtain a valid position index.
             
-            plt = vf.plotPlaneSkewed(V, [], eq, with_noise, range);
+            plt = vf.plotPlaneSkewed(V, [], eq, with_noise, title_str, range);
         end
         
     end
