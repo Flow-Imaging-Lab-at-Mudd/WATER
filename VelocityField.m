@@ -6,7 +6,9 @@ classdef VelocityField < handle
         X
         % 4D matrix of velocity vectors on grid.
         U
-        % Grid dimension.
+        % Grid dimension. Note that the indices on grid, due to meshgrid
+        % convension, is given as (y, x, z), where x represent the number
+        % of distinct values of x, etc..
         dim
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
@@ -36,7 +38,7 @@ classdef VelocityField < handle
     methods(Static)
         % Flavors of import functions for different PIV data format.
         
-        function VF = import_grid_separate(xw, yw, zw, uw, vw, ww)
+        function vf = import_grid_separate(xw, yw, zw, uw, vw, ww)
            
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
             X = xw;
@@ -46,10 +48,10 @@ classdef VelocityField < handle
             U(:,:,:,2) = vw;
             U(:,:,:,3) = ww;
             
-            VF = VelocityField(X, U);
+            vf = VelocityField(X, U);
         end
         
-         % Helper for vectorized indices on 4D array.
+        % Helper for vectorized indices on 4D array.
         function v = getVector(V, index)
             v = squeeze(V(index(1), index(2), index(3), :));
         end
@@ -57,7 +59,7 @@ classdef VelocityField < handle
     end
     
     methods
-        % Constructor
+        % Constructor taking in valid 4D matrices of position and velocity.
         function vf = VelocityField(X, U)
             vf.X = X;
             vf.U = U;
@@ -68,8 +70,10 @@ classdef VelocityField < handle
             vf.dim = dim(1:3);
             % Init null additional noise.
             vf.N = zeros(size(U));
+            
             vf.xbounds = [X(1,1,1,1) X(1,end,1,1)];
-            % Suppose our data is not planar.
+            % Suppose our data is not planar and uniformly spaced in
+            % position.
             vf.xresol = X(1,2,1,1) - X(1,1,1,1);
             vf.ybounds = [X(1,1,1,2) X(end,1,1,2)];
             vf.yresol = X(2,1,1,2) - X(1,1,1,2);
@@ -93,6 +97,7 @@ classdef VelocityField < handle
         
         
         % Introduce species of noise.
+        
         function N = noise_uniform(vf, mag, in_place)
             N = rand(size(vf.U))*mag/sqrt(3);
             if exist('in_place', 'var')
@@ -114,10 +119,15 @@ classdef VelocityField < handle
         end
         
         function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, range)
+            % Plots an arbitrary plane in 3D space given either three
+            % non-colinear points or a normal vector + base position paris
+            % formula.
+            
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
             end
-            % Use given normal vector and base position.
+            % Obtain a matching 4D boolean matrix indicating membership of
+            % points on the plane.
             if sum(size(x), 'all') == 0
                 onPlane = skewPlaneMatrix(vf.X, eq(:,1), eq(:,2));
             else
@@ -135,7 +145,7 @@ classdef VelocityField < handle
         function plt = plotPlane(vf, V, with_noise, index, range)
             % index = [0 0 k], where the nonzero index can be
             % at any dimension, whose values specifies the index of the
-            % plane.
+            % plane. This is in the usual (x, y, z) orientation.
             
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dim'];
@@ -145,6 +155,8 @@ classdef VelocityField < handle
             eq(:, 1) = (index/norm(index))';
             % Obtains a position on the plane.
             eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0))
+            % index + (index==0) pads one to the zero-valued components to
+            % obtain a valid position index.
             
             plt = vf.plotPlaneSkewed(V, [], eq, with_noise, range);
         end

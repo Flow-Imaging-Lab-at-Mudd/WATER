@@ -1,7 +1,12 @@
 function plt = plotVF(X, Y, scale, range)
+% Customized plotting funnction for vector fields organized as 4D matrices.
+% X is the matrix of positions on the grid, and Y the corresponding field.
+% Note that the meshgrid indices of a 4D matrix is (y, x, z).
+%
 % range is a 3 x 2 array where each row records the start and end (inclusive)
 % indices on the grid that corresponds to the rectangular region to be
 % plotted.
+%
 %
 % Note this plotting zooms in on the rectangular region specified by range.
 
