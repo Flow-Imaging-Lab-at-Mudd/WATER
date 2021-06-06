@@ -95,15 +95,43 @@ classdef VelocityField < handle
             k = round((z - vf.zbounds(1))/vf.zresol) + 1;
         end
         
+        function ind = getIndices(vf, pos)
+            ind = [vf.getIndex_x(pos(1)), vf.getIndex_y(pos(2)), vf.getIndex_z(pos(3))];
+        end
         
-        % Introduce species of noise.
         
-        function N = noise_uniform(vf, mag, in_place)
-            N = rand(size(vf.U))*mag/sqrt(3);
-            if exist('in_place', 'var')
-                vf.N = N;
-                vf.plotNoisyVelocity();
+        % Introduce species of noise. Noises generated are added to the
+        % present level of noise, not replacing it.
+        
+        function N = noise_uniform(vf, mag, range)
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dim'];
             end
+            N = zeros(size(vf.U));
+            dims = (range(:,2) - range(:,1) + 1)';
+            N(range(1,1):range(1,2), range(2,1):range(2,2), range(3,1):range(3,2), :) = ...
+                rand([dims 3])*mag/sqrt(3);
+            vf.N = vf.N + N;
+            vf.plotVelocity(1);
+        end
+        
+        function N = noise_wgn(vf, sd, snr, range)
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dim'];
+            end
+            if sd == 0
+                N = vf.N;
+                vf.N(range(1,1):range(1,2), range(2,1):range(2,2), range(3,1):range(3,2), :) = ...
+                    awgn(vf.N(range(1,1):range(1,2), range(2,1):range(2,2), range(3,1):range(3,2), :), snr);
+                N = vf.N - N;
+            else
+                N = zeros(size(vf.U));
+                dims = (range(:,2) - range(:,1) + 1)';
+                N(range(1,1):range(1,2), range(2,1):range(2,2), range(3,1):range(3,2), :) = ...
+                    sd/sqrt(3)*randn([dims 3]);
+                vf.N = vf.N + N;
+            end
+            vf.plotVelocity(1);
         end
         
         % Plotters
@@ -118,6 +146,8 @@ classdef VelocityField < handle
             end
         end
         
+        % The two plotPlane functions can be used to plot any vector field
+        % over the grid.
         function plt = plotPlaneSkewed(vf, V, x, eq, with_noise, range)
             % Plots an arbitrary plane in 3D space given either three
             % non-colinear points or a normal vector + base position paris
@@ -154,7 +184,7 @@ classdef VelocityField < handle
             eq = zeros(3, 2);
             eq(:, 1) = (index/norm(index))';
             % Obtains a position on the plane.
-            eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0))
+            eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0));
             % index + (index==0) pads one to the zero-valued components to
             % obtain a valid position index.
             
