@@ -9,7 +9,7 @@ classdef VelocityField < handle
         % Grid dimension. Note that the indices on grid, due to meshgrid
         % convension, is given as (y, x, z), where x represent the number
         % of distinct values of x, etc..
-        dim
+        dims
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
         
@@ -51,9 +51,15 @@ classdef VelocityField < handle
             vf = VelocityField(X, U);
         end
         
-        % Helper for vectorized indices on 4D array.
         function v = getVector(V, index)
+            % Helper for vectorized indices on 4D array.
             v = squeeze(V(index(2), index(1), index(3), :));
+        end
+        
+        % Helpers for computing errors given reference.
+        
+        function err = error_L2(V, V0)
+            err = sum((V - V0).^2, 4);
         end
         
     end
@@ -66,8 +72,8 @@ classdef VelocityField < handle
             if ~isequal(size(X), size(U))
                 error('Mismatching grid dimensions for position and velocity data')
             end
-            dim = size(X);
-            vf.dim = dim(1:3);
+            dims = size(X);
+            vf.dims = dims(1:3);
             % Init null additional noise.
             vf.N = zeros(size(U));
             
@@ -105,7 +111,7 @@ classdef VelocityField < handle
         
         function N = noise_uniform(vf, mag, range)
             if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dim'];
+                range = [ones(3, 1) vf.dims'];
             end
             N = zeros(size(vf.U));
             dims = (range(:,2) - range(:,1) + 1)';
@@ -140,7 +146,7 @@ classdef VelocityField < handle
         % Plotters
         function plt = plotVelocity(vf, with_noise, range)
             if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dim'];
+                range = [ones(3, 1) vf.dims'];
             end
             if with_noise
                 plt = plotVF(vf.X, vf.U + vf.N, vf.quiverScale, range);
@@ -158,7 +164,7 @@ classdef VelocityField < handle
             % formula.
             
             if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dim'];
+                range = [ones(3, 1) vf.dims'];
             end
             % Obtain a matching 4D boolean matrix indicating membership of
             % points on the plane.
@@ -179,17 +185,50 @@ classdef VelocityField < handle
             % plane. This is in the usual (x, y, z) orientation.
             
             if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dim'];
+                range = [ones(3, 1) vf.dims'];
             end
             % Derive equation for plane.
             eq = zeros(3, 2);
             eq(:, 1) = (index/norm(index))';
-            % Obtains a position on the plane.
+            % Obtain a position on the plane.
             eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0));
             % index + (index==0) pads one to the zero-valued components to
             % obtain a valid position index.
             
             plt = vf.plotPlaneSkewed(V, [], eq, noise, title_str, range);
+        end
+        
+        function plt = plotScalarPlane(vf, Mag, noise, range, title_str)
+            % Plots a scalar field Mag over X.
+            % Mag is a 3D matrix of corresponding to positions in X.
+            
+            % Find dimension, i.e. x,y,z, perpendicular to the plane.
+            index = find((range(:,2) - range(:,1)) == 0, 1);
+            % Extract the plane.
+            x = squeeze(vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
+            Mag = squeeze(Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
+            % Dimensionalize noise to allow scalar input.
+            if isequal(size(noise), [1 1])
+                noise = repmat(noise, vf.dims);
+            end
+            noise = squeeze(noise(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
+            
+            switch index
+                case 1 %y
+                    % Not right-handed space.
+                    plt = surf(x(:,:,1), x(:,:,3), Mag + noise);
+                    xlabel('x', 'Interpreter', 'latex')
+                    ylabel('z', 'Interpreter', 'latex')
+                case 2 %x
+                    plt = surf(x(:,:,2), x(:,:,3), Mag + noise);
+                    xlabel('y', 'Interpreter', 'latex')
+                    ylabel('z', 'Interpreter', 'latex')
+                case 3 %z
+                    plt = surf(x(:,:,1), x(:,:,2), Mag + noise);
+                    xlabel('x', 'Interpreter', 'latex')
+                    ylabel('y', 'Interpreter', 'latex')
+            end
+            title(title_str)
         end
         
     end
