@@ -85,6 +85,8 @@ classdef VelocityField < handle
             vf.yresol = X(2,1,1,2) - X(1,1,1,2);
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
             vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+            
+            set(0,'defaultTextInterpreter','latex');
         end
 
         % Convert spatial coordinates to indices. The position is rounded
@@ -126,7 +128,7 @@ classdef VelocityField < handle
             % deviation or a signal-to-noise ratio.
             
             if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dim'];
+                range = [ones(3, 1) vf.dims'];
             end
             if sd == 0
                 N = vf.N;
@@ -153,7 +155,7 @@ classdef VelocityField < handle
             else
                 plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
             end
-            title('Velocity $\vec{u}$', 'Interpreter', 'latex')
+            title('Velocity $\vec{u}$')
         end
         
         % The two plotPlane functions can be used to plot any vector field
@@ -176,7 +178,7 @@ classdef VelocityField < handle
             end
             
             plt = plotVF(vf.X, (V + noise) .* onPlane, vf.quiverScale, range);
-            title(title_str, 'Interpreter', 'latex')
+            title(title_str)
         end
         
         function plt = plotPlane(vf, V, noise, index, title_str, range)
@@ -198,6 +200,29 @@ classdef VelocityField < handle
             plt = vf.plotPlaneSkewed(V, [], eq, noise, title_str, range);
         end
         
+        function plt = plotScalar(vf, Mag, noise, title_str, range)
+            % Show a color map of the scalar field over the range
+            % specified, defaulted to global.
+            
+            % Need to use isosurface.
+            
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            % Subset region plotted.
+            X = vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            Mag = Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            % Collapse 4D matrix into a set of points.
+            X = reshape(X, [], 3);
+            Mag = Mag(:);
+            % Scaled size of each dot displayed. TODO: more fitting
+            % expression.
+            dif = range(:,2) - range(:,1);
+            dot_size = 35^sum(dif ~= 0)/prod(dif);
+            plt = scatter3(X(:,1), X(:,2), X(:,3), dot_size, Mag + noise, 'filled');
+            colorbar
+        end
+        
         function plt = plotScalarPlane(vf, Mag, noise, range, title_str)
             % Plots a scalar field Mag over X.
             % Mag is a 3D matrix of corresponding to positions in X.
@@ -215,18 +240,18 @@ classdef VelocityField < handle
             
             switch index
                 case 1 %y
-                    % Not right-handed space.
+                    % Non right-handed space.
                     plt = surf(x(:,:,1), x(:,:,3), Mag + noise);
-                    xlabel('x', 'Interpreter', 'latex')
-                    ylabel('z', 'Interpreter', 'latex')
+                    xlabel('$x$')
+                    ylabel('$z$')
                 case 2 %x
                     plt = surf(x(:,:,2), x(:,:,3), Mag + noise);
-                    xlabel('y', 'Interpreter', 'latex')
-                    ylabel('z', 'Interpreter', 'latex')
+                    xlabel('$y$')
+                    ylabel('$z$')
                 case 3 %z
                     plt = surf(x(:,:,1), x(:,:,2), Mag + noise);
-                    xlabel('x', 'Interpreter', 'latex')
-                    ylabel('y', 'Interpreter', 'latex')
+                    xlabel('$x$')
+                    ylabel('$y$')
             end
             title(title_str)
         end
