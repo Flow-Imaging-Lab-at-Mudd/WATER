@@ -53,6 +53,7 @@ classdef VelocityField < handle
         
         function v = getVector(V, index)
             % Helper for vectorized indices on 4D array.
+            % Non-vectorized; index can only be a vector.
             v = squeeze(V(index(2), index(1), index(3), :));
         end
         
@@ -107,6 +108,43 @@ classdef VelocityField < handle
             ind = [vf.getIndex_x(pos(1)), vf.getIndex_y(pos(2)), vf.getIndex_z(pos(3))];
         end
         
+        function x = get_x(vf, i)
+            x = vf.xbounds(1) + (i-1)*vf.xresol;
+        end
+        
+        function y = get_y(vf, j)
+            y = vf.ybounds(1) + (j-1)*vf.yresol;
+        end
+        
+        function z = get_z(vf, k)
+            z = vf.zbounds(1) + (k-1)*vf.zresol;
+        end
+        
+        function eq = getRegPlaneEq(vf, index)
+            % For a regular plane, one which is perpendicular to one of the
+            % basis unit vectors, i.e. x y z, obtain the standard
+            % representation as orthogonal vector and base position.
+            %
+            % For example, index = [0 0 k]', where k is the index of the
+            % plane in the appropriate dimension.
+            %
+            % Non-vectorized, index a 3 x 2 matrix.
+            
+            eq = zeros(3, 2);
+            eq(:, 1) = index/sum(index, 1);
+            % Obtain a position on the plane.
+            eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0));
+        end
+        
+        function eqs = getRegPlaneEqs(vf, indices)
+            % Index vectors stacked as columns in a 2D array.
+            
+            eqs = zeros(size(indices, 2), 3, 2);
+            for i = 1: size(indices, 2)
+                eqs(i, :, :) = vf.getRegPlaneEq(indices(:, i));
+            end
+        end
+        
         
         % Introduce species of noise. Noises generated are added to the
         % present level of noise, not replacing it.
@@ -120,7 +158,7 @@ classdef VelocityField < handle
             N(range(1,1):range(1,2), range(2,1):range(2,2), range(3,1):range(3,2), :) = ...
                 rand([dims 3])*mag/sqrt(3);
             vf.N = vf.N + N;
-            vf.plotVelocity(1);
+            vf.plotVector(vf.U, N, '$\vec{u}$');
         end
         
         function N = noise_wgn(vf, sd, snr, range)
@@ -142,69 +180,24 @@ classdef VelocityField < handle
                     sd/sqrt(3)*randn([dims 3]);
                 vf.N = vf.N + N;
             end
-            vf.plotVelocity(1);
+            vf.plotVector(vf.U, N, '$\vec{u}$');
         end
         
-        % Plotters
-        function plt = plotVelocity(vf, with_noise, range)
+        %%%%%%%%%%%%%%%%%%%%%%%%% Plotters %%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        function plt = plotVector(vf, V, noise, title_str, range)
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dims'];
             end
-            if with_noise
-                plt = plotVF(vf.X, vf.U + vf.N, vf.quiverScale, range);
-            else
-                plt = plotVF(vf.X, vf.U, vf.quiverScale, range);
-            end
-            title('Velocity $\vec{u}$')
-        end
-        
-        % The two plotPlane functions can be used to plot any vector field
-        % over the grid.
-        function plt = plotPlaneSkewed(vf, V, x, eq, noise, title_str, range)
-            % Plots an arbitrary plane in 3D space given either three
-            % non-colinear points or a normal vector + base position paris
-            % formula.
             
-            if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dims'];
-            end
-            % Obtain a matching 4D boolean matrix indicating membership of
-            % points on the plane.
-            if sum(size(x), 'all') == 0
-                onPlane = skewPlaneMatrix(vf.X, eq(:,1), eq(:,2));
-            else
-                [~, ~, onPlane] = getPlaneEq(x);
-                onPlane = onPlane(vf.X);
-            end
+            plt = plotVF(vf.X, V + noise, vf.quiverScale, range);
             
-            plt = plotVF(vf.X, (V + noise) .* onPlane, vf.quiverScale, range);
             title(title_str)
-        end
-        
-        function plt = plotPlane(vf, V, noise, index, title_str, range)
-            % index = [0 0 k], where the nonzero index can be
-            % at any dimension, whose values specifies the index of the
-            % plane. This is in the usual (x, y, z) orientation.
-            
-            if ~exist('range', 'var')
-                range = [ones(3, 1) vf.dims'];
-            end
-            % Derive equation for plane.
-            eq = zeros(3, 2);
-            eq(:, 1) = (index/norm(index))';
-            % Obtain a position on the plane.
-            eq(:, 2) = VelocityField.getVector(vf.X, index + (index==0));
-            % index + (index==0) pads one to the zero-valued components to
-            % obtain a valid position index.
-            
-            plt = vf.plotPlaneSkewed(V, [], eq, noise, title_str, range);
         end
         
         function plt = plotScalar(vf, Mag, noise, title_str, range)
             % Show a color map of the scalar field over the range
             % specified, defaulted to global.
-            
-            % Need to use isosurface.
             
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dims'];
@@ -217,15 +210,79 @@ classdef VelocityField < handle
             Mag = Mag(:);
             % Scaled size of each dot displayed. TODO: more fitting
             % expression.
-            dif = range(:,2) - range(:,1);
-            dot_size = 35^sum(dif ~= 0)/prod(dif);
-            plt = scatter3(X(:,1), X(:,2), X(:,3), dot_size, Mag + noise, 'filled');
+            dif = sort(range(:,2) - range(:,1), 2);
+            dot_size = 40^(sum(dif ~= 0)-1)/(dif(1)*dif(2));
+            
+            plt = figure;
+            scatter3(X(:,1), X(:,2), X(:,3), dot_size, Mag + noise, 'filled');
+            
             colorbar
+            xlabel('$x$')
+            ylabel('$y$')
+            zlabel('$z$')
+            title(title_str)
         end
         
-        function plt = plotScalarPlane(vf, Mag, noise, range, title_str)
+        function plt = slicePlanes(vf, Mag, noise, planes, title_str, range)
+            % SLICEPLANES renders continuous color plots on the planes
+            % whose equations are specified. planes are in the format of
+            % [[orth base]...] for all the planes to be plotted.
+            
+            plt = figure;
+            % Subset grid.
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            X = vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            Mag = Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            
+            for i = 1: size(planes, 1)
+                eq = squeeze(planes(i, :, :));
+                z = (dot(eq(:,2), eq(:,1)) - eq(1,1)*X(:,:,1,1) - eq(2,1)*X(:,:,1,2)) / eq(3,1);
+                slice(squeeze(X(:,:,:,1)), squeeze(X(:,:,:,2)), squeeze(X(:,:,:,3)), Mag + noise, ...
+                    squeeze(X(:,:,1,1)), squeeze(X(:,:,1,2)), z)
+                hold on
+            end
+            
+            colorbar
+            xlabel('$x$')
+            ylabel('$y$')
+            zlabel('$z$')
+            title(title_str)
+        end
+        
+        
+        % The two plotPlane functions can be used to plot any vector field
+        % over the grid.
+        function plt = plotPlaneVector(vf, V, eq, noise, title_str, range)
+            % Plots an arbitrary plane in 3D space given either three
+            % non-colinear points or a normal vector + base position paris
+            % formula.
+            
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            % Obtain a matching 4D boolean matrix indicating membership of
+            % points on the plane.
+            onPlane = skewPlaneMatrix(vf.X, eq(:,1), eq(:,2), 3);
+            
+            plt = plotVF(vf.X, (V + noise) .* onPlane, vf.quiverScale, range);
+            title(title_str)
+        end
+        
+        function plt = plotScalarPlaneSkewed(vf, Mag, noise, eq, title_str)
+            % Derive plane equation if a normal plane is given.
+            if isequal(eq(:, 2), zeros(3, 1))
+                
+            end
+            % Boolean predicate for determining if points are on plane.
+            onPlane = skewPlaneMatrix(vf.X, eq(:, 1), eq(:, 2), 1);
+        end
+        
+        function plt = plotPlaneScalar(vf, Mag, noise, range, title_str)
             % Plots a scalar field Mag over X.
             % Mag is a 3D matrix of corresponding to positions in X.
+            % Only a regular plane is currently allowed.
             
             % Find dimension, i.e. x,y,z, perpendicular to the plane.
             index = find((range(:,2) - range(:,1)) == 0, 1);
@@ -238,18 +295,20 @@ classdef VelocityField < handle
             end
             noise = squeeze(noise(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
             
+            plt = figure;
+            
             switch index
                 case 1 %y
                     % Non right-handed space.
-                    plt = surf(x(:,:,1), x(:,:,3), Mag + noise);
+                    surf(x(:,:,1), x(:,:,3), Mag + noise);
                     xlabel('$x$')
                     ylabel('$z$')
                 case 2 %x
-                    plt = surf(x(:,:,2), x(:,:,3), Mag + noise);
+                    surf(x(:,:,2), x(:,:,3), Mag + noise);
                     xlabel('$y$')
                     ylabel('$z$')
                 case 3 %z
-                    plt = surf(x(:,:,1), x(:,:,2), Mag + noise);
+                    surf(x(:,:,1), x(:,:,2), Mag + noise);
                     xlabel('$x$')
                     ylabel('$y$')
             end

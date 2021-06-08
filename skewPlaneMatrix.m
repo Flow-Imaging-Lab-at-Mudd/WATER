@@ -13,8 +13,8 @@ tol = 1e-4;
 dims = size(X);
 dims = dims(1:3);
 
-Base = dimensionalize(base, dims);
-Orth = dimensionalize(orth, dims);
+Base = dimen(base, dims);
+Orth = dimen(orth, dims);
 
 onplane = abs(dot(X - Base, Orth, 4)) < repmat(tol, dims);
 % Expand this logical 3D matrix indicating membership on plane to
