@@ -10,21 +10,16 @@ function on = skewPlaneMatrix(X, orth, base, sz)
 tol = 1e-4;
 
 % Upper-dimensionalize base and normal vectors for subtraction from 4D X.
-dim = size(X);
-dim = dim(1:3);
-Base = zeros(size(X));
-Base(:,:,:,1) = repmat(base(1), dim);
-Base(:,:,:,2) = repmat(base(2), dim);
-Base(:,:,:,3) = repmat(base(3), dim);
-Orth = zeros(size(X));
-Orth(:,:,:,1) = repmat(orth(1), dim);
-Orth(:,:,:,2) = repmat(orth(2), dim);
-Orth(:,:,:,3) = repmat(orth(3), dim);
+dims = size(X);
+dims = dims(1:3);
 
-onplane = abs(dot(X - Base, Orth, 4)) < repmat(tol, dim);
+Base = dimensionalize(base, dims);
+Orth = dimensionalize(orth, dims);
+
+onplane = abs(dot(X - Base, Orth, 4)) < repmat(tol, dims);
 % Expand this logical 3D matrix indicating membership on plane to
 % the size of the last dimension for direct point-wise multiplication.
-on = zeros([dim sz]);
+on = zeros([dims sz]);
 for i = 1: sz
     on(:,:,:,i) = onplane;
 end
