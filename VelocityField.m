@@ -32,6 +32,11 @@ classdef VelocityField < handle
         % Array of resolutions.
         resol
         
+        % Range for computation and visualization.
+        range
+        % Length of range in 3 dimensions.
+        span
+        
         % struct for properties of solvers.
         solver
         % struct for graphers.
@@ -101,6 +106,8 @@ classdef VelocityField < handle
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
             vf.zresol = X(1,1,2,3) - X(1,1,1,3);
             vf.resol = [vf.xresol vf.yresol vf.zresol];
+            vf.range = [ones(3, 1) vf.dims'];
+            vf.span = (vf.range*[-1; 1])' + 1;
             
             vf.initPropertyStructs();
             set(0,'defaultTextInterpreter','latex');
@@ -112,7 +119,10 @@ classdef VelocityField < handle
             
             % Default solver attributes.
             vf.solver.dv = abs(vf.xresol*vf.yresol*vf.zresol);
+            
+            % Properties of differentiation.
             vf.solver.diff.order = 1;
+            vf.solver.diff.mode = 'central';
             
             vf.solver.ke.mode = 'direct';
             
@@ -400,7 +410,6 @@ classdef VelocityField < handle
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dims'];
             end
-            X = squeeze(vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
             V = squeeze(V(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
             
             % Range of differentiable values, from either corners, unspecified.
@@ -427,7 +436,41 @@ classdef VelocityField < handle
             nder = dif / norm(vf.resol .* ind_inc);
         end
         
-        function jacob = jacobian(vf, mode, range)
+        function jacob = jacobian(vf, V, mode)
+            % Computes the jacobian matrix (or gradient, or derivative
+            % matrix) of 'V' with numerical scheme given in 'mode'.
+            
+            jacob = NaN([size(V, 1:3) 3 size(V, 4)]);
+            
+            % Subset region of interest.
+            if ~isequal(size(V, 1:3), span)
+                V = squeeze(V(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                        vf.range(3,1): vf.range(3,2), :));
+            end
+            
+            switch mode
+                case 'unit'
+                    jacob(:, :, :, 1, :) = vf.diff1(V, [1 0 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 2, :) = vf.diff1(V, [0 1 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 3, :) = vf.diff1(V, [0 0 1], vf.solver.diff.mode);
+            end
+        end
+        
+        function div = div(vf, V)
+            div = NaN(size(V, 1:3));
+             % Subset region of interest.
+            if ~isequal(size(V, 1:3), vf.span)
+                V = squeeze(V(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                        vf.range(3,1): vf.range(3,2), :));
+            end
+            
+            switch vf.solver.diff.order
+                case 1
+                    % Ensure diff direction in increasing x, y, z by boolean multiplication.
+                    div = squeeze(vf.diff1(V(:,:,:,1), [1 0 0], vf.solver.diff.mode)*(vf.xresol>=0) + ...
+                        vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.yresol>=0) + ...
+                        vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zresol>=0));
+            end
         end
         
     end
