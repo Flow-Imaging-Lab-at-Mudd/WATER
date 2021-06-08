@@ -13,9 +13,6 @@ classdef VelocityField < handle
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
         
-        % Adjustable scale of vector length in plot.
-        quiverScale = 1;
-        
         % Derived fields.
         
         % Lower and upper bounds of x values.
@@ -32,12 +29,21 @@ classdef VelocityField < handle
         zbounds
         % Resolution of z.
         zresol
+        % Array of resolutions.
+        resol
+        
+        % struct for properties of solvers.
+        solver
+        % struct for graphers.
+        plotter
+        % struct for invariant attributes of fluid.
+        fluid
         
     end
     
     methods(Static)
-        % Flavors of import functions for different PIV data format.
         
+        %%%%%%%%%%%%%%%%%%% Adapters of Recorded Data %%%%%%%%%%%%%%%%%%%
         function vf = import_grid_separate(xw, yw, zw, uw, vw, ww)
            
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
@@ -51,10 +57,14 @@ classdef VelocityField < handle
             vf = VelocityField(X, U);
         end
         
+        %%%%%%%%%%%%%%%%%%% Various Helpers %%%%%%%%%%%%%%%%%%%%%%
         function v = getVector(V, index)
             % Helper for vectorized indices on 4D array.
             % Non-vectorized; index can only be a vector.
             v = squeeze(V(index(2), index(1), index(3), :));
+        end
+        
+        function v = getV(V, index)
         end
         
         % Helpers for computing errors given reference.
@@ -66,8 +76,12 @@ classdef VelocityField < handle
     end
     
     methods
-        % Constructor taking in valid 4D matrices of position and velocity.
+        
         function vf = VelocityField(X, U)
+            % Constructor taking in valid 4D matrices of position and
+            % velocity whose first three dimensions conform to that of a
+            % meshgrid.
+            
             vf.X = X;
             vf.U = U;
             if ~isequal(size(X), size(U))
@@ -86,10 +100,27 @@ classdef VelocityField < handle
             vf.yresol = X(2,1,1,2) - X(1,1,1,2);
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
             vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+            vf.resol = [vf.xresol vf.yresol vf.zresol];
             
+            vf.initPropertyStructs();
             set(0,'defaultTextInterpreter','latex');
         end
+        
+        function initPropertyStructs(vf)
+            % Default innate attributes.
+            vf.fluid.density = 1;
+            
+            % Default solver attributes.
+            vf.solver.dv = abs(vf.xresol*vf.yresol*vf.zresol);
+            vf.solver.diff.order = 1;
+            
+            vf.solver.ke.mode = 'direct';
+            
+            % Default plotter attributes.
+            vf.plotter.quiverScale = 1;
+        end
 
+        %%%%%%%%%%%%%%%%%%%%% Coordinate Helpers %%%%%%%%%%%%%%%%%%%%%
         % Convert spatial coordinates to indices. The position is rounded
         % to the nearest coordinate corresponding to an index.
         function i = getIndex_x(vf, x)
@@ -145,10 +176,10 @@ classdef VelocityField < handle
             end
         end
         
+        %%%%%%%%%%%%%%%%%%%%%% Add Noise %%%%%%%%%%%%%%%%%%%%%%
         
         % Introduce species of noise. Noises generated are added to the
         % present level of noise, not replacing it.
-        
         function N = noise_uniform(vf, mag, range)
             if ~exist('range', 'var')
                 range = [ones(3, 1) vf.dims'];
@@ -190,7 +221,7 @@ classdef VelocityField < handle
                 range = [ones(3, 1) vf.dims'];
             end
             
-            plt = plotVF(vf.X, V + noise, vf.quiverScale, range);
+            plt = plotVF(vf.X, V + noise, vf.plotter.quiverScale, range);
             
             title(title_str)
         end
@@ -266,7 +297,7 @@ classdef VelocityField < handle
             % points on the plane.
             onPlane = skewPlaneMatrix(vf.X, eq(:,1), eq(:,2), 3);
             
-            plt = plotVF(vf.X, (V + noise) .* onPlane, vf.quiverScale, range);
+            plt = plotVF(vf.X, (V + noise) .* onPlane, vf.plotter.quiverScale, range);
             title(title_str)
         end
         
@@ -336,6 +367,67 @@ classdef VelocityField < handle
             ylabel('$y$')
             zlabel('$z$')
             title(title_str)
+        end
+        
+        %%%%%%%%%%%%%%%%%%% Solvers of Derived Quantities %%%%%%%%%%%%%%%%%%
+        
+        function k = kineticEnergy(vf, range)
+            
+            % Subset range of interest.
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            U = squeeze(vf.U(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
+            
+            % Selected mode of computation.
+            switch vf.solver.ke.mode
+                case 'direct'
+                    k = 1/2*vf.fluid.density*vf.solver.dv*sum(U.^2, 'all');
+            end
+        end
+        
+        %%%%%%%%%%%%%%%%%%% Differential Methods %%%%%%%%%%%%%%%%%%%%%%
+        
+        function nder = diff1(vf, V, ind_inc, mode, range)
+            % nder = vf.DIFF1(V, ind_inc, mode) computes the first order
+            % (simple difference) numerical direction derivative of 'V' as
+            % specified by the vector increment in index 'ind_inc'. The
+            % parameter 'mode' specified the finite difference scheme used:
+            % 'right', 'left', or 'central'. The derivative is computed in
+            % the region of the volume for which the difference exists.
+
+            % Subset for region of interest.
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            X = squeeze(vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
+            V = squeeze(V(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
+            
+            % Range of differentiable values, from either corners, unspecified.
+            rem = size(V, 1:3) - [ind_inc(2) ind_inc(1) ind_inc(3)];
+
+            switch mode
+                case 'right'
+                    right_shifted = NaN(size(V));
+                    % Shift according to direction and increment in index.
+                    right_shifted(1:rem(1), 1:rem(2), 1:rem(3), :) = ...
+                        V(ind_inc(2)+1: end, ind_inc(1)+1: end, ind_inc(3)+1: end, :);
+                    dif = right_shifted - V;
+                case 'left'
+                    left_shifted = NaN(size(V));
+                    % Shift according to direction and increment in index.
+                    left_shifted(ind_inc(2)+1: end, ind_inc(1)+1: end, ind_inc(3)+1: end, :) = ...
+                        V(1:rem(1), 1:rem(2), 1:rem(3), :);
+                    dif = V - left_shifted;
+                case 'central'
+                    nder = (vf.diff1(V, ind_inc, 'right', range) + vf.diff1(V, ind_inc, 'left', range)) / 2;
+                    return
+            end
+            % Compute displacement in direction and differentiate.
+            nder = dif / norm(vf.resol .* ind_inc);
+        end
+        
+        function jacob = jacobian(vf, mode, range)
         end
         
     end
