@@ -195,7 +195,7 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        function plt = plotScalar(vf, Mag, noise, title_str, range)
+        function plt = plotScalar(vf, S, noise, title_str, range)
             % Show a color map of the scalar field over the range
             % specified, defaulted to global.
             
@@ -204,17 +204,17 @@ classdef VelocityField < handle
             end
             % Subset region plotted.
             X = vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
-            Mag = Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            S = S(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
             % Collapse 4D matrix into a set of points.
             X = reshape(X, [], 3);
-            Mag = Mag(:);
+            S = S(:);
             % Scaled size of each dot displayed. TODO: more fitting
             % expression.
             dif = sort(range(:,2) - range(:,1), 2);
             dot_size = 40^(sum(dif ~= 0)-1)/(dif(1)*dif(2));
             
             plt = figure;
-            scatter3(X(:,1), X(:,2), X(:,3), dot_size, Mag + noise, 'filled');
+            scatter3(X(:,1), X(:,2), X(:,3), dot_size, S + noise, 'filled');
             
             colorbar
             xlabel('$x$')
@@ -223,7 +223,7 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        function plt = slicePlanes(vf, Mag, noise, planes, title_str, range)
+        function plt = slicePlanes(vf, S, noise, planes, title_str, range)
             % SLICEPLANES renders continuous color plots on the planes
             % whose equations are specified. planes are in the format of
             % [[orth base]...] for all the planes to be plotted.
@@ -234,12 +234,12 @@ classdef VelocityField < handle
                 range = [ones(3, 1) vf.dims'];
             end
             X = vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
-            Mag = Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+            S = S(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
             
             for i = 1: size(planes, 1)
                 eq = squeeze(planes(i, :, :));
                 z = (dot(eq(:,2), eq(:,1)) - eq(1,1)*X(:,:,1,1) - eq(2,1)*X(:,:,1,2)) / eq(3,1);
-                slice(squeeze(X(:,:,:,1)), squeeze(X(:,:,:,2)), squeeze(X(:,:,:,3)), Mag + noise, ...
+                slice(squeeze(X(:,:,:,1)), squeeze(X(:,:,:,2)), squeeze(X(:,:,:,3)), S + noise, ...
                     squeeze(X(:,:,1,1)), squeeze(X(:,:,1,2)), z)
                 hold on
             end
@@ -279,7 +279,7 @@ classdef VelocityField < handle
             onPlane = skewPlaneMatrix(vf.X, eq(:, 1), eq(:, 2), 1);
         end
         
-        function plt = plotPlaneScalar(vf, Mag, noise, range, title_str)
+        function plt = plotPlaneScalar(vf, S, noise, range, title_str)
             % Plots a scalar field Mag over X.
             % Mag is a 3D matrix of corresponding to positions in X.
             % Only a regular plane is currently allowed.
@@ -288,7 +288,7 @@ classdef VelocityField < handle
             index = find((range(:,2) - range(:,1)) == 0, 1);
             % Extract the plane.
             x = squeeze(vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
-            Mag = squeeze(Mag(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
+            S = squeeze(S(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
             % Dimensionalize noise to allow scalar input.
             if isequal(size(noise), [1 1])
                 noise = repmat(noise, vf.dims);
@@ -300,18 +300,41 @@ classdef VelocityField < handle
             switch index
                 case 1 %y
                     % Non right-handed space.
-                    surf(x(:,:,1), x(:,:,3), Mag + noise);
+                    surf(x(:,:,1), x(:,:,3), S + noise);
                     xlabel('$x$')
                     ylabel('$z$')
                 case 2 %x
-                    surf(x(:,:,2), x(:,:,3), Mag + noise);
+                    surf(x(:,:,2), x(:,:,3), S + noise);
                     xlabel('$y$')
                     ylabel('$z$')
                 case 3 %z
-                    surf(x(:,:,1), x(:,:,2), Mag + noise);
+                    surf(x(:,:,1), x(:,:,2), S + noise);
                     xlabel('$x$')
                     ylabel('$y$')
             end
+            title(title_str)
+        end
+        
+        function plt = isosurfaces(vf, S, isovals, title_str, range)
+            % Given an array of values of a scalar field S, their
+            % isosurfaces are plotted.
+            
+            if ~exist('range', 'var')
+                range = [ones(3, 1) vf.dims'];
+            end
+            % Subset range.
+            X = squeeze(vf.X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :));
+            S = squeeze(S(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2)));
+            
+            plt = figure;
+            for isoval = isovals
+                isosurface(X(:,:,:,1), X(:,:,:,2), X(:,:,:,3), S, isoval)
+                hold on
+            end
+            colorbar
+            xlabel('$x$')
+            ylabel('$y$')
+            zlabel('$z$')
             title(title_str)
         end
         
