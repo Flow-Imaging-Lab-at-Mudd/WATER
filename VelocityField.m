@@ -483,23 +483,35 @@ classdef VelocityField < handle
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetVector(V);
             end
+            % Flip meshgrid x-y.
+            ind_inc2 = [ind_inc(2) ind_inc(1) ind_inc(3)];
             
-            % Range of differentiable values, from either corners, unspecified.
-            rem = size(V, 1:3) - [ind_inc(2) ind_inc(1) ind_inc(3)];
+            % Range of differentiable positions, from one of the bounds on the grid.
+            rem = size(V, 1:3) - abs(ind_inc2);
 
             switch mode
                 case 'right'
                     right_shifted = NaN(size(V));
-                    % Shift according to direction and increment in index.
-                    right_shifted(1:rem(1), 1:rem(2), 1:rem(3), :) = ...
-                        V(ind_inc(2)+1: end, ind_inc(1)+1: end, ind_inc(3)+1: end, :);
+                    % Range of differentiable indices.
+                    idx = zeros(2, 3, 2);
+                    for i = 1:3
+                        if ind_inc2(i) < 0
+                            idx(1, i, :) = [1-ind_inc2(i) size(V, i)];
+                            idx(2, i, :) = [1 rem(i)];
+                        else
+                            idx(1, i, :) = [1 rem(i)];
+                            idx(2, i, :) = [ind_inc2(i)+1 size(V, i)];
+                        end
+                    end
+                    right_shifted(idx(1,1,1):idx(1,1,2), idx(1,2,1):idx(1,2,2), ...
+                        idx(1,3,1):idx(1,3,2), :) = ...
+                        V(idx(2,1,1):idx(2,1,2), idx(2,2,1):idx(2,2,2), ...
+                        idx(2,3,1):idx(2,3,2), :);
                     dif = right_shifted - V;
                 case 'left'
-                    left_shifted = NaN(size(V));
-                    % Shift according to direction and increment in index.
-                    left_shifted(ind_inc(2)+1: end, ind_inc(1)+1: end, ind_inc(3)+1: end, :) = ...
-                        V(1:rem(1), 1:rem(2), 1:rem(3), :);
-                    dif = V - left_shifted;
+                    nder = -vf.diff1(V, -ind_inc, 'right');
+                    return
+                    
                 case 'central'
                     nder = (vf.diff1(V, ind_inc, 'right') + vf.diff1(V, ind_inc, 'left')) / 2;
                     return
