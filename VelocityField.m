@@ -326,21 +326,35 @@ classdef VelocityField < handle
                 % Compute z value based on equation of plane.
                 z = (dot(eq(:,2), eq(:,1)) - eq(1,1)*vf.X_e(:,:,1,1) - ...
                     eq(2,1)*vf.X_e(:,:,1,2)) / eq(3,1);
-                % Guard against x-z and y-z planes.
+                % Guard against planes with unrestricted z.
                 if isequal(isinf(z)+isnan(z), ones(size(z)))
-                    xslice = [];
-                    yslice = [];
-                    zslice = [];
-                    disp(i)
-                    switch find(eq(:, 1))
-                        case 1
-                            xslice = [eq(1, 2)];
-                        case 2
-                            yslice = [eq(2, 2)];
+                    % Regular planes.
+                    if max(size(find(eq(:, 1)))) == 1
+                        xslice = [];
+                        yslice = [];
+                        zslice = [];
+                        switch find(eq(:, 1))
+                            case 1
+                                xslice = [eq(1, 2)];
+                            case 2
+                                yslice = [eq(2, 2)];
+                        end
+                        slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
+                            squeeze(vf.X_e(:,:,:,3)), S + noise, ...
+                            xslice, yslice, zslice);
+                    else
+                        % Else the x (or y) value cannot be unconstrained.
+                        % Derive x from y and z.
+                        x = (dot(eq(:,2), eq(:,1)) - eq(2,1)*vf.X_e(:,1,:,2) - ...
+                            eq(3,1)*vf.X_e(:,1,:,3)) / eq(1,1);
+                        size(x)
+                        size(vf.X_e(:,1,:,2))
+                        size(squeeze(vf.X_e(:,1,:,3)))
+                        slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
+                            squeeze(vf.X_e(:,:,:,3)), S + noise, ...
+                            x, squeeze(vf.X_e(:,1,:,2)), squeeze(vf.X_e(:,1,:,3)));
                     end
-                    slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
-                        squeeze(vf.X_e(:,:,:,3)), S + noise, ...
-                        xslice, yslice, zslice);
+     
                 else
                     slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
                         squeeze(vf.X_e(:,:,:,3)), S + noise, ...
