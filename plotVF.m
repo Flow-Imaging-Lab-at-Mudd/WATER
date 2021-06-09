@@ -7,10 +7,11 @@ function plt = plotVF(X, Y, scale, range)
 % indices on the grid that corresponds to the rectangular region to be
 % plotted.
 %
-%
 % Note this plotting zooms in on the rectangular region specified by range.
 
-if ndims(X) ~= 4 || ndims(Y) ~= 4
+if ndims(X) ~= 4 || ndims(Y) ~= 4 || ~isequal(size(X), size(Y))
+    size(X)
+    size(Y)
     error('4D formatted vector field required!')
 end
 
@@ -19,8 +20,10 @@ if ~exist('range', 'var')
 end
 
 % Subset region plotted.
-X = X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
-Y = Y(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+if ~isequal(size(X), range * [-1 1]' + 1)
+    X = X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+    Y = Y(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
+end
 
 plt = figure;
 quiver3(X(:,:,:,1), X(:,:,:,2), X(:,:,:,3), Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3), scale)
