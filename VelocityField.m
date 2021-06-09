@@ -221,8 +221,8 @@ classdef VelocityField < handle
         function eqs = getRegPlaneEqs(vf, indices)
             % Index vectors stacked as rows in a 2D array.
             
-            eqs = zeros(size(indices, 2), 3, 2);
-            for i = 1: size(indices, 2)
+            eqs = zeros(size(indices, 1), 3, 2);
+            for i = 1: size(indices, 1)
                 eqs(i, :, :) = vf.getRegPlaneEq(indices(i, :));
             end
         end
@@ -323,11 +323,29 @@ classdef VelocityField < handle
             
             for i = 1: size(planes, 1)
                 eq = squeeze(planes(i, :, :));
+                % Compute z value based on equation of plane.
                 z = (dot(eq(:,2), eq(:,1)) - eq(1,1)*vf.X_e(:,:,1,1) - ...
                     eq(2,1)*vf.X_e(:,:,1,2)) / eq(3,1);
-                slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
-                    squeeze(vf.X_e(:,:,:,3)), S + noise, ...
-                    squeeze(vf.X_e(:,:,1,1)), squeeze(vf.X_e(:,:,1,2)), z);
+                % Guard against x-z and y-z planes.
+                if isequal(isinf(z)+isnan(z), ones(size(z)))
+                    xslice = [];
+                    yslice = [];
+                    zslice = [];
+                    disp(i)
+                    switch find(eq(:, 1))
+                        case 1
+                            xslice = [eq(1, 2)];
+                        case 2
+                            yslice = [eq(2, 2)];
+                    end
+                    slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
+                        squeeze(vf.X_e(:,:,:,3)), S + noise, ...
+                        xslice, yslice, zslice);
+                else
+                    slice(squeeze(vf.X_e(:,:,:,1)), squeeze(vf.X_e(:,:,:,2)), ...
+                        squeeze(vf.X_e(:,:,:,3)), S + noise, ...
+                        squeeze(vf.X_e(:,:,1,1)), squeeze(vf.X_e(:,:,1,2)), z);
+                end
                 hold on
             end
             
@@ -341,7 +359,7 @@ classdef VelocityField < handle
         function plt = plotPlaneVector(vf, V, eq, noise, title_str)
             % Plots an arbitrary plane in 3D space given either three
             % non-colinear points or a normal vector + base position paris
-            % formula.
+            % formula, stored as column vectors in a matrix.
             
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetVector(V);
