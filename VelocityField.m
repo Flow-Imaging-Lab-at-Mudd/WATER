@@ -48,6 +48,8 @@ classdef VelocityField < handle
         plotter
         % struct for invariant attributes of fluid.
         fluid
+        % struct for proportions of unit scaling.
+        scale
         % customized struct for user to store related properties not ordained in object definition.
         data
         
@@ -130,6 +132,9 @@ classdef VelocityField < handle
             
             % Default innate attributes.
             vf.fluid.density = 1;
+            
+            % Scaling factors.
+            vf.scale.len = 0.001;
             
             % Default solver attributes.
             vf.solver.dv = abs(vf.xresol*vf.yresol*vf.zresol);
@@ -244,7 +249,6 @@ classdef VelocityField < handle
             N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = rand([dims 3])*mag/sqrt(3);
             vf.N = vf.N + N;
-            vf.plotVector(vf.U_e, vf.subsetVector(N), '$\vec{u}$');
         end
         
         function N = noise_wgn(vf, sd, snr)
@@ -265,7 +269,6 @@ classdef VelocityField < handle
                     vf.range(3,1):vf.range(3,2), :) = sd/sqrt(3)*randn([dims 3]);
                 vf.N = vf.N + N;
             end
-            vf.plotVector(vf.U, vf.subsetVector(N), '$\vec{u}$');
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%% Plotters %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -280,6 +283,11 @@ classdef VelocityField < handle
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetVector(V);
             end
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
+            end
+            
             plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale);
             title(title_str)
         end
@@ -290,6 +298,10 @@ classdef VelocityField < handle
             
             if ~isequal(size(S, 1:3), vf.span)
                 S = vf.subsetVector(S);
+            end
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
             end
             
             % Collapse 4D matrix into a set of points.
@@ -310,7 +322,7 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        function plt = slicePlanes(vf, S, noise, planes, title_str)
+        function plt = slicePlanes(vf, S, planes, noise, title_str)
             % SLICEPLANES renders continuous color plots on the planes
             % whose equations are specified. planes are in the format of
             % [[orth base]...] for all the planes to be plotted.
@@ -319,6 +331,10 @@ classdef VelocityField < handle
             % Subset grid.
             if ~isequal(size(S, 1:3), vf.span)
                 S = vf.subsetVector(S);
+            end
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
             end
             
             for i = 1: size(planes, 1)
@@ -378,6 +394,10 @@ classdef VelocityField < handle
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetVector(V);
             end
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
+            end
             % Obtain a matching 4D boolean matrix indicating membership of
             % points on the plane.
             onPlane = skewPlaneMatrix(vf.X_e, eq(:,1), eq(:,2), 3);
@@ -386,7 +406,7 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        function plt = plotScalarPlaneSkewed(vf, Mag, noise, eq, title_str)
+        function plt = plotScalarPlaneSkewed(vf, Mag, eq, noise, title_str)
             % Derive plane equation if a normal plane is given.
             if isequal(eq(:, 2), zeros(3, 1))
                 
@@ -395,10 +415,15 @@ classdef VelocityField < handle
             onPlane = skewPlaneMatrix(vf.X, eq(:, 1), eq(:, 2), 1);
         end
         
-        function plt = plotPlaneScalar(vf, S, noise, range, title_str)
+        function plt = plotPlaneScalar(vf, S, range, noise, title_str)
             % Plots a scalar field S over X.
             % S is a 3D matrix of corresponding to positions in X.
             % Only a regular plane is currently allowed.
+            
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
+            end
             
             % Flip x-y due to meshgrid convention.
             xrange = range(2, :);
@@ -436,7 +461,7 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        function plt = isosurfaces(vf, S, isovals, title_str)
+        function plt = isosurfaces(vf, S, isovals, noise, title_str)
             % Given an array of values of a scalar field S, their
             % isosurfaces are plotted.
             
@@ -444,11 +469,15 @@ classdef VelocityField < handle
             if ~isequal(size(S, 1:3), vf.span)
                 S = vf.subsetVector(S);
             end
+            % Global noise allowed for automatic subsetting.
+            if isequal(size(noise, 1:3), vf.dims)
+                noise = vf.subsetVector(noise);
+            end
             
             plt = figure;
             for isoval = isovals
                 isosurface(vf.X_e(:,:,:,1), vf.X_e(:,:,:,2), vf.X_e(:,:,:,3), ...
-                    S, isoval)
+                    S + noise, isoval)
                 hold on
             end
             colorbar
@@ -460,12 +489,18 @@ classdef VelocityField < handle
         
         %%%%%%%%%%%%%%%%%%% Solvers of Derived Quantities %%%%%%%%%%%%%%%%%%
         
-        function k = kineticEnergy(vf)
+        function k = kineticEnergy(vf, with_noise)
             
             % Selected mode of computation.
             switch vf.solver.ke.mode
                 case 'direct'
-                    k = 1/2*vf.fluid.density*vf.solver.dv*sum(vf.U_e.^2, 'all');
+                    if with_noise
+                        k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
+                            sum((vf.U_e + vf.subsetVector(vf.N)).^2, 'all');
+                    else
+                        k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
+                            sum(vf.U_e.^2, 'all');
+                    end
             end
         end
         
@@ -522,7 +557,7 @@ classdef VelocityField < handle
         
         function jacob = jacobian(vf, V, mode)
             % Compute the jacobian matrix (or gradient, or derivative
-            % matrix) of 'V' with numerical scheme given in 'mode'
+            % matrix) of 'V' with numerical scheme given in 'mode'.
             
             % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
@@ -533,15 +568,17 @@ classdef VelocityField < handle
             
             switch mode
                 case 'unit'
-                    jacob(:, :, :, 1, :) = vf.diff1(V, [1 0 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 2, :) = vf.diff1(V, [0 1 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 3, :) = vf.diff1(V, [0 0 1], vf.solver.diff.mode);
+                    jacob(:, :, :, 1, :) = (vf.xresol>0)*vf.diff1(V, [1 0 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 2, :) = (vf.yresol>0)*vf.diff1(V, [0 1 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 3, :) = (vf.zresol>0)*vf.diff1(V, [0 0 1], vf.solver.diff.mode);
             end
         end
         
         function div = div(vf, V)
             % Compute the divergence of the vector in the set region of
             % interest.
+            %
+            % Discrepant with expected results for now.
             
              % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
@@ -552,9 +589,9 @@ classdef VelocityField < handle
             switch vf.solver.diff.order
                 case 1
                     % Ensure diff direction in increasing x, y, z by boolean multiplication.
-                    div = squeeze(vf.diff1(V(:,:,:,1), [1 0 0], vf.solver.diff.mode)*(vf.xresol>=0) + ...
-                        vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.yresol>=0) + ...
-                        vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zresol>=0));
+                    div = squeeze(vf.diff1(V(:,:,:,1), [1 0 0], vf.solver.diff.mode)*(vf.xresol>0) + ...
+                        vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.yresol>0) + ...
+                        vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zresol>0));
             end
         end
         
