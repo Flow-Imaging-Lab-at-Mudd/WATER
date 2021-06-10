@@ -3,13 +3,16 @@ vf.setRange([27 30; 20 22; 10 12]);
 speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol = [3 5; 3 5; 3 5];
+vol = [30 40; 30 40; 30 39];
 
 % Introduce noise proportionally.
 props = (1:30) * 0.1;
-d
+
 % Randomly sample effective regions.
 num_ite = 20;
+% Linear correlations.
+cor = zeros([num_ite 2]);
+
 for j = 1: num_ite
     % Random range.
     range = randRange(vf.dims, vol);
@@ -46,10 +49,14 @@ for j = 1: num_ite
     % Plot absolute KE error.
     subplot(2, 2, 3)
     scatter(props(1:10), abs(dK(1:10)))
+    cor(i, 1) = corr(props(1:10), abs(dK(1:10)));
+    title(strcat('$r = $', string(cor(i, 1))))
     xlabel('$|\delta u|$ (per maximum speed)')
     ylabel('$|\delta K|$ (J)')
     subplot(2, 2, 4)
     scatter(props, abs(dK))
+    cor(i, 2) = corr(props, abs(dK));
+    title(strcat('$r = $', string(cor(i, 2))))
     xlabel('$|\delta u|$ (per maximum speed)')
     ylabel('$|\delta K|$ (J)')
     
@@ -58,4 +65,10 @@ for j = 1: num_ite
     
     pause
     close
+end
+
+% Short hand for computing correlations given two row vectors.
+function cor = corr(r1, r2)
+    cor = corrcoef([r1; r2]');
+    cor = cor(2, 1);
 end
