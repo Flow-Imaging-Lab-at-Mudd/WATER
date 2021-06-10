@@ -52,10 +52,32 @@ vf.noise_wgn(sd = 0, snr = 10)
 We can visualize the magnitude of this noise along a regular plane, a plane orthogonal to one of the basis vectors. Here we use an additional parameter to specify the plane, considering the planar region probably differs from the 3D region of interest specified earlier. Picking the i<sup>th</sup> orthogonal plane to the x axis, we use `range = [i i; j_0 j_f; k_0 k_f]`, where the dimension with identical beginning and ending indices indicates the direction of normality as well as the index of the plane, and the other two dimensions specify the range of the plane on which noise is to be plotted.
 
 ```matlab
-vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), noise = 0, range, title_str = 'noise $\delta u$')
+vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), range, noise = 0, title_str = 'noise $\delta u$')
+```
+![plane velocity](https://github.com/epicderek/flow/blob/master/illu/noise_plane.jpg)
+
+To show noise on multiple planes, we generate a Matlab slice plot. Obtaining the equations for the planes in the standard format, stored as a n x 3 x 2 matrix `eqs`, we call
+
+```matlab
+vf.slicePlanes(sqrt(sum(vf.N.^2,4)), eqs, noise = 0, 'noise $\Delta u$');
 ```
 
-(Figure goes here)
+![slices](https://github.com/epicderek/flow/blob/master/illu/noise_slice.jpg)
 
-To show noise on multiple planes, we generate a Matlab slice plot.
+The blank grids are where the planar positions are not proximate enough to the positions on the grid.
+
+Finally, though not applicable to large regions and not especially insightful, we can make a scatter plot of the noise.
+
+```matlab
+ vf.plotScalar(sqrt(sum(vf.N.^2, 4)), noise = '$\Delta u$')
+```
+![scatter3](https://github.com/epicderek/flow/blob/master/illu/scalar-scatter.jpg)
+
+For a continuous scalar field, in addition to `plotPlaneScalar()` and `slicePlanes()`, a standard isosurface plot can also be generated. The required proximity of the actual values in the field to the values specified is as ordained by Matlab's `isosurface()`, which may be examined further. Here we plot two isosurfaces of speed.
+
+```matlab
+vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
+```
+
+![isosurface](https://github.com/epicderek/flow/blob/master/illu/isosurface.jpg)
 
