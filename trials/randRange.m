@@ -1,0 +1,9 @@
+function range = randRange(dims, bounds)
+% 'dims' is in the form of vf.dims where the x, y sizes are flipped.
+% bounds = [step_i_min step_i_max; [...]; [...]]
+
+range = [randi(dims(2) - bounds(1, 2)); ...
+    randi(dims(1) - bounds(2, 2)); ...
+    randi(dims(3) - bounds(3, 2))];
+range(:, 2) = range(:, 1) + max([[randi(bounds(1, 2)); ...
+    randi(bounds(2, 2)); randi(bounds(3, 2))] bounds(:, 1)], [], 2);
