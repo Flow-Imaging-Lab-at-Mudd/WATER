@@ -17,6 +17,8 @@ classdef VelocityField < handle
         dims
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
+        % Noise in the region of interest.
+        N_e
         
         % Derived fields.
         
@@ -37,7 +39,8 @@ classdef VelocityField < handle
         % Array of resolutions.
         resol
         
-        % Range for computation and visualization.
+        % Range for computation and visualization. This region is denoted
+        % the Effective Region.
         range
         % Length of range in 3 dimensions.
         span
@@ -50,7 +53,7 @@ classdef VelocityField < handle
         fluid
         % struct for proportions of unit scaling.
         scale
-        % customized struct for user to store related properties not ordained in object definition.
+        % Customized struct for user to store related properties not ordained in object definition.
         data
         
     end
@@ -119,6 +122,7 @@ classdef VelocityField < handle
             vf.span = (vf.range*[-1; 1])' + 1;
             vf.X_e = X;
             vf.U_e = U;
+            vf.N_e = vf.N;
             
             vf.initPropertyStructs();
             set(0,'defaultTextInterpreter','latex');
@@ -166,6 +170,7 @@ classdef VelocityField < handle
             % Subset effective region.
             vf.X_e = vf.subsetVector(vf.X);
             vf.U_e = vf.subsetVector(vf.U);
+            vf.N_e = vf.subsetVector(vf.N);
         end
         
         function v = subsetVector(vf, V)
@@ -241,33 +246,43 @@ classdef VelocityField < handle
             vf.N = zeros(size(vf.U));
         end
         
-        function N = noise_uniform(vf, mag)
+        function setNoise(vf, N_e)
+            % Set noise in the current effective region.
             
-            % Noise is added to the global field for accumulation.
-            N = zeros(size(vf.U));
-            dims = (vf.range(:,2) - vf.range(:,1) + 1)';
-            N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
-                vf.range(3,1):vf.range(3,2), :) = rand([dims 3])*mag/sqrt(3);
-            vf.N = vf.N + N;
+            if ~isequal(size(N_e), size(vf.N_e))
+                error('Mismatching Dimensions of Noise and Global Velocity')
+            end
+            vf.N_e = N_e;
+            vf.N(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2)) = N_e;
         end
         
-        function N = noise_wgn(vf, sd, snr)
+        function N_e = noise_uniform(vf, mag)
+            % Add uniform noise to the effective region.
+            
+            dims = (vf.range(:,2) - vf.range(:,1) + 1)';
+            N_e = rand([dims 3])*mag/sqrt(3);
+            vf.N_e = vf.N_e + N_e;
+            vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
+                vf.range(3,1):vf.range(3,2), :) = vf.N_e;
+        end
+        
+        function N_e = noise_wgn(vf, sd, snr)
             % Add white gaussian noise specified by either a standard
-            % deviation or a signal-to-noise ratio.
+            % deviation or a signal-to-noise ratio to the effective region.
             
             if sd == 0
-                N = vf.N;
+                N_e = vf.N_e;
+                vf.N_e = awgn(N_e, snr);
                 vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
-                    vf.range(3,1):vf.range(3,2), :) = ...
-                    awgn(vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
-                    vf.range(3,1):vf.range(3,2), :), snr);
-                N = vf.N - N;
+                    vf.range(3,1):vf.range(3,2), :) = vf.N_e;
+                N_e = vf.N_e - N_e;
             else
-                N = zeros(size(vf.U));
                 dims = (vf.range(:,2) - vf.range(:,1) + 1)';
-                N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
-                    vf.range(3,1):vf.range(3,2), :) = sd/sqrt(3)*randn([dims 3]);
-                vf.N = vf.N + N;
+                N_e = sd/sqrt(3)*randn([dims 3]);
+                vf.N_e = vf.N_e + N_e;
+                vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
+                    vf.range(3,1):vf.range(3,2), :) = vf.N_e;
             end
         end
         
@@ -494,15 +509,19 @@ classdef VelocityField < handle
             % Selected mode of computation.
             switch vf.solver.ke.mode
                 case 'direct'
-                    if with_noise
-                        k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
-                            sum((vf.U_e + vf.subsetVector(vf.N)).^2, 'all');
-                    else
-                        k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
-                            sum(vf.U_e.^2, 'all');
-                    end
+                    k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
+                            sum((vf.U_e + with_noise*vf.N_e).^2, 'all');
             end
         end
+        
+        function u_mean = meanSpeed(vf, with_noise)
+            vf.data.speed = sqrt(sum((vf.U_e + with_noise*vf.N_e).^2, 4));
+            u_mean = mean(vf.data.speed, 'all');
+            % Store for cutomary access later.
+            vf.data.speed_mean = u_mean;
+        end
+        
+        
         
         %%%%%%%%%%%%%%%%%%% Differential Methods %%%%%%%%%%%%%%%%%%%%%%
         
