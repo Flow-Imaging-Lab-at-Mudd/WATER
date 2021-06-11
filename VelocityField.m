@@ -283,7 +283,7 @@ classdef VelocityField < handle
             end
             
             dims = (vf.range(:,2) - vf.range(:,1) + 1)';
-            N_e = rand([dims 3]).* mag/sqrt(3);
+            N_e = rand([dims 3]).* mag/sqrt(3) * randsample([-1 1], 1);
             vf.N_e = vf.N_e + N_e;
             vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
