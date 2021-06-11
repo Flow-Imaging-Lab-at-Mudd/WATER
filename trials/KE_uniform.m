@@ -2,10 +2,12 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol = [8 10; 8 10; 8 10];
+vol_range = [3 5; 3 6; 3 6];
 
 % Introduce noise proportionally.
-props = (1:30) * 0.1;
+props = 0: 0.1: 3;
+% Index by which linearity no longer approximates.
+lin_index = 5;
 
 % Randomly sample effective regions.
 num_ite = 20;
@@ -14,15 +16,17 @@ cor = zeros([num_ite 2]);
 
 for j = 1: num_ite
     % Random range.
-    range = randRange(vf.dims, vol);
+    range = randRange(vf.dims, vol_range);
     range
     vf.setRange(range)
+    % Each velocity component associated with a unit cell.
+    vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
     
     % Max speed in region of interest.
     speed_r = vf.subsetVector(speed);
     max_speed_r = max(speed_r, [], 'all');
     % Set constant maximal magnitude of noise.
-    err_mag = vf.meanSpeed(0) / 4;
+    err_mag = vf.meanSpeed(0, 0);
     dK = zeros(size(props));
     
     % Kinetic energy without noise.
@@ -34,38 +38,51 @@ for j = 1: num_ite
         dK(i) = vf.kineticEnergy(1) - k;
     end
     
+    % Normalize.
+    dK = dK / k;
     % Plot KE error.
     figure;
     subplot(2, 2, 1)
-    scatter(props(1:10), dK(1:10), 'filled')
-    xlabel('$|\delta u|$ (per mean speed)')
-    ylabel('$\delta K$ (J)')
+    scatter(props(1:lin_index), dK(1:lin_index), 'filled')
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel('$\frac{\delta K}{K}$')
     subplot(2, 2, 2)
     scatter(props, dK, 'filled')
-    xlabel('$|\delta u|$ (per mean speed)')
-    ylabel('$\delta K$ (J)')
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel('$\frac{\delta K}{K}$')
     
     % Plot absolute KE error.
     subplot(2, 2, 3)
-    scatter(props(1:10), abs(dK(1:10)), 'filled')
+    scatter(props(1:lin_index), abs(dK(1:lin_index)), 'filled')
     cor(i, 1) = corr(props(1:10), abs(dK(1:10)));
-    title(strcat('$r = $', string(cor(i, 1))))
-    xlabel('$|\delta u|$ (per mean speed)')
-    ylabel('$|\delta K|$ (J)')
+    % title(strcat('$r = $', string(cor(i, 1))))
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel('$|\frac{\delta K}{K}|$')
     subplot(2, 2, 4)
     scatter(props, abs(dK), 'filled')
+    hold on
+    % Theoretical quadratic correlation.
+    pred = vf.fluid.density*vol*err_mag^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
+    % plot(props, pred)
     cor(i, 2) = corr(props, abs(dK));
-    title(strcat('$r = $', string(cor(i, 2))))
-    xlabel('$|\delta u|$ (per mean speed)')
-    ylabel('$|\delta K|$ (J)')
+    % title(strcat('$r = $', string(cor(i, 2))))
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel('$|\frac{\delta K}{K}|$')
     
-    sgtitle(strcat('Volume:', {' '}, strjoin(string(range(:,2)-range(:,1))), ...
-        {'; '}, '$\bar{u} = $', string(vf.meanSpeed(0))))
+%     sgtitle(strcat('$\frac{\bar{u}V}{}=$', {' '}, ...
+%         string(prod(range(:,2)-range(:,1))/err_mag), ...
+%         {' $\textrm{mm}^{2}$s'}))
+
+    sgtitle(strcat('Volume:', {' '}, strjoin(string(range(:,2)-range(:,1)))))
     
-    uerr_histogram(vf.N_e);
+    % uerr_histogram(vf.N_e);
     
-%     vf.plotVector(vf.U_e, 0, '')
-%     vf.plotScalar(sqrt(sum(vf.N_e.^2, 4)), 0, '')
+%     vf.plotVector(vf.U_e, 0, '');
+%     vf.plotScalar(sqrt(sum(vf.N_e.^2, 4)), 0, '');
+    plane_range = range;
+    % Plot a parallel xy plane.f
+    plane_range(3, 2) = plane_range(3, 1);
+    % vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), plane_range, 0, 'noise $\Delta u$')
     
     pause
     close all

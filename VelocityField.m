@@ -149,7 +149,7 @@ classdef VelocityField < handle
             vf.scale.len = 0.001;
             
             % Default solver attributes.
-            vf.solver.dv = abs(vf.xresol*vf.yresol*vf.zresol);
+            vf.solver.dv = vf.scale.len^3*abs(vf.xresol*vf.yresol*vf.zresol);
             
             % Properties of differentiation.
             vf.solver.diff.order = 1;
@@ -160,6 +160,8 @@ classdef VelocityField < handle
             % Default plotter attributes.
             vf.plotter.quiverScale = 1;
         end
+        
+        % Setters needed for updating dependent quantities, e.g. dv.
         
         function setRange(vf, range)
             % Set range = [i_min i_max; j_min j_max; k_min k_max] on which
@@ -535,14 +537,18 @@ classdef VelocityField < handle
             % Selected mode of computation.
             switch vf.solver.ke.mode
                 case 'direct'
-                    k = 1/2*vf.fluid.density*vf.solver.dv*vf.scale.len^5* ...
+                    k = 1/2*vf.fluid.density * vf.solver.dv * vf.scale.len^2 * ...
                             sum((vf.U_e + with_noise*vf.N_e).^2, 'all');
             end
         end
         
-        function u_mean = meanSpeed(vf, with_noise)
-            vf.data.speed_e = sqrt(sum((vf.U_e + with_noise*vf.N_e).^2, 4));
-            u_mean = mean(vf.data.speed_e, 'all');
+        function u_mean = meanSpeed(vf, with_unit, with_noise)
+            speed_e = sqrt(sum((vf.U_e + with_noise*vf.N_e).^2, 4));
+            if with_unit
+                u_mean = mean(speed_e, 'all') * vf.scale.len;
+            else
+                u_mean = mean(speed_e, 'all');
+            end
         end
         
         
