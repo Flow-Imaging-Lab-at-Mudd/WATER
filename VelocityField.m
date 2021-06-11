@@ -135,7 +135,7 @@ classdef VelocityField < handle
             % by the user, without getter or setter functions.
             
             % Default innate attributes.
-            vf.fluid.density = 1;
+            vf.fluid.density = 1000;
             
             % Scaling factors.
             vf.scale.len = 0.001;
@@ -244,6 +244,7 @@ classdef VelocityField < handle
         
         function clearNoise(vf)
             vf.N = zeros(size(vf.U));
+            vf.N_e = zeros(size(vf.U_e));
         end
         
         function setNoise(vf, N_e)
@@ -254,14 +255,19 @@ classdef VelocityField < handle
             end
             vf.N_e = N_e;
             vf.N(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
-                vf.range(3,1): vf.range(3,2)) = N_e;
+                vf.range(3,1): vf.range(3,2), :) = N_e;
         end
         
         function N_e = noise_uniform(vf, mag)
             % Add uniform noise to the effective region.
             
+            if isequal(size(mag), vf.span)
+                mag(:,:,:,2) = mag;
+                mag(:,:,:,3) = mag(:,:,:,1);
+            end
+            
             dims = (vf.range(:,2) - vf.range(:,1) + 1)';
-            N_e = rand([dims 3])*mag/sqrt(3);
+            N_e = rand([dims 3]).* mag/sqrt(3);
             vf.N_e = vf.N_e + N_e;
             vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
@@ -515,10 +521,8 @@ classdef VelocityField < handle
         end
         
         function u_mean = meanSpeed(vf, with_noise)
-            vf.data.speed = sqrt(sum((vf.U_e + with_noise*vf.N_e).^2, 4));
-            u_mean = mean(vf.data.speed, 'all');
-            % Store for cutomary access later.
-            vf.data.speed_mean = u_mean;
+            vf.data.speed_e = sqrt(sum((vf.U_e + with_noise*vf.N_e).^2, 4));
+            u_mean = mean(vf.data.speed_e, 'all');
         end
         
         

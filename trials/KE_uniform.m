@@ -1,9 +1,9 @@
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-vf.setRange([27 30; 20 22; 10 12]);
+vf.U = abs(vf.U);
 speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol = [30 40; 30 40; 30 39];
+vol = [8 10; 8 10; 8 10];
 
 % Introduce noise proportionally.
 props = (1:30) * 0.1;
@@ -38,33 +38,36 @@ for j = 1: num_ite
     % Plot KE error.
     figure;
     subplot(2, 2, 1)
-    scatter(props(1:10), dK(1:10))
-    xlabel('$|\delta u|$ (per maximum speed)')
+    scatter(props(1:10), dK(1:10), 'filled')
+    xlabel('$|\delta u|$ (per mean speed)')
     ylabel('$\delta K$ (J)')
     subplot(2, 2, 2)
-    scatter(props, dK)
-    xlabel('$|\delta u|$ (per maximum speed)')
+    scatter(props, dK, 'filled')
+    xlabel('$|\delta u|$ (per mean speed)')
     ylabel('$\delta K$ (J)')
     
     % Plot absolute KE error.
     subplot(2, 2, 3)
-    scatter(props(1:10), abs(dK(1:10)))
+    scatter(props(1:10), abs(dK(1:10)), 'filled')
     cor(i, 1) = corr(props(1:10), abs(dK(1:10)));
     title(strcat('$r = $', string(cor(i, 1))))
-    xlabel('$|\delta u|$ (per maximum speed)')
+    xlabel('$|\delta u|$ (per mean speed)')
     ylabel('$|\delta K|$ (J)')
     subplot(2, 2, 4)
-    scatter(props, abs(dK))
+    scatter(props, abs(dK), 'filled')
     cor(i, 2) = corr(props, abs(dK));
     title(strcat('$r = $', string(cor(i, 2))))
-    xlabel('$|\delta u|$ (per maximum speed)')
+    xlabel('$|\delta u|$ (per mean speed)')
     ylabel('$|\delta K|$ (J)')
     
     sgtitle(strcat('Volume:', {' '}, strjoin(string(range(:,2)-range(:,1))), ...
         {'; '}, '$\bar{u} = $', string(vf.meanSpeed(0))))
     
+%     vf.plotVector(vf.U_e, 0, '')
+%     vf.plotScalar(sqrt(sum(vf.N_e.^2, 4)), 0, '')
+    
     pause
-    close
+    close all
 end
 
 % Short hand for computing correlations given two row vectors.
