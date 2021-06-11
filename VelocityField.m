@@ -20,6 +20,14 @@ classdef VelocityField < handle
         % Noise in the region of interest.
         N_e
         
+        % Commonly computed fields. Not computed automatically over
+        % subsetting operations.
+        
+        % Magnitude of the velocity noise.
+        n
+        % n in the effective region.
+        n_e
+        
         % Derived fields.
         
         % Lower and upper bounds of x values.
@@ -258,6 +266,13 @@ classdef VelocityField < handle
                 vf.range(3,1): vf.range(3,2), :) = N_e;
         end
         
+        function noiseMagnitude(vf)
+            % Compute the magnitude of velocity in effective region and
+            % globally.
+            vf.n = sqrt(sum(vf.N.^2, 4));
+            vf.n_e = sqrt(sum(vf.N_e.^2, 4));
+        end
+        
         function N_e = noise_uniform(vf, mag)
             % Add uniform noise to the effective region.
             
@@ -279,11 +294,10 @@ classdef VelocityField < handle
             % deviation or a signal-to-noise ratio to the effective region.
             
             if sd == 0
-                N_e = vf.N_e;
-                vf.N_e = awgn(N_e, snr);
+                N_e = awgn(vf.U_e, snr) - vf.U_e;
+                vf.N_e = vf.N_e + N_e;
                 vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                     vf.range(3,1):vf.range(3,2), :) = vf.N_e;
-                N_e = vf.N_e - N_e;
             else
                 dims = (vf.range(:,2) - vf.range(:,1) + 1)';
                 N_e = sd/sqrt(3)*randn([dims 3]);
@@ -438,9 +452,14 @@ classdef VelocityField < handle
         end
         
         function plt = plotPlaneScalar(vf, S, range, noise, title_str)
-            % Plots a scalar field S over X.
+            % Plots a scalar field S over X. This method requires that S is
+            % given over the entire grid. To be fixed?
+            
             % S is a 3D matrix of corresponding to positions in X.
             % Only a regular plane is currently allowed.
+            % 'range' here is in the standard xyz format, of three rows
+            % each giving the beginning and ending indices in that
+            % dimension, not the flipped meshgrid format.
             
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
@@ -448,9 +467,9 @@ classdef VelocityField < handle
             end
             
             % Flip x-y due to meshgrid convention.
-            xrange = range(2, :);
+            yrange = range(2, :);
             range(2, :) = range(1, :);
-            range(1, :) = xrange;
+            range(1, :) = yrange;
             % Find dimension, i.e. x,y,z, perpendicular to the plane.
             index = find((range(:,2) - range(:,1)) == 0, 1);
             % Extract the plane.
