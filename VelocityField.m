@@ -261,6 +261,7 @@ classdef VelocityField < handle
         function N_e = noise_uniform(vf, mag)
             % Add uniform noise to the effective region.
             
+            % Option for adding noise with magnitude defined per position.
             if isequal(size(mag), vf.span)
                 mag(:,:,:,2) = mag;
                 mag(:,:,:,3) = mag(:,:,:,1);

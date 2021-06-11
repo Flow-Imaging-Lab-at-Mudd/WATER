@@ -1,5 +1,4 @@
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-vf.U = abs(vf.U);
 speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
@@ -63,6 +62,8 @@ for j = 1: num_ite
     sgtitle(strcat('Volume:', {' '}, strjoin(string(range(:,2)-range(:,1))), ...
         {'; '}, '$\bar{u} = $', string(vf.meanSpeed(0))))
     
+    uerr_histogram(vf.N_e);
+    
 %     vf.plotVector(vf.U_e, 0, '')
 %     vf.plotScalar(sqrt(sum(vf.N_e.^2, 4)), 0, '')
     
@@ -74,4 +75,12 @@ end
 function cor = corr(r1, r2)
     cor = corrcoef([r1; r2]');
     cor = cor(2, 1);
+end
+
+function plt = uerr_histogram(N)
+    plt = figure;
+    N = sqrt(sum(N.^2, 4));
+    histogram(N(:));
+    xlabel('$\Delta u$')
+    ylabel('frequency')
 end
