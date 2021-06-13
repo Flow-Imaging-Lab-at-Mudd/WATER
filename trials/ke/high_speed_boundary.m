@@ -2,12 +2,14 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % High speed region.
-range_hs = [26 39; 7 22; 11 30];
+range_hs = [26 39; 7 22; 17 26];
 
-% Range enveloping the high speed region. 
+% Range enveloping the high-speed region. 
 range_en = [25 46; 9 29; 9 33];
-% Range in which the high speed region is on the boundary.
-range_bound = [25 46; 9 29; 18 40];
+% Range in which the high-speed region is on the boundary.
+range_bound = [25 46; 9 29; 16 40];
+% Note that both regions enclose the high-speed region, which is completely
+% smoothed by both.
 
 % Overall region containing the three former regions on which noise is
 % introduced.
@@ -64,6 +66,7 @@ for i = 1: size(props, 2)
     vf.setNoise(N_e)
     % Smoothing in bounding region.
     vf.setRange(range_bound)
+    isequal(Ne1, Ne2)
     vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), 'box') - vf.U_e(:,:,:,1);
     vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), 'box') - vf.U_e(:,:,:,2);
     vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), 'box') - vf.U_e(:,:,:,3);
@@ -85,7 +88,7 @@ dK_bound = dK_bound / k;
 % hold on
 % scatter(props, dK_en, 'filled')
 % hold on
-% scatter(props, dK_bound, 'filled')
+% scatter(props, dK_bound, '*')
 % legend('unfiltered error', 'enveloping filter', 'boundary filter')
 % xlabel('$\frac{|\delta u|}{\bar{u}}$')
 % ylabel('$\frac{\delta K}{K}$')
@@ -95,9 +98,9 @@ dK_bound = dK_bound / k;
 figure;
 scatter(props, abs(dK), 'filled')
 hold on
-scatter(props, abs(dK_en), 'r', 'filled')
+scatter(props, abs(dK_en), 'filled')
 hold on
-scatter(props, abs(dK_bound), 'filled')
+scatter(props, abs(dK_bound), '*')
 legend('unfiltered error', 'enveloping filter', 'boundary filter')
 xlabel('$\frac{|\delta u|}{\bar{u}}$')
 ylabel('$|\frac{\delta K}{K}|$')
