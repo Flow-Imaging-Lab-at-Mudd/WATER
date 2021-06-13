@@ -183,6 +183,13 @@ classdef VelocityField < handle
             vf.N_e = vf.subsetVector(vf.N);
         end
         
+        function range = getRange(vf)
+            % Obtain the current effective region with indices organized in
+            % x y z order.
+            
+            range = [vf.range(2,:); vf.range(1,:); vf.range(3,:)];
+        end
+        
         function v = subsetVector(vf, V)
             % Identical to VF.getVector except that 'range' is now in the
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
@@ -283,9 +290,12 @@ classdef VelocityField < handle
                 mag(:,:,:,2) = mag;
                 mag(:,:,:,3) = mag(:,:,:,1);
             end
-            
             dims = (vf.range(:,2) - vf.range(:,1) + 1)';
             N_e = (rand([dims 3])*2 - 1) .* mag/sqrt(3);
+%             disp('N_e = ')
+%             size(N_e)
+%             disp('vf.N_e = ')
+%             size(vf.N_e)
             vf.N_e = vf.N_e + N_e;
             vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
