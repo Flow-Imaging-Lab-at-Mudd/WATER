@@ -1,13 +1,16 @@
-% Presumed parameters: 'range', 'vf' with range properly set, 'props' for
-% proporitons of noise introduced, 'lin_index' for plotting short/long range,
-% 'speed' for global speed without noise, and 'vol_range' for selecting
-% random effective regions.
+% Presumed parameters: 'range', 'vf' with range properly set,
+% 'vf.data.speed' for global speed without noise.
+
+% Introduce noise proportionally.
+props = 0: 0.1: 3;
+% Index by which linearity no longer approximates.
+lin_index = 5;
 
 % Each velocity component associated with a unit cell.
 vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
     
 % Max speed in region of interest.
-speed_r = vf.subsetVector(speed);
+speed_r = vf.subsetVector(vf.data.speed);
 max_speed_r = max(speed_r, [], 'all');
 % Set constant maximal magnitude of noise.
 err_mag = vf.meanSpeed(0, 0);
@@ -36,35 +39,34 @@ end
 dK = dK / k;
 dK_us = dK_us / k;
 
-% Plot KE error.
-figure;
-subplot(2, 2, 1)
-scatter(props(1:lin_index), dK(1:lin_index), 'filled')
-hold on
-scatter(props(1:lin_index), dK_us(1:lin_index), 'r', 'filled')
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$\frac{\delta K}{K}$')
+% Formatted string for title.
+range_str = strcat('Range:', {' '}, mat2str(range));
 
-subplot(2, 2, 2)
-scatter(props, dK, 'filled')
-hold on
-scatter(props, dK_us, 'r', 'filled')
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$\frac{\delta K}{K}$')
+% % Plot KE error.
+% figure;
+% scatter(props, dK, 'filled')
+% hold on
+% scatter(props, dK_us, 'r', 'filled')
+% hold on
+% err_mean = mean(dK_us);
+% yline(err_mean, '-')
+% legend('unfiltered error', 'filtered $\vec{u}$', ...
+%     strcat('$\frac{\delta K}{dK} = $', string(err_mean)), 'Interpreter', 'latex')
+% xlabel('$\frac{|\delta u|}{\bar{u}}$')
+% ylabel('$\frac{\delta K}{K}$')
+% title(range_str)
 
 % Plot absolute KE error.
-subplot(2, 2, 3)
-scatter(props(1:lin_index), abs(dK(1:lin_index)), 'filled')
-hold on
-scatter(props(1:lin_index), abs(dK_us(1:lin_index)), 'r', 'filled')
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$|\frac{\delta K}{K}|$')
-
-subplot(2, 2, 4)
+figure;
 scatter(props, abs(dK), 'filled')
 hold on
 scatter(props, abs(dK_us), 'r', 'filled')
-title(strcat('mean error percentage = ', {' '}, string(mean(abs(dK_us)))))
+hold on
+abs_err_mean = mean(abs(dK_us));
+yline(abs_err_mean, '-')
+legend('unfiltered error', 'filtered $\vec{u}$', ...
+    strcat('$\frac{\delta K}{dK} = $', string(abs_err_mean)), 'Interpreter', 'latex')
+title(range_str)
 
 % Theoretical quadratic correlation.
 pred = vf.fluid.density*vol*err_mag^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
@@ -74,11 +76,9 @@ pred = vf.fluid.density*vol*err_mag^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
 xlabel('$\frac{|\delta u|}{\bar{u}}$')
 ylabel('$|\frac{\delta K}{K}|$')
 
-sgtitle(strcat('Range:', {' '}, mat2str(range)))
-
 % uerr_histogram(vf.N_e);
 
-vf.plotVector(vf.U_e, 0, '');
+vf.plotVector(vf.U_e, 0, range_str);
 
 %     vf.plotScalar(sqrt(sum(vf.N_e.^2, 4)), 0, '');
 % plane_range = range;

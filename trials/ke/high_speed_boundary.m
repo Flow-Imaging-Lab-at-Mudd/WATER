@@ -2,12 +2,23 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % High speed region.
-range_hs = [26 39; 7 22; 17 26];
+% range_hs = [26 39; 7 22; 17 26];
+% High-speed center.
+range_hs = [31 36; 13 17; 20 24];
 
+% Incident on one side. Differ only in z range.
+% % Range enveloping the high-speed region. 
+% range_en = [25 46; 9 29; 9 33];
+% % Range in which the high-speed region is on the boundary.
+% range_bound = [25 46; 9 29; 16 40];
+% % Note that both regions enclose the high-speed region, which is completely
+% % smoothed by both.
+
+% Incident on two sides.
 % Range enveloping the high-speed region. 
-range_en = [25 46; 9 29; 9 33];
+range_en = [25 43; 5 23; 9 33];
 % Range in which the high-speed region is on the boundary.
-range_bound = [25 46; 9 29; 16 40];
+range_bound = [25 43; 7 26; 16 40];
 % Note that both regions enclose the high-speed region, which is completely
 % smoothed by both.
 
@@ -66,7 +77,6 @@ for i = 1: size(props, 2)
     vf.setNoise(N_e)
     % Smoothing in bounding region.
     vf.setRange(range_bound)
-    isequal(Ne1, Ne2)
     vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), 'box') - vf.U_e(:,:,:,1);
     vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), 'box') - vf.U_e(:,:,:,2);
     vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), 'box') - vf.U_e(:,:,:,3);
@@ -88,7 +98,7 @@ dK_bound = dK_bound / k;
 % hold on
 % scatter(props, dK_en, 'filled')
 % hold on
-% scatter(props, dK_bound, '*')
+% scatter(props, dK_bound, 80, 'black')
 % legend('unfiltered error', 'enveloping filter', 'boundary filter')
 % xlabel('$\frac{|\delta u|}{\bar{u}}$')
 % ylabel('$\frac{\delta K}{K}$')
@@ -100,8 +110,12 @@ scatter(props, abs(dK), 'filled')
 hold on
 scatter(props, abs(dK_en), 'filled')
 hold on
-scatter(props, abs(dK_bound), '*')
-legend('unfiltered error', 'enveloping filter', 'boundary filter')
+scatter(props, abs(dK_bound), 80, 'black')
+hold on
+abs_err_mean = mean(abs(dK_en));
+yline(abs_err_mean, '-')
+legend('unfiltered error', 'enveloping filter', 'boundary filter', ...
+    strcat('$\frac{\delta K}{K} = $', string(abs_err_mean)), 'Interpreter', 'latex')
 xlabel('$\frac{|\delta u|}{\bar{u}}$')
 ylabel('$|\frac{\delta K}{K}|$')
-title('Error Magnitude for Enveloping and Boundary Filters')
+title('Error Magnitude in Enveloping Region')

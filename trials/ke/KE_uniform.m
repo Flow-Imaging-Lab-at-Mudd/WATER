@@ -1,13 +1,8 @@
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-speed = sqrt(sum(vf.U.^2, 4));
+vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol_range = [20 30; 20 30; 20 30];
-
-% Introduce noise proportionally.
-props = 0: 0.1: 3;
-% Index by which linearity no longer approximates.
-lin_index = 5;
+vol_range = [10 17; 10 17; 10 17];
 
 % Randomly sample effective regions.
 num_ite = 20;
