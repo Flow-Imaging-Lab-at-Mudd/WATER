@@ -20,24 +20,44 @@ k = vf.kineticEnergy(0);
 
 % Error in energy estimation given noise.
 dK = zeros(size(props));
-% Smoothed velocity results.
-dK_us = zeros(size(props));
+% Box smoothing.
+dK_box = zeros(size(props));
+% Gaussian smoothing.
+dK_gss = zeros(size(props));
+
+% KE error profiles per point.
+dK_pro_box = zeros(vf.span);
+dK_pro_gss = zeros(vf.span);
 
 % Plot energy estimation error for small and large values of noise.
 for i = 1: size(props, 2)
     vf.clearNoise();
-    vf.noise_uniform(props(i)*err_mag);
+    N = vf.noise_uniform(props(i)*err_mag);
     dK(i) = vf.kineticEnergy(1) - k;
-    % Result with smoothing.
+    % Result with box smoothing.
     vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), 'box') - vf.U_e(:,:,:,1);
     vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), 'box') - vf.U_e(:,:,:,2);
     vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), 'box') - vf.U_e(:,:,:,3);
-    dK_us(i) = vf.kineticEnergy(1) - k;
+    dK_box(i) = vf.kineticEnergy(1) - k;
+    dK_pro_box = abs(KE_profile(vf, 1) - KE_profile(vf, 0)) / k;
+    % Reset and smooth with gaussian filter.
+    vf.setNoise(N)
+    vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), 'gaussian') - vf.U_e(:,:,:,1);
+    vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), 'gaussian') - vf.U_e(:,:,:,2);
+    vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), 'gaussian') - vf.U_e(:,:,:,3);
+    dK_gss(i) = vf.kineticEnergy(1) - k;
+    dK_pro_gss = abs(KE_profile(vf, 1) - KE_profile(vf, 0)) / k;
+    vf.plotScalar(dK_pro_box, 0, 'box');
+    vf.plotScalar(dK_pro_gss, 0, 'Gaussian');
+    
+    pause
+    close all
 end
 
 % Normalize.
 dK = dK / k;
-dK_us = dK_us / k;
+dK_box = dK_box / k;
+dK_gss = dK_gss / k;
 
 % Formatted string for title.
 range_str = strcat('Range:', {' '}, mat2str(range));
@@ -46,9 +66,9 @@ range_str = strcat('Range:', {' '}, mat2str(range));
 % figure;
 % scatter(props, dK, 'filled')
 % hold on
-% scatter(props, dK_us, 'r', 'filled')
+% scatter(props, dK_box, 'r', 'filled')
 % hold on
-% err_mean = mean(dK_us);
+% err_mean = mean(dK_box);
 % yline(err_mean, '-')
 % legend('unfiltered error', 'filtered $\vec{u}$', ...
 %     strcat('$\frac{\delta K}{dK} = $', string(err_mean)), 'Interpreter', 'latex')
@@ -60,12 +80,20 @@ range_str = strcat('Range:', {' '}, mat2str(range));
 figure;
 scatter(props, abs(dK), 'filled')
 hold on
-scatter(props, abs(dK_us), 'r', 'filled')
+scatter(props, abs(dK_box), 'r', 'filled')
 hold on
-abs_err_mean = mean(abs(dK_us));
-yline(abs_err_mean, '-')
-legend('unfiltered error', 'filtered $\vec{u}$', ...
-    strcat('$\frac{\delta K}{dK} = $', string(abs_err_mean)), 'Interpreter', 'latex')
+abs_err_mean_box = mean(abs(dK_box));
+yline(abs_err_mean_box, '-')
+hold on
+scatter(props, abs(dK_gss), 'y', 'filled')
+hold on
+abs_err_mean_gss = mean(abs(dK_gss));
+yline(abs_err_mean_gss, '-')
+
+legend('unfiltered error', 'box-filtered $\vec{u}$', ...
+    strcat('box $\frac{\delta K}{K} = $', string(abs_err_mean_box)), ...
+    'Gaussian-filtered $\vec{u}$', ...
+    strcat('Gaussian $\frac{\delta K}{K} = $', string(abs_err_mean_gss)), 'Interpreter', 'latex')
 title(range_str)
 
 % Theoretical quadratic correlation.
@@ -85,3 +113,8 @@ vf.plotVector(vf.U_e, 0, range_str);
 % % Plot a parallel xy plane.f
 % plane_range(3, 2) = plane_range(3, 1);
 % vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), plane_range, 0, 'noise $\Delta u$')
+
+function K = KE_profile(vf, with_noise)
+    K = 1/2*vf.fluid.density * vf.solver.dv * vf.scale.len^2 * ...
+                            sum((vf.U_e + with_noise*vf.N_e).^2, 4);
+end
