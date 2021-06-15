@@ -2,9 +2,9 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % High speed region.
-% range_hs = [26 39; 7 22; 17 26];
+range_hs = [26 39; 7 22; 17 26];
 % High-speed center.
-range_hs = [31 36; 13 17; 20 24];
+% range_hs = [31 36; 13 17; 20 24];
 
 % Incident on one side. Differ only in z range.
 % % Range enveloping the high-speed region. 
@@ -53,6 +53,10 @@ dK_en = zeros(size(props));
 % Error from smoothed velocity results from the bounding region.
 dK_bound = zeros(size(props));
 
+% % KE error profiles per point.
+% dK_pro_en = zeros(vf.span);
+% dK_pro_bound = zeros(vf.span);
+
 % Plot energy estimation error for small and large values of noise.
 for i = 1: size(props, 2)
     vf.clearNoise();
@@ -71,6 +75,7 @@ for i = 1: size(props, 2)
     % Compute dKE.
     vf.setRange(range_hs)
     dK_en(i) = vf.kineticEnergy(1) - k;
+    % dK_pro_en = abs(KE_profile(vf, 1) - KE_profile(vf, 0)) / (k/prod(vf.span, 'all'));
     % Reset noise.
     vf.clearNoise()
     vf.setRange(range)
@@ -85,6 +90,10 @@ for i = 1: size(props, 2)
     % Compute dKE.
     vf.setRange(range_hs)
     dK_bound(i) = vf.kineticEnergy(1) - k;
+    % dK_pro_bound = abs(KE_profile(vf, 1) - KE_profile(vf, 0)) / (k/prod(vf.span, 'all'));
+    
+%     vf.plotScalar(dK_pro_en, 0, 'envelope');
+%     vf.plotScalar(dK_pro_bound, 0, 'boundary');
 end
 
 % Normalize.

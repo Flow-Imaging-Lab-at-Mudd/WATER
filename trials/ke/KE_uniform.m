@@ -2,7 +2,7 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol_range = [10 17; 10 17; 10 17];
+vol_range = [30 40; 30 40; 30 40];
 
 % Randomly sample effective regions.
 num_ite = 20;
@@ -12,7 +12,6 @@ cor = zeros([num_ite 2]);
 for j = 1: num_ite
     % Random range.
     range = randRange(vf.dims, vol_range);
-    range
     vf.setRange(range)
     
     % Run script for KE error samrpling.
@@ -28,7 +27,7 @@ function cor = corr(r1, r2)
     cor = cor(2, 1);
 end
 
-function plt = uerr_histogram(N)
+function plt = u_err_histogram(N)
     plt = figure;
     N = sqrt(sum(N.^2, 4));
     histogram(N(:));
