@@ -282,6 +282,19 @@ classdef VelocityField < handle
             vf.n_e = sqrt(sum(vf.N_e.^2, 4));
         end
         
+        function N_pre = smoothNoise(vf, smoother)
+            % Alter only the noise parameter to simulate the behavior of
+            % smoothing without modifying the velocity.
+            
+            % Return the original noise for convenience.
+            N_pre = vf.N_e;
+            
+            vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), smoother) - vf.U_e(:,:,:,1);
+            vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), smoother) - vf.U_e(:,:,:,2);
+            vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), smoother) - vf.U_e(:,:,:,3);
+            vf.setNoise(vf.N_e)
+        end
+        
         function N_e = noise_uniform(vf, mag)
             % Add uniform noise to the effective region.
             
