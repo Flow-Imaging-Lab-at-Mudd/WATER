@@ -85,24 +85,27 @@ yline(abs_err_mean_gss, '-')
 % Smoothing error on original velocity field by Box.
 vf.clearNoise();
 vf.smoothNoise('box');
-smoother_err_box = (vf.kineticEnergy(1) - k) / k;
-hold on
-yline(smoother_err_box, '-')
+smoother_bias_box = (vf.kineticEnergy(1) - k) / k;
+% hold on
+% yline(smoother_bias_box, '-')
 % Smoothing error on original velocity field by Gaussian.
 vf.clearNoise();
 vf.smoothNoise('gaussian');
-smoother_err_gss = (vf.kineticEnergy(1) - k) / k;
-hold on
-yline(smoother_err_gss, '-')
+smoother_bias_gss = (vf.kineticEnergy(1) - k) / k;
+% hold on
+% yline(smoother_bias_gss, '-')
 
-legend('unfiltered error', 'box-filtered $\vec{u}$', ...
-    strcat('box $\frac{\delta K}{K} = $', string(abs_err_mean_box)), ...
+legend('unfiltered error', ...
+    'box-filtered $\vec{u}$', ...
+    strcat('box $\left|\frac{\delta K}{K}\right| = $', ...
+    string(abs_err_mean_box)), ...
     'Gaussian-filtered $\vec{u}$', ...
-    strcat('Gaussian $\frac{\delta K}{K} = $', string(abs_err_mean_gss)), ...
-    strcat('box bias $\kappa = $', string(abs(smoother_err_box))), ...
-    strcat('Gaussian bias $\kappa = $', string(abs(smoother_err_gss))), ...
+    strcat('Gaussian $\left|\frac{\delta K}{K}\right| = $', string(abs_err_mean_gss)), ...
     'Interpreter', 'latex')
+%     strcat('box bias $\kappa = $', string(abs(smoother_bias_box))), ...
+%     strcat('Gaussian bias $\kappa = $', string(abs(smoother_bias_gss))), ...
 title(range_str)
+
 
 % Theoretical quadratic correlation.
 pred = vf.fluid.density*vol*u_mean^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
@@ -112,17 +115,34 @@ pred = vf.fluid.density*vol*u_mean^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
 xlabel('$\frac{|\delta u|}{\bar{u}}$')
 ylabel('$|\frac{\delta K}{K}|$')
 
-% Plot of errors as proportion of smoother bias.
-figure;
-scatter(props, abs(dK_box / smoother_err_box), 'filled')
-hold on
-scatter(props, abs(dK_gss / smoother_err_gss), 'filled')
+% Smoothing errors as proportion of smoother bias.
+err_prop_box = abs(dK_box / smoother_bias_box);
+err_prop_gss = abs(dK_gss / smoother_bias_gss);
+% Fit and record quadratic curves. The quadratic coefficient can serve as a
+% measure of the KE error amplification rate.
+err_quad_box = polyfit(props, err_prop_box, 2);
+err_quad_gss = polyfit(props, err_prop_gss, 2);
 
-legend('box-filtered', 'Gaussian-filtered', 'Interpreter', 'latex')
+figure;
+scatter(props, err_prop_box, 'filled')
+hold on
+err_box_str = polyplot(err_quad_box, props);
+
+hold on
+scatter(props, err_prop_gss, 'filled')
+hold on
+err_gss_str = polyplot(err_quad_gss, props);
+
+
+legend(strcat('box $\kappa = $', string(abs(smoother_bias_box))), ...
+    strcat('box fit'), ...
+    strcat('Gaussian $\kappa = $', string(abs(smoother_bias_gss))), ...
+    strcat('Gaussian fit'), ...
+    'Interpreter', 'latex')
 title('Proportional Error to Smoother Bias')
 
 xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$|\frac{\delta K}{\kappa}|$')
+ylabel('$\frac{\left|\frac{\delta K}{K}\right|}{\kappa}$')
 
 
 

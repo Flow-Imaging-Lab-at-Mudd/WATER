@@ -2,8 +2,7 @@ vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
-vol_range = [30 40; 30 40; 30 40];
-
+vol_range = [floor(1/4*vf.getDims())' floor(1/2*vf.getDims())'];
 % Randomly sample effective regions.
 num_ite = 20;
 % Linear correlations.
