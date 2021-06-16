@@ -190,6 +190,18 @@ classdef VelocityField < handle
             range = [vf.range(2,:); vf.range(1,:); vf.range(3,:)];
         end
         
+        function dims = getDims(vf)
+            % Size in x y z order of the entire grid.
+            
+            dims = [vf.dims(2) vf.dims(1) vf.dims(3)];
+        end
+        
+        function dims = getSpan(vf)
+            % Size in x y z order of effective region.
+            
+            dims = [vf.span(2) vf.span(1) vf.span(3)];
+        end
+        
         function v = subsetVector(vf, V)
             % Identical to VF.getVector except that 'range' is now in the
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
