@@ -1,35 +1,41 @@
+% Presume 'sp' is defined.
+% sp = 0.1;
+[x, y, z, u, v, w, Mag] = hill_vortex_3D(sp, 1, 1, 1);
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
 % Minimal and maximal volume dimensions.
 vol_range = [floor(1/4*vf.getDims())' floor(1/2*vf.getDims())'];
 % Randomly sample effective regions.
-num_ite = 20;
-% Linear correlations.
-cor = zeros([num_ite 2]);
+num_ite = 10;
+% Introduce noise proportionally.
+props = 0: 0.1: 3;
 
-for j = 1: num_ite
+% Containers for data over iterations.
+dK = zeros(length(props), num_ite);
+dK_box = zeros(length(props), num_ite);
+dK_gss = zeros(length(props), num_ite);
+bias_box = zeros(1, num_ite);
+bias_gss = zeros(1, num_ite);
+for i = 1: num_ite
     % Random range.
     range = randRange(vf.dims, vol_range);
     vf.setRange(range)
     
     % Run script for KE error samrpling.
-    KE_uniform_err_run
-    
-    pause
-    close all
+    [dK(:,i), dK_box(:,i), dK_gss(:,i), bias_box(i), bias_gss(i)] = ...
+        KE_uniform_err_run(vf, range);
+
+%     pause
+%     close all
 end
 
-% Short hand for computing correlations given two row vectors.
-function cor = corr(r1, r2)
-    cor = corrcoef([r1; r2]');
-    cor = cor(2, 1);
-end
+% Global smoother error as a function of kinetic energy plot.
+figure;
+scatter(abs(dK(:)), abs(dK_box(:)), 'r', 'filled')
+hold on
+scatter(abs(dK(:)), abs(dK_gss(:)), 'b', 'filled')
 
-function plt = u_err_histogram(N)
-    plt = figure;
-    N = sqrt(sum(N.^2, 4));
-    histogram(N(:));
-    xlabel('$\Delta u$')
-    ylabel('frequency')
-end
+legend('box-filtered', 'Gaussian-filtered', 'Interpreter', 'latex')
+xlabel('Unfiltered $\left|\frac{\delta K}{K}\right|$')
+ylabel('Filtered $\left|\frac{\delta K}{K}\right|$')
+title(strcat('Normalized Spacing:', {' '}, string(sp)))

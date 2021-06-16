@@ -1,17 +1,14 @@
+function [dK, dK_box, dK_gss, bias_box, bias_gss] = ...
+    KE_uniform_err_run(vf, range)
 % Presumed parameters: 'range', 'vf' with range properly set,
 % 'vf.data.speed' for global speed without noise.
 
 % Introduce noise proportionally.
 props = 0: 0.1: 3;
-% Index by which linearity no longer approximates.
-lin_index = 5;
 
 % Each velocity component associated with a unit cell.
 vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
     
-% Max speed in region of interest.
-speed_r = vf.subsetVector(vf.data.speed);
-max_speed_r = max(speed_r, [], 'all');
 % Set constant maximal magnitude of noise.
 u_mean = vf.meanSpeed(0, 0);
 
@@ -52,97 +49,96 @@ dK = dK / k;
 dK_box = dK_box / k;
 dK_gss = dK_gss / k;
 
+% Baseline smoother biases.
+bias_box = dK_box(1);
+bias_gss = dK_gss(1);
+
 % Formatted string for title.
 range_str = strcat('Range:', {' '}, mat2str(range));
 
 % % Plot KE error.
+% % figure;
+% % scatter(props, dK, 'filled')
+% % hold on
+% % scatter(props, dK_box, 'r', 'filled')
+% % hold on
+% % err_mean = mean(dK_box);
+% % yline(err_mean, '-')
+% % legend('unfiltered error', 'filtered $\vec{u}$', ...
+% %     strcat('$\frac{\delta K}{K} = $', string(err_mean)), 'Interpreter', 'latex')
+% % xlabel('$\frac{|\delta u|}{\bar{u}}$')
+% % ylabel('$\frac{\delta K}{K}$')
+% % title(range_str)
+% 
+% % Plot absolute KE error.
 % figure;
-% scatter(props, dK, 'filled')
+% scatter(props, abs(dK), 'filled')
 % hold on
-% scatter(props, dK_box, 'r', 'filled')
+% scatter(props, abs(dK_box), 'r', 'filled')
 % hold on
-% err_mean = mean(dK_box);
-% yline(err_mean, '-')
-% legend('unfiltered error', 'filtered $\vec{u}$', ...
-%     strcat('$\frac{\delta K}{K} = $', string(err_mean)), 'Interpreter', 'latex')
+% abs_err_mean_box = mean(abs(dK_box));
+% yline(abs_err_mean_box, '-')
+% hold on
+% scatter(props, abs(dK_gss), 'y', 'filled')
+% hold on
+% abs_err_mean_gss = mean(abs(dK_gss));
+% yline(abs_err_mean_gss, '-')
+% 
+% legend('unfiltered error', ...
+%     'box-filtered $\vec{u}$', ...
+%     strcat('box $\left|\frac{\delta K}{K}\right| = $', ...
+%     string(abs_err_mean_box)), ...
+%     'Gaussian-filtered $\vec{u}$', ...
+%     strcat('Gaussian $\left|\frac{\delta K}{K}\right| = $', string(abs_err_mean_gss)), ...
+%     'Interpreter', 'latex')
+% %     strcat('box bias $\kappa = $', string(abs(bias_box))), ...
+% %     strcat('Gaussian bias $\kappa = $', string(abs(bias_gss))), ...
+% % Theoretical quadratic correlation.
+% pred = vf.fluid.density*vol*u_mean^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
+% % plot(props, pred)
 % xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\delta K}{K}$')
+% ylabel('$|\frac{\delta K}{K}|$')
 % title(range_str)
 
-% Plot absolute KE error.
-figure;
-scatter(props, abs(dK), 'filled')
-hold on
-scatter(props, abs(dK_box), 'r', 'filled')
-hold on
-abs_err_mean_box = mean(abs(dK_box));
-yline(abs_err_mean_box, '-')
-hold on
-scatter(props, abs(dK_gss), 'y', 'filled')
-hold on
-abs_err_mean_gss = mean(abs(dK_gss));
-yline(abs_err_mean_gss, '-')
-% Smoothing error on original velocity field by Box.
-vf.clearNoise();
-vf.smoothNoise('box');
-smoother_bias_box = (vf.kineticEnergy(1) - k) / k;
+% % Error plot vs KE noise.
+% figure;
+% scatter(abs(dK), abs(dK_box), 'r', 'filled')
 % hold on
-% yline(smoother_bias_box, '-')
-% Smoothing error on original velocity field by Gaussian.
-vf.clearNoise();
-vf.smoothNoise('gaussian');
-smoother_bias_gss = (vf.kineticEnergy(1) - k) / k;
+% scatter(abs(dK), abs(dK_gss), 'y', 'filled')
+% 
+% legend('box-filtered', 'Gaussian-filtered')
+% xlabel('Unfiltered $|\frac{\delta K}{K}|$')
+% ylabel('Filtered $\frac{|\delta K|}{\bar{K}}$')
+% title(range_str)
+% 
+% % Smoothing errors as proportion of smoother bias.
+% err_prop_box = abs(dK_box / bias_box);
+% err_prop_gss = abs(dK_gss / bias_gss);
+% % Fit and record quadratic curves. The quadratic coefficient can serve as a
+% % measure of the KE error amplification rate.
+% err_quad_box = polyfit(props, err_prop_box, 2);
+% err_quad_gss = polyfit(props, err_prop_gss, 2);
+% 
+% figure;
+% scatter(props, err_prop_box, 'r', 'filled')
 % hold on
-% yline(smoother_bias_gss, '-')
-
-legend('unfiltered error', ...
-    'box-filtered $\vec{u}$', ...
-    strcat('box $\left|\frac{\delta K}{K}\right| = $', ...
-    string(abs_err_mean_box)), ...
-    'Gaussian-filtered $\vec{u}$', ...
-    strcat('Gaussian $\left|\frac{\delta K}{K}\right| = $', string(abs_err_mean_gss)), ...
-    'Interpreter', 'latex')
-%     strcat('box bias $\kappa = $', string(abs(smoother_bias_box))), ...
-%     strcat('Gaussian bias $\kappa = $', string(abs(smoother_bias_gss))), ...
-title(range_str)
-
-
-% Theoretical quadratic correlation.
-pred = vf.fluid.density*vol*u_mean^2*vf.scale.len^2*(props + 1/2*props.^2) / k;
-% plot(props, pred)
-% title(strcat('$r = $', string(cor(i, 2))))
-
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$|\frac{\delta K}{K}|$')
-
-% Smoothing errors as proportion of smoother bias.
-err_prop_box = abs(dK_box / smoother_bias_box);
-err_prop_gss = abs(dK_gss / smoother_bias_gss);
-% Fit and record quadratic curves. The quadratic coefficient can serve as a
-% measure of the KE error amplification rate.
-err_quad_box = polyfit(props, err_prop_box, 2);
-err_quad_gss = polyfit(props, err_prop_gss, 2);
-
-figure;
-scatter(props, err_prop_box, 'filled')
-hold on
-err_box_str = polyplot(err_quad_box, props);
-
-hold on
-scatter(props, err_prop_gss, 'filled')
-hold on
-err_gss_str = polyplot(err_quad_gss, props);
-
-
-legend(strcat('box $\kappa = $', string(abs(smoother_bias_box))), ...
-    strcat('box fit'), ...
-    strcat('Gaussian $\kappa = $', string(abs(smoother_bias_gss))), ...
-    strcat('Gaussian fit'), ...
-    'Interpreter', 'latex')
-title('Proportional Error to Smoother Bias')
-
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$\frac{\left|\frac{\delta K}{K}\right|}{\kappa}$')
+% err_box_str = polyplot(err_quad_box, props);
+% 
+% hold on
+% scatter(props, err_prop_gss, 'y', 'filled')
+% hold on
+% err_gss_str = polyplot(err_quad_gss, props);
+% 
+% 
+% legend(strcat('box $\kappa = $', string(abs(bias_box))), ...
+%     strcat('box fit'), ...
+%     strcat('Gaussian $\kappa = $', string(abs(bias_gss))), ...
+%     strcat('Gaussian fit'), ...
+%     'Interpreter', 'latex')
+% title('Proportional Error to Smoother Bias')
+% 
+% xlabel('$\frac{|\delta u|}{\bar{u}}$')
+% ylabel('$\frac{\left|\frac{\delta K}{K}\right|}{\kappa}$')
 
 
 
