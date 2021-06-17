@@ -136,6 +136,13 @@ classdef VelocityField < handle
             set(0,'defaultTextInterpreter','latex');
         end
         
+        function vfd = downsample(vf, winsize, overlap, newXscale)
+            % Perform box averaging on the velocity field and construct a
+            % downsampled field.
+            [Xd, Ud] = PIV_window_sim(vf.X, vf.U, winsize, overlap, newXscale);
+            vfd = VelocityField(Xd, Ud);
+        end
+        
         function initPropertyStructs(vf)
             % Initialize attributes encoded in struct objects for plotting,
             % computing derived quantities, and innate properties of the
