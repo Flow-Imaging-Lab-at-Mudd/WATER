@@ -13,7 +13,7 @@ for j = 0: window(1)-1
     for i = 0: window(2)-1
         for k = 0: window(3)-1
             V_pa(1: end-j, 1: end-i, 1: end-k, :) = ...
-                V(1+j: end, 1+i: end, 1+k, end, :) + V_pa(1: end-j, 1: end-i, 1: end-k, :);
+                V(1+j: end, 1+i: end, 1+k: end, :) + V_pa(1: end-j, 1: end-i, 1: end-k, :);
         end
     end
 end
