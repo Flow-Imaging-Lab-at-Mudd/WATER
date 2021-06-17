@@ -1,5 +1,5 @@
 % Uniform resolutions considered.
-resol = flip(0.1: 0.1: 1);
+resol = flip(0.01: 0.05: 1);
 resol_count = length(resol);
 
 % Randomly sample effective regions.
@@ -15,6 +15,8 @@ bias_gss = zeros(resol_count, num_ite);
 alpha_box = zeros(resol_count, num_ite);
 alpha_gss = zeros(resol_count, num_ite);
 
+% Introduce noise proportionally.
+props = 0: 0.1: 1.5;
 
 for k = 1: resol_count
     % Construct Hill vortex with specified resolution.
@@ -22,7 +24,7 @@ for k = 1: resol_count
     vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
     vf.data.speed = sqrt(sum(vf.U.^2, 4));
     % Minimal and maximal volume dimensions.
-    vol_range = [floor(1/4*vf.getDims())' floor(1/2*vf.getDims())'];
+    vol_range = [floor(1/4*vf.getDims())' 1/2*floor(vf.getDims())'];
 
     for i = 1: num_ite
         % This section mirrors KE_uniform.
@@ -32,7 +34,7 @@ for k = 1: resol_count
         % Run script for KE error samrpling.
         [err_box(k, i), err_gss(k, i), bias_box(k, i), ...
             bias_gss(k, i), alpha_box(k, i), alpha_gss(k, i)] = ...
-            KE_uniform_resol_run(vf, range);
+            KE_uniform_resol_run(vf, range, props);
     end
 end
 

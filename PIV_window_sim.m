@@ -24,9 +24,14 @@ if isequal(size(winsize), [1  1])
 end
 
 % Dimensions of grid.
-xdim = size(x, 2);
-ydim = size(x, 1);
-zdim = size(x, 3);
+xdim = size(X, 2);
+ydim = size(X, 1);
+zdim = size(X, 3);
+
+% Ensure overlap between windows is in integers.
+overlap = int32(winsize .* overlap);
+overlap = min([overlap; winsize-1], [], 1);
+
 
 % Box averaging of velociy values.
 % after this step, vectors are still on input grid, but filtered like
@@ -36,14 +41,14 @@ Ufilt = pseudoAverageLeft(U, winsize);
 % Properly subset the averaged velocities and create windowed position meshgrid.
 if min(winsize) >= 1
     % Frame shifts of indices.
-    shift_x = winsize(1)*(1 - overlap(1));
-    shift_y = winsize(2)*(1 - overlap(2));
-    shift_z = winsize(3)*(1 - overlap(3));
+    shift_x = winsize(1) - overlap(1);
+    shift_y = winsize(2) - overlap(2);
+    shift_z = winsize(3) - overlap(3);
 
     % Dimensions of downsampled grid.
-    xdim_d = floor((xdim - winxsize(1)) / shift_x) + 1;
-    ydim_d = floor((ydim - winxsize(2)) / shift_y) + 1;
-    zdim_d = floor((zdim - winxsize(3)) / shift_z) + 1;
+    xdim_d = floor((xdim - winsize(1)) / shift_x) + 1;
+    ydim_d = floor((ydim - winsize(2)) / shift_y) + 1;
+    zdim_d = floor((zdim - winsize(3)) / shift_z) + 1;
 
     % edge handling
     % last coordinate for which enough data is available for a complete interrogation window of size boxes(dc)
@@ -56,13 +61,13 @@ if min(winsize) >= 1
     yrange = 1: shift_y: endIndex_y;
     zrange = 1: shift_z: endIndex_z;
 
-    Uwin = Ufilt(xrange, yrange, zrange, :);
+    Uwin = Ufilt(yrange, xrange, zrange, :);
 
     % If original coordinates are to be retained.
-    if scale == 0
+    if Xscale == 0
         % Box averaging of positions.
         Xfilt = pseudoAverageLeft(X, winsize);
-        Xwin = Xfilt(xrange, yrange, zrange, :);
+        Xwin = Xfilt(yrange, xrange, zrange, :);
     else
         [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
             meshgrid(xrange*Xscale(1), yrange*Xscale(2), zrange*Xscale(3));
