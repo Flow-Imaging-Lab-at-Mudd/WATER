@@ -1,8 +1,9 @@
 function [dK, dK_box, dK_gss, bias_box, bias_gss] = ...
-    KE_uniform_err_run(vf, range, props)
+    KE_err_run(vf, props)
 % Presumed parameters: 'range', 'vf' with range properly set,
 % 'vf.data.speed' for global speed without noise.
 
+range = vf.getRange();
 
 % Each velocity component associated with a unit cell.
 vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;

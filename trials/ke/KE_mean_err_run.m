@@ -1,5 +1,7 @@
 function [err_mean_box, err_mean_gss, smoother_bias_box, smoother_bias_gss, ...
-    amp_box, amp_gss] = KE_uniform_resol_run(vf, range, props)
+    amp_box, amp_gss] = KE_mean_err_run(vf, props)
+
+range = vf.getRange();
 
 % Each velocity component associated with a unit cell.
 vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
@@ -39,20 +41,18 @@ dK = dK / k;
 dK_box = dK_box / k;
 dK_gss = dK_gss / k;
 
+% Baseline smoother biases. Assume 'prop' includes 0.
+smoother_bias_box = abs(dK_box(1));
+% Smoothing error on original velocity field by Gaussian.
+smoother_bias_gss = abs(dK_gss(1));
+
 
 % Mean smoothing errors.
 err_mean_box = mean(abs(dK_box));
 
 err_mean_gss = mean(abs(dK_gss));
 
-% Smoothing error on original velocity field by Box.
-vf.clearNoise();
-vf.smoothNoise('box');
-smoother_bias_box = abs((vf.kineticEnergy(1) - k) / k);
-% Smoothing error on original velocity field by Gaussian.
-vf.clearNoise();
-vf.smoothNoise('gaussian');
-smoother_bias_gss = abs((vf.kineticEnergy(1) - k) / k);
+
 
 % Smoothing errors as proportion of smoother bias.
 err_prop_box = abs(dK_box / smoother_bias_box);
