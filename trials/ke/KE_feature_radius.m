@@ -4,7 +4,7 @@ radii = flip(0.05: 0.05: 1);
 radii_count = length(radii);
 
 % Randomly sample effective regions.
-num_ite = 20;
+num_ite = 1;
 
 % Containers for data across all runs.
 err_box = zeros(radii_count, num_ite);
@@ -28,8 +28,8 @@ for k = 1: radii_count
     % Span of feature in indices.
     fs = 2 * floor(fr ./ vf.resol) + 1;
     fs = min([fs; vf.getDims()], [], 1);
-    % Feature is at the center of the grid. Random range intersects the feature.
-    % Proportions of random region to central vortex feature.
+%     Feature is at the center of the grid. Random range intersects the feature.
+%     Proportions of random region to central vortex feature.
     region_props = [2/3 3/2];
     vol_range = [floor(region_props(1)*fs)' ...
         floor(min([region_props(2)*fs; vf.getDims()-1], [], 1))'];
@@ -42,15 +42,20 @@ for k = 1: radii_count
         % Anchor with randomness. No longer vectorized here.
         shift_prop = 1/3;
         left_idx = floor(vf.getDims()/2 - fs/2) + randi(int32(1/2*shift_prop*[-fs(1) fs(1)]));
+        left_idx = floor(vf.getDims()/2 - fs/2);
         % Ensure not exceeding index range.
         left_idx = max([ones(1, 3); left_idx])';
-        right_idx = min([vf.getDims()' left_idx+span], [], 2);
-        range = [left_idx right_idx];
+        right_idx = min([vf.getDims()' left_idx+floor(fs/2)], [], 2);
+%         disp('--------')
+%         disp(['radius'])
+%         radii(k)
+        range = [floor(vf.getDims()/2 - floor(fs/2)); floor(vf.getDims()/2 + floor(fs/2))]';
+        vf.setRange([left_idx right_idx])
         
         % Run script for KE error samrpling.
         [err_box(k, i), err_gss(k, i), bias_box(k, i), ...
             bias_gss(k, i), alpha_box(k, i), alpha_gss(k, i)] = ...
-            KE_mean_err_run(vf, range, props);
+            KE_mean_err_run(vf, props);
     end
 end
 

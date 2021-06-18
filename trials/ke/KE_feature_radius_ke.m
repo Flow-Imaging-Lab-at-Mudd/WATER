@@ -1,6 +1,6 @@
 % Feature radius.
 frs = 0.1: 0.1: 1;
-sp = 0.2;
+sp = 0.05;
 
 for fr = frs
     KE_focus_feature

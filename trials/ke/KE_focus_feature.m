@@ -44,7 +44,7 @@ for i = 1: num_ite
     
     % Run script for KE error sampling.
     [dK(:,i), dK_box(:,i), dK_gss(:,i), bias_box(i), bias_gss(i)] = ...
-        KE_err_run(vf, range, props);
+        KE_err_run(vf, props);
 
 %     pause
 %     close all
