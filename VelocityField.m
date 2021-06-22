@@ -132,15 +132,29 @@ classdef VelocityField < handle
             vf.U_e = U;
             vf.N_e = vf.N;
             
-            vf.initPropertyStructs();
+            vf.initPropertyStructs()
             set(0,'defaultTextInterpreter','latex');
         end
         
-        function vfd = downsample(vf, winsize, overlap, newXscale)
+        function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
             % Perform box averaging on the velocity field and construct a
             % downsampled field.
-            [Xd, Ud] = PIV_window_sim(vf.X, vf.U, winsize, overlap, newXscale);
+            %
+            % newXscale is presumed to be a scalar, so that the positions
+            % of the grid are in the same unit.
+            
+            % By default retain the coordinates.
+            if ~exist('newXscale', 'var')
+                newXscale = 1;
+            end
+            
+            [Xd, Ud] = PIV_window_sim(vf.X_e, vf.U_e + with_noise*vf.N_e, ...
+                winsize, overlap, newXscale);
             vfd = VelocityField(Xd, Ud);
+            % Preserve certain properties.
+            vfd.fluid = vf.fluid;
+            vfd.scale.len = vf.scale.len / newXscale;
+            vfd.derivePropertyStructs()
         end
         
         function initPropertyStructs(vf)
@@ -155,9 +169,6 @@ classdef VelocityField < handle
             % Scaling factors.
             vf.scale.len = 0.001;
             
-            % Default solver attributes.
-            vf.solver.dv = vf.scale.len^3*abs(vf.xresol*vf.yresol*vf.zresol);
-            
             % Properties of differentiation.
             vf.solver.diff.order = 1;
             vf.solver.diff.mode = 'central';
@@ -166,6 +177,23 @@ classdef VelocityField < handle
             
             % Default plotter attributes.
             vf.plotter.quiverScale = 1;
+            
+            vf.derivePropertyStructs()
+        end
+        
+        function derivePropertyStructs(vf)
+            % Derive certain attributes from given elementary ones.
+            
+            vf.solver.dv = vf.scale.len^3*abs(vf.xresol*vf.yresol*vf.zresol);
+        end
+            
+        
+        function setPropertyStructs(vf, fluid, solver, plotter)
+            % Modify the requisite property structs.
+            
+            vf.fluid = fluid;
+            vf.solver = solver;
+            vf.plotter = plotter;
         end
         
         % Setters needed for updating dependent quantities, e.g. dv.
@@ -330,24 +358,6 @@ classdef VelocityField < handle
             vf.n_e = sqrt(sum(vf.N_e.^2, 4));
         end
         
-        function N_pre = smoothNoise(vf, smoother)
-            % Alter only the noise parameter to simulate the behavior of
-            % smoothing without modifying the velocity.
-            
-            % Return the original noise for convenience.
-            N_pre = vf.N_e;
-            
-            % Cannot smooth over a unit volume.
-            if max(size(vf.U_e, 1:3)) == 1
-                return
-            end
-            
-            vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), smoother) - vf.U_e(:,:,:,1);
-            vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), smoother) - vf.U_e(:,:,:,2);
-            vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), smoother) - vf.U_e(:,:,:,3);
-            vf.setNoise(vf.N_e)
-        end
-        
         function N_e = noise_uniform(vf, mag)
             % Add uniform noise to the effective region.
             
@@ -379,6 +389,46 @@ classdef VelocityField < handle
                 vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                     vf.range(3,1):vf.range(3,2), :) = vf.N_e;
             end
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%% Smoothers %%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        function U_pre = smoothVelocity(vf, smoother)
+            % Inplace smoothing of velocity field.
+            
+            % Return previous velocity for convenience.
+            U_pre = vf.U_e;
+            
+            % Cannot smooth over a unit volume.
+            if max(size(vf.U_e, 1:3)) == 1
+                return
+            end
+            
+            vf.U_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1), smoother);
+            vf.U_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2), smoother);
+            vf.U_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3), smoother);
+            % Update global velocity.
+            vf.U(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
+                vf.range(3,1):vf.range(3,2), :) = vf.U_e;
+        end
+            
+        
+        function N_pre = smoothNoise(vf, smoother)
+            % Alter only the noise parameter to simulate the behavior of
+            % smoothing without modifying the velocity.
+            
+            % Return the original noise for convenience.
+            N_pre = vf.N_e;
+            
+            % Cannot smooth over a unit volume.
+            if max(size(vf.U_e, 1:3)) == 1
+                return
+            end
+            
+            vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), smoother) - vf.U_e(:,:,:,1);
+            vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), smoother) - vf.U_e(:,:,:,2);
+            vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), smoother) - vf.U_e(:,:,:,3);
+            vf.setNoise(vf.N_e)
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%% Plotters %%%%%%%%%%%%%%%%%%%%%%%%%%%

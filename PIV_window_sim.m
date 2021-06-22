@@ -12,6 +12,7 @@ function [Xwin, Uwin] = PIV_window_sim(X, U, winsize, overlap, Xscale)
 % overlap: Overlap between interrogation windows as a fraction of the window
 % size in voxels (typically 0.5 or 0.75). Code assumes a uniform
 % overlap in each direction
+% Xscale: Scalar for how the subsetted positions are to be scaled.
 %
 % outputs
 % Xwin: output vector field coordinates (in pixels, analogous
@@ -21,6 +22,10 @@ function [Xwin, Uwin] = PIV_window_sim(X, U, winsize, overlap, Xscale)
 
 if isequal(size(winsize), [1  1])
     winsize = winsize*ones(1, 3);
+end
+
+if isequal(size(overlap), [1  1])
+    overlap = overlap*ones(1, 3);
 end
 
 % Dimensions of grid.
@@ -56,7 +61,7 @@ if min(winsize) >= 1
     endIndex_y = shift_y * (ydim_d-1) + 1;
     endIndex_z = shift_z * (zdim_d-1) + 1;
 
-    % Downsample. 
+    % Downsample. Left indices.
     xrange = 1: shift_x: endIndex_x;
     yrange = 1: shift_y: endIndex_y;
     zrange = 1: shift_z: endIndex_z;
@@ -64,7 +69,12 @@ if min(winsize) >= 1
     Uwin = Ufilt(yrange, xrange, zrange, :);
 
     % If original coordinates are to be retained.
-    if Xscale == 0
+    if Xscale == 1
+        [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
+            meshgrid(X(1,xrange,1,1) + (X(1,1+shift_x,1,1)-X(1,1,1,1))/2, ...
+                X(yrange,1,1,2) + (X(1+shift_y,1,1,2)-X(1,1,1,2))/2, ...
+                X(1,1,zrange,3) + (X(1,1,1+shift_z,3)-X(1,1,1,3))/2);
+    elseif Xscale == 1
         % Box averaging of positions.
         Xfilt = pseudoAverageLeft(X, winsize);
         Xwin = Xfilt(yrange, xrange, zrange, :);
