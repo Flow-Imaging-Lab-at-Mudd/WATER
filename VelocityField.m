@@ -13,7 +13,7 @@ classdef VelocityField < handle
         
         % Grid dimension. Note that the indices on grid, due to meshgrid
         % convension, is given as (y, x, z), where x represent the number
-        % of distinct values of x, etc..
+        % of distinct values of x, etc.. Row vector.
         dims
         % Optional 4D matrix of noise in velocity to be superposed with U.
         N
@@ -50,7 +50,7 @@ classdef VelocityField < handle
         % Range for computation and visualization. This region is denoted
         % the Effective Region.
         range
-        % Length of range in 3 dimensions.
+        % Length of range in 3 dimensions. Row vector.
         span
         
         % struct for properties of solvers.
@@ -190,6 +190,20 @@ classdef VelocityField < handle
             vf.N_e = vf.subsetVector(vf.N);
         end
         
+        function setRangePosition(vf, Xrange)
+            % Variant of vf.setRange that first derives range in indices
+            % from given positions.
+            range(1, :) = vf.getIndex_x(Xrange(1, :));
+            range(2, :) = vf.getIndex_y(Xrange(2, :));
+            range(3, :) = vf.getIndex_z(Xrange(3, :));
+            
+            if (prod(range(:,2) - range(:,1)) < 0)
+                error('Index of Subgrid proceeding in negative indices')
+            end
+            
+            vf.setRange(range)
+        end
+        
         function range = getRange(vf)
             % Obtain the current effective region with indices organized in
             % x y z order.
@@ -212,8 +226,8 @@ classdef VelocityField < handle
         function v = subsetVector(vf, V)
             % Identical to VF.getVector except that 'range' is now in the
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
-            v = squeeze(V(vf.range(1,1): vf.range(1,2), ...
-                vf.range(2,1): vf.range(2,2), vf.range(3,1): vf.range(3,2), :));
+            v = V(vf.range(1,1): vf.range(1,2), ...
+                vf.range(2,1): vf.range(2,2), vf.range(3,1): vf.range(3,2), :);
         end
 
         %%%%%%%%%%%%%%%%%%%%% Coordinate Helpers %%%%%%%%%%%%%%%%%%%%%
@@ -273,6 +287,21 @@ classdef VelocityField < handle
             end
         end
         
+        %%%%%%%%%%%%%%%%%%%%%% Modify Velocity %%%%%%%%%%%%%%%%%%%%%%
+        function addVelocity(vf, U_e)
+            % In place addition of velocity field in the effective region.
+            
+            % Accept constant shift given as a column 3-vector.
+            if isequal(size(squeeze(U_e)), [3 1])
+                U_e = dimen(U_e, vf.dims);
+            elseif ~isequal(size(U_e), size(vf.U_e))
+                error('Mismatching Dimensions of Noise and Global Velocity')
+            end
+            vf.U_e = vf.U_e + U_e;
+            vf.U(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2), :) = vf.U_e;
+        end
+        
         %%%%%%%%%%%%%%%%%%%%%% Add Noise %%%%%%%%%%%%%%%%%%%%%%
         
         % Introduce species of noise to velocity. Noises generated are added to the
@@ -308,6 +337,11 @@ classdef VelocityField < handle
             % Return the original noise for convenience.
             N_pre = vf.N_e;
             
+            % Cannot smooth over a unit volume.
+            if max(size(vf.U_e, 1:3)) == 1
+                return
+            end
+            
             vf.N_e(:,:,:,1) = smooth3(vf.U_e(:,:,:,1) + vf.N_e(:,:,:,1), smoother) - vf.U_e(:,:,:,1);
             vf.N_e(:,:,:,2) = smooth3(vf.U_e(:,:,:,2) + vf.N_e(:,:,:,2), smoother) - vf.U_e(:,:,:,2);
             vf.N_e(:,:,:,3) = smooth3(vf.U_e(:,:,:,3) + vf.N_e(:,:,:,3), smoother) - vf.U_e(:,:,:,3);
@@ -324,10 +358,6 @@ classdef VelocityField < handle
             end
             dims = (vf.range(:,2) - vf.range(:,1) + 1)';
             N_e = (rand([dims 3])*2 - 1) .* mag/sqrt(3);
-%             disp('N_e = ')
-%             size(N_e)
-%             disp('vf.N_e = ')
-%             size(vf.N_e)
             vf.N_e = vf.N_e + N_e;
             vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
