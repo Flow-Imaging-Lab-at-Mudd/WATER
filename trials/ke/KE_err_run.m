@@ -1,15 +1,26 @@
 function [dK, dK_box, dK_gss, bias_box, bias_gss] = ...
-    KE_err_run(vf, props)
-% Presumed parameters: 'range', 'vf' with range properly set,
-% 'vf.data.speed' for global speed without noise.
+    KE_err_run(vf, props, fr)
+% Presumed parameters: 'range', 'vf' with range properly set; and
+% occasionally 'fr' when a mean central speed is to be estimated for a
+% Hill's vortex.
 
 range = vf.getRange();
 
 % Each velocity component associated with a unit cell.
 vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
-    
+
 % Set constant maximal magnitude of noise.
 u_mean = vf.meanSpeed(0, 0);
+
+% % Use central speed for feature focusing. Enough resolution is presumed for
+% % proper indexing.
+% center = [floor(vf.getDims()/2) - floor(fr / vf.xresol); ...
+%     floor(vf.getDims()/2) + floor(fr / vf.xresol)]';
+% center(:, 1) = max([center(:,1) ones(3, 1)], [], 2);
+% center(:, 2) = min([center(:,2) vf.getDims()'], [], 2);
+% vf.setRange(center)
+% u_mean = vf.meanSpeed(0, 0);
+% vf.setRange(range)
 
 % Kinetic energy without noise.
 k = vf.kineticEnergy(0);
@@ -51,6 +62,7 @@ end
 dK = dK / k;
 dK_box = dK_box / k;
 dK_gss = dK_gss / k;
+
 
 % Baseline smoother biases.
 bias_box = dK_box(1);
@@ -103,51 +115,67 @@ range_str = strcat('Range:', {' '}, mat2str(range));
 % ylabel('$|\frac{\delta K}{K}|$')
 % title(range_str)
 
-%%%%%%%%%%%% Error plot vs KE noise. %%%%%%%%%%%%
+%%%%%%%%%%%% KE error plot vs KE noise. %%%%%%%%%%%%
 % figure;
 % scatter(abs(dK), abs(dK_box), 'r', 'filled')
 % hold on
 % scatter(abs(dK), abs(dK_gss), 'b', 'filled')
+% hold on
+% % 1-1 line.
+% plot(dK, dK, 'black')
+% hold on
+% % Smoother biases.
+% abs_bias_box = abs(bias_box);
+% yline(abs_bias_box, '-', 'Color', 'r')
 % 
-% legend('box-filtered', 'Gaussian-filtered')
+% hold on
+% abs_bias_gss = abs(bias_gss);
+% yline(abs_bias_gss, '-', 'Color', 'b')
+% 
+% legend('box-filtered', 'Gaussian-filtered', ...
+%     '$y=x$ identity line', ...
+%     strcat('box bias $\kappa = $', string(abs_bias_box)), ...
+%     strcat('Gaussian bias $\kappa = $', string(abs_bias_gss)), ...
+%     'Interpreter', 'latex')
+% 
 % xlabel('Unfiltered $|\frac{\delta K}{K}|$')
 % ylabel('Filtered $\frac{|\delta K|}{\bar{K}}$')
 % title(range_str)
 
 %%%%%%%%%%%%% Smoothing errors as proportion of smoother bias %%%%%%%%%%%%
-% err_prop_box = abs(dK_box / bias_box);
-% err_prop_gss = abs(dK_gss / bias_gss);
-% % Fit and record quadratic curves. The quadratic coefficient can serve as a
-% % measure of the KE error amplification rate.
-% err_quad_box = polyfit(props, err_prop_box, 2);
-% err_quad_gss = polyfit(props, err_prop_gss, 2);
-% 
-% figure;
-% scatter(props, err_prop_box, 'r', 'filled')
-% hold on
-% err_fit_box = polyplot(err_quad_box, props);
-% 
-% hold on
-% scatter(props, err_prop_gss, 'b', 'filled')
-% hold on
-% err_fit_gss = polyplot(err_quad_gss, props);
-% 
-% 
-% legend(strcat('box $\kappa = $', string(abs(bias_box))), ...
-%     strcat('box fit $r^2 = $', string(cor(err_fit_box, err_prop_box))), ...
-%     strcat('Gaussian $\kappa = $', string(abs(bias_gss))), ...
-%     strcat('Gaussian fit $r^2 = $', string(cor(err_fit_gss, err_prop_gss))), ...
-%     'Interpreter', 'latex')
-% 
-% % Different test dataset run.
-% % dataset_str = 'Turbulent Vortex Ring';
-% dataset_str = 'Synthetic Hill Vortex';
-% 
-% 
-% title(strcat('Proportional Error to Smoother Bias:', {' '}, dataset_str))
-% 
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\left|\frac{\delta K}{K}\right|}{\kappa}$')
+err_prop_box = abs(dK_box / bias_box);
+err_prop_gss = abs(dK_gss / bias_gss);
+% Fit and record quadratic curves. The quadratic coefficient can serve as a
+% measure of the KE error amplification rate.
+err_quad_box = polyfit(props, err_prop_box, 2);
+err_quad_gss = polyfit(props, err_prop_gss, 2);
+
+figure;
+scatter(props, err_prop_box, 'r', 'filled')
+hold on
+err_fit_box = polyplot(err_quad_box, props);
+
+hold on
+scatter(props, err_prop_gss, 'b', 'filled')
+hold on
+err_fit_gss = polyplot(err_quad_gss, props);
+
+
+legend(strcat('box $\kappa = $', string(abs(bias_box))), ...
+    strcat('box fit $r^2 = $', string(cor(err_fit_box, err_prop_box))), ...
+    strcat('Gaussian $\kappa = $', string(abs(bias_gss))), ...
+    strcat('Gaussian fit $r^2 = $', string(cor(err_fit_gss, err_prop_gss))), ...
+    'Interpreter', 'latex')
+
+% Different test dataset run.
+% dataset_str = 'Turbulent Vortex Ring';
+dataset_str = 'Synthetic Hill Vortex';
+
+
+title(strcat('Error Proportional to Smoother Bias:', {' '}, dataset_str))
+
+xlabel('$\frac{|\delta u|}{\bar{u}}$')
+ylabel('$\frac{\left|\frac{\delta K}{K}\right|}{\kappa}$')
 
 
 % uerr_histogram(vf.N_e);
