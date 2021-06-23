@@ -1,6 +1,7 @@
-% Uniform resolutions considered.
-resol = 0.01: 0.01: 1;
-resol_count = length(resol);
+% Variation of error with uniform resolutions (in the case of downsampling,
+% the initial resolution before downsampling) in x, y, z.
+%
+% Derek Li, June 2021.
 
 % Constant feature radius used while varying global resolution.
 fr = 1;
@@ -8,6 +9,29 @@ fr = 1;
 % Downsampling parameters.
 winsize = 8;
 overlap = 0.75;
+
+% Generate range of downsampled spacings for evenly spaced feature
+% resolutions.
+% Global spacing of downsampled data.
+dsp = zeros(1, 30);
+% Minimal feature resolution of 1.
+dsp(1) = 1 / fr;
+% Desired increment in feature resolution.
+fres_inc = 1;
+
+for i = 2: size(dsp, 2)
+    dsp(i) = fr / (fres_inc + fr/dsp(i-1));
+end
+
+% Reverse ordering of spacing so that high resolutions precedes low.
+dsp = flip(dsp);
+
+% Compute initial resolutions used.
+resol = dsp / min((1-overlap)*winsize, winsize-1);
+resol_count = size(resol, 2);
+
+% Feature resolution.
+fres = fr ./ dsp;
 
 % Randomly sample effective regions.
 num_ite = 1;
@@ -26,9 +50,6 @@ bias_gss = zeros(resol_count, num_ite);
 % Downsampling bias.
 dKd = zeros(resol_count, num_ite);
 
-% Global spacing of downsampled data.
-dsp = min((1-overlap)*winsize, winsize-1)*resol;
-
 % Flag for under-resolution.
 under_resolved = false;
 
@@ -43,7 +64,6 @@ for k = 1: resol_count
     
     % Subtract freestream velocity to focus on central feature region.
     vf.addVelocity(-vf.U(1,1,1,:))
-    
     
     for i = 1: num_ite
         % This section mirrors KE_uniform.
@@ -60,6 +80,7 @@ for k = 1: resol_count
         catch
             % Lower resolutions impossible.
             dsp = dsp(1:k-1);
+            fres = fres(1:k-1);
             dKd = dKd(1:k-1, :);
             bias_box = bias_box(1:k-1, :);
             bias_gss = bias_gss(1:k-1, :);
@@ -79,8 +100,8 @@ end
 mean_err_box = mean(err_box, 2);
 mean_err_gss = mean(err_gss, 2);
 
-smoother_bias_box = mean(bias_box, 2);
-smoother_bias_gss = mean(bias_gss, 2);
+smoother_bias_box = abs(mean(bias_box, 2));
+smoother_bias_gss = abs(mean(bias_gss, 2));
 
 % amp_box = mean(alpha_box, 2);
 % amp_gss = mean(alpha_gss, 2);
@@ -93,12 +114,29 @@ figure;
 % hold on
 % errorbar(resol, mean_err_gss, std(err_gss, 0, 2), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
 
-scatter(fr./dsp, mean_err_box, 'ko', 'MarkerFaceColor','red', 'LineWidth',1)
-hold on
-scatter(fr./dsp, mean_err_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+% Fit 1/fres error curves.
+abscissa = 1./fres;
+err_curve_box = polyfit(abscissa, mean_err_box, 1);
+err_curve_gss = polyfit(abscissa, mean_err_gss, 1);
 
-% Mean filter error plot.
-legend('box-filtered', 'Gaussian-filtered')
+
+scatter(fres, mean_err_box, 'ko', 'MarkerFaceColor','red', 'LineWidth',1)
+hold on
+err_fit_box = polyplot(err_curve_box, fres, 'r', -1);
+hold on
+scatter(fres, mean_err_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+hold on
+err_fit_gss = polyplot(err_curve_gss, fres, 'b', -1);
+hold on
+% 5% error line.
+yline(0.05, '-')
+
+legend({'box-filtered', ...
+    strcat('box fit $r^2=$', {' '}, string(cor(err_fit_box, mean_err_box'))), ...
+    'Gaussian-filtered', ...
+    strcat('Gaussian fit $r^2=$', {' '}, string(cor(err_fit_gss, mean_err_gss'))), ...
+    '5\% error line'}, ...    
+    'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\bar{\left|\frac{\delta K}{K}\right|}$')
 title(strcat('Mean Error of Smoother over $\delta u = $', {' '}, ...
@@ -113,12 +151,28 @@ mkdir(strcat(img_fdr, 'amp-coeff'))
 % saveas(gcf, strcat(img_fdr, '\mean-error\err-', string(fr), 'r', '.jpg'));
 
 % Smoother bias plot.
-figure;
-scatter(fr./dsp, abs(smoother_bias_box), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-hold on
-scatter(fr./dsp, abs(smoother_bias_gss), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+% Fit 1/fres bias curves.
+bias_curve_box = polyfit(abscissa, smoother_bias_box, 1);
+bias_curve_gss = polyfit(abscissa, smoother_bias_gss, 1);
 
-legend('box-filtered', 'Gaussian-filtered')
+figure;
+scatter(fres, smoother_bias_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+hold on
+bias_fit_box = polyplot(bias_curve_box, fres, 'r', -1);
+hold on
+scatter(fres, smoother_bias_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+hold on
+bias_fit_gss = polyplot(bias_curve_gss, fres, 'b', -1);
+hold on
+% 5% error line.
+yline(0.05, '-')
+
+legend({'box-filtered', ...
+    strcat('box fit $r^2=$', {' '}, string(cor(bias_fit_box, smoother_bias_box'))), ...
+    'Gaussian-filtered', ...
+    strcat('Gaussian fit $r^2=$', {' '}, string(cor(bias_fit_gss, smoother_bias_gss'))), ...
+    '5\% error line'}, ...
+    'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta K}{K}\right|$')
 title(strcat('Smoother Bias at $r = $', {' '}, string(fr)))
