@@ -41,7 +41,12 @@ overlap = min([overlap; winsize-1], [], 1);
 % Box averaging of velociy values.
 % after this step, vectors are still on input grid, but filtered like
 % PIV processing; only those on left vertices are valid.
-Ufilt = pseudoAverageLeft(U, winsize);
+
+ker = 1/prod(winsize) * ones(winsize);
+
+Ufilt = convn(U, ker, 'same');
+
+% Ufilt = pseudoAverageLeft(U, winsize);
 
 % Properly subset the averaged velocities and create windowed position meshgrid.
 if min(winsize) >= 1
@@ -55,8 +60,8 @@ if min(winsize) >= 1
     ydim_d = floor((ydim - winsize(2)) / shift_y) + 1;
     zdim_d = floor((zdim - winsize(3)) / shift_z) + 1;
 
-    % edge handling
-    % last coordinate for which enough data is available for a complete interrogation window of size boxes(dc)
+    % Edge handling
+    % Last left coordinate for which enough data is available for a complete interrogation window of size boxes(dc)
     endIndex_x = shift_x * (xdim_d-1) + 1;
     endIndex_y = shift_y * (ydim_d-1) + 1;
     endIndex_z = shift_z * (zdim_d-1) + 1;
@@ -65,8 +70,11 @@ if min(winsize) >= 1
     xrange = 1: shift_x: endIndex_x;
     yrange = 1: shift_y: endIndex_y;
     zrange = 1: shift_z: endIndex_z;
-
-    Uwin = Ufilt(yrange, xrange, zrange, :);
+    
+    % Use central indices.
+    Uwin = Ufilt(yrange + floor(winsize(2)/2), ...
+        xrange + floor(winsize(1)/2), ...
+        zrange + floor(winsize(3)/2), :);
 
     % If original coordinates are to be retained.
     if Xscale == 1

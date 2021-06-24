@@ -30,13 +30,13 @@ mean_abs_err_gss = zeros(1, windows_count);
 for i = 1: windows_count
     winsize = windows(i);
     [dK(:,i), dKd(i), dK_box(:,i), dK_gss(:,i), bias_box(i), bias_gss(i), ...
-        mean_abs_err_box(i), mean_abs_err_gss(i)] = ...
+        mean_abs_err_box(i), mean_abs_err_gss(i), ~] = ...
         KE_err_window_run(vf, winsize, overlap, props, fr);
 end
 
-% Plot of sampling bias, expected monotonic increase of underestimation.
-figure;
-scatter(windows, dKd, 'k', 'filled')
+% % Plot of sampling bias, expected monotonic increase of underestimation.
+% figure;
+% scatter(windows, dKd, 'k', 'filled')
 
 % Plot of bias.
 figure;
@@ -46,9 +46,25 @@ scatter(windows, abs(bias_box), 'r', 'filled')
 hold on
 scatter(windows, abs(bias_gss), 'b', 'filled')
 
+bias_line_d = polyfit(windows, abs(dKd), 1);
+bias_line_box = polyfit(windows, abs(bias_box), 1);
+bias_line_gss = polyfit(windows, abs(bias_gss), 1);
+
+hold on
+bias_fit_d = polyplot(bias_line_d, windows, 'k');
+hold on
+bias_fit_box = polyplot(bias_line_box, windows, 'r');
+hold on
+bias_fit_gss = polyplot(bias_line_gss, windows, 'b');
+
+
 legend(strcat('downsampling bias $\delta$'), ...
     strcat('box bias'),  ...
-    strcat('Gaussian bias'), 'Interpreter', 'latex')
+    strcat('Gaussian bias'), ...
+    strcat('downsampling fit $r^2 = $', {' '}, string(cor(bias_fit_d, abs(dKd)))), ...
+    strcat('box fit $r^2 = $', {' '}, string(cor(bias_fit_box, abs(bias_box)))), ...
+    strcat('Gaussian fit $r^2 = $', {' '}, string(cor(bias_fit_gss, abs(bias_gss)))), ...
+    'Interpreter', 'latex')
 xlabel('Window Size $w$')
 ylabel('$\kappa$')
 title(strcat('Downsampling biases at overlap $o=$', {' '}, string(overlap)))
