@@ -150,6 +150,8 @@ classdef VelocityField < handle
             
             [Xd, Ud] = PIV_window_sim(vf.X_e, vf.U_e + with_noise*vf.N_e, ...
                 winsize, overlap, newXscale);
+            size(Xd)
+            size(Ud)
             vfd = VelocityField(Xd, Ud);
             % Preserve certain properties.
             vfd.fluid = vf.fluid;
@@ -264,14 +266,20 @@ classdef VelocityField < handle
         
         function i = getIndex_x(vf, x)
             i = round((x - vf.xbounds(1))/vf.xresol) + 1;
+            % Wrap around boundary.
+            i = min(i, vf.dims(2));
         end
         
         function j = getIndex_y(vf, y)
             j = round((y - vf.ybounds(1))/vf.yresol) + 1;
+            % Wrap around boundary.
+            j = min(j, vf.dims(1));
         end
         
         function k = getIndex_z(vf, z)
             k = round((z - vf.zbounds(1))/vf.zresol) + 1;
+            % Wrap around boundary.
+            k = min(k, vf.dims(3));
         end
         
         function ind = getIndices(vf, pos)
