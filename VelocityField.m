@@ -192,7 +192,7 @@ classdef VelocityField < handle
         function derivePropertyStructs(vf)
             % Derive certain attributes from given elementary ones.
             
-            vf.solver.dv = vf.scale.len^3*abs(vf.xresol*vf.yresol*vf.zresol);
+            vf.solver.dv = vf.scale.len^3*vf.xresol*vf.yresol*vf.zresol;
         end
             
         
@@ -675,6 +675,7 @@ classdef VelocityField < handle
             % Computes and stores the vorticity, without multiplying by
             % units, from velocity. Currently a wrapper for the built-in
             % curl function.
+            
             [vort(:,:,:,1), vort(:,:,:,2), vort(:,:,:,3)] = ...
                 curl(vf.X_e(:,:,:,1), vf.X_e(:,:,:,2), vf.X_e(:,:,:,3), ...
                 vf.U_e(:,:,:,1) + with_noise*vf.N_e(:,:,:,1), ...
@@ -687,7 +688,7 @@ classdef VelocityField < handle
             % Selected mode of computation.
             switch vf.solver.ke.mode
                 case 'direct'
-                    k = 1/2*vf.fluid.density * vf.solver.dv * vf.scale.len^2 * ...
+                    k = 1/2*vf.fluid.density * abs(vf.solver.dv) * vf.scale.len^2 * ...
                             sum((vf.U_e + with_noise*vf.N_e).^2, 'all');
             end
         end
@@ -705,6 +706,14 @@ classdef VelocityField < handle
             % Computes the momentum of the fluid in the current region of
             % interest.
             
+            if with_noise
+                I = vf.fluid.density/2 * ...
+                    sum(cross(vf.X_e, vf.vorticity(1), 4), [1 2 3]) * ...
+                    vf.solver.dv;
+            else
+                I = vf.fluid.density/2 * sum(cross(vf.X_e, vf.vort_e, 4), [1 2 3]) ...
+                    * vf.solver.dv;
+            end
         end
         
         
