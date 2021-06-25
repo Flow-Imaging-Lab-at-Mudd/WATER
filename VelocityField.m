@@ -7,9 +7,13 @@ classdef VelocityField < handle
         % 4D matrix of velocity vectors on grid.
         U
         
+        % 4D matrix of vorticity vectors derived from velocity.
+        vort
+        
         % X, U subsetted into region of interest by vf.range.
         X_e
         U_e
+        vort_e
         
         % Grid dimension. Note that the indices on grid, due to meshgrid
         % convension, is given as (y, x, z), where x represent the number
@@ -132,6 +136,10 @@ classdef VelocityField < handle
             vf.U_e = U;
             vf.N_e = vf.N;
             
+            % Compute vorticity.
+            vf.vort = vf.vorticity(0);
+            vf.vort_e = vf.vort;
+            
             vf.initPropertyStructs()
             set(0,'defaultTextInterpreter','latex');
         end
@@ -150,8 +158,6 @@ classdef VelocityField < handle
             
             [Xd, Ud] = PIV_window_sim(vf.X_e, vf.U_e + with_noise*vf.N_e, ...
                 winsize, overlap, newXscale);
-            size(Xd)
-            size(Ud)
             vfd = VelocityField(Xd, Ud);
             % Preserve certain properties.
             vfd.fluid = vf.fluid;
@@ -218,6 +224,7 @@ classdef VelocityField < handle
             vf.X_e = vf.subsetVector(vf.X);
             vf.U_e = vf.subsetVector(vf.U);
             vf.N_e = vf.subsetVector(vf.N);
+            vf.vort_e = vf.subsetVector(vf.vort);
         end
         
         function setRangePosition(vf, Xrange)
@@ -661,6 +668,19 @@ classdef VelocityField < handle
         end
         
         %%%%%%%%%%%%%%%%%%% Solvers of Derived Quantities %%%%%%%%%%%%%%%%%%
+        % Some of these quantities, e.g. vorticity, is pre-computed during
+        % initialization from the position and velocity field given.
+        
+        function vort = vorticity(vf, with_noise)
+            % Computes and stores the vorticity, without multiplying by
+            % units, from velocity. Currently a wrapper for the built-in
+            % curl function.
+            [vort(:,:,:,1), vort(:,:,:,2), vort(:,:,:,3)] = ...
+                curl(vf.X_e(:,:,:,1), vf.X_e(:,:,:,2), vf.X_e(:,:,:,3), ...
+                vf.U_e(:,:,:,1) + with_noise*vf.N_e(:,:,:,1), ...
+                vf.U_e(:,:,:,2) + with_noise*vf.N_e(:,:,:,1), ...
+                vf.U_e(:,:,:,3) + with_noise*vf.N_e(:,:,:,1));
+        end
         
         function k = kineticEnergy(vf, with_noise)
             
@@ -679,6 +699,12 @@ classdef VelocityField < handle
             else
                 u_mean = mean(speed_e, 'all');
             end
+        end
+        
+        function I = impulse(vf, with_noise)
+            % Computes the momentum of the fluid in the current region of
+            % interest.
+            
         end
         
         
