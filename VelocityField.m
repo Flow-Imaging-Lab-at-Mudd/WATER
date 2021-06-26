@@ -141,7 +141,8 @@ classdef VelocityField < handle
             vf.vort_e = vf.vort;
             
             vf.initPropertyStructs()
-            set(0,'defaultTextInterpreter','latex');
+            set(0, 'defaultTextInterpreter', 'latex');
+            set(0, 'DefaultLegendInterpreter', 'latex')
         end
         
         function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
@@ -672,9 +673,9 @@ classdef VelocityField < handle
         % initialization from the position and velocity field given.
         
         function vort = vorticity(vf, with_noise)
-            % Computes and stores the vorticity, without multiplying by
-            % units, from velocity. Currently a wrapper for the built-in
-            % curl function.
+            % Computes and stores the vorticity with unit.
+            % 
+            % Currently just a wrapper for the built-in curl function.
             
             [vort(:,:,:,1), vort(:,:,:,2), vort(:,:,:,3)] = ...
                 curl(vf.X_e(:,:,:,1), vf.X_e(:,:,:,2), vf.X_e(:,:,:,3), ...
@@ -702,17 +703,28 @@ classdef VelocityField < handle
             end
         end
         
-        function I = impulse(vf, with_noise)
+        function I = impulse(vf, with_noise, origin)
             % Computes the momentum of the fluid in the current region of
             % interest.
+            %
+            % 'origin' specifies the arbitrary reference point used in
+            % computing impulse. If not specified, it is assumed to be the
+            % origin implied in the current coordinates.
+            %
+            % 'I' is a column vector.
+            
+            if ~exist('origin', 'var')
+                origin = [0 0 0]';
+            end
             
             if with_noise
-                I = vf.fluid.density/2 * ...
-                    sum(cross(vf.X_e, vf.vorticity(1), 4), [1 2 3]) * ...
-                    vf.solver.dv;
+                I = squeeze(vf.fluid.density/2 * ...
+                    sum(cross(vf.X_e - dimen(origin, vf.span), vf.vorticity(1), 4), [1 2 3]) * ...
+                    vf.solver.dv*vf.scale.len);
             else
-                I = vf.fluid.density/2 * sum(cross(vf.X_e, vf.vort_e, 4), [1 2 3]) ...
-                    * vf.solver.dv;
+                I = squeeze(vf.fluid.density/2 * ...
+                    sum(cross(vf.X_e - dimen(origin, vf.span), vf.vort_e, 4), [1 2 3]) ...
+                    * vf.solver.dv*vf.scale.len);
             end
         end
         
