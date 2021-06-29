@@ -1,5 +1,5 @@
 function [dI, dI_box, dI_gss, bias_box, bias_gss] = ...
-    impulse_err_run(vf, props, origin, u0)
+    impulse_err_run(vf, props, origin, fr, u0)
 
 % Introduce levels of noise proportional to the mean speed in the effective
 % region, according to 'props', e.g. 0: 0.1: 3. 'vf' is presume to have
@@ -22,8 +22,10 @@ vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = vf.fluid.density*[0 2*pi*vf.scale.len^4*u0 0]';
+I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
 i0 = norm(I0);
+% I0 = vf.impulse(0, origin);
+% i0 = norm(I0);
 
 % Error in impulse computation given noise.
 dI = zeros(3, props_count);

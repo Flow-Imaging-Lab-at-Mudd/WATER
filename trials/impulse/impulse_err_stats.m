@@ -1,10 +1,10 @@
 function [dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, dI_sd_gss, ...
-    bias_box, bias_gss] = impulse_err_stats(vf, props, origin, u0)
+    bias_box, bias_gss] = impulse_err_stats(vf, props, origin, fr, u0)
 % Extract sample statistics so that the error is represented at a lower
 % dimension.
 
 % Complete error data.
-[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, u0);
+[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, fr, u0);
 
 % Consider lower absolute error.
 abs_dI = abs(dI);
