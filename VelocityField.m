@@ -146,8 +146,8 @@ classdef VelocityField < handle
         end
         
         function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
-            % Perform box averaging on the velocity field and construct a
-            % downsampled field.
+            % Perform box averaging on the effective region of the velocity
+            % field and construct a downsampled field.
             %
             % newXscale is presumed to be a scalar, so that the positions
             % of the grid are in the same unit.
@@ -276,22 +276,31 @@ classdef VelocityField < handle
             i = round((x - vf.xbounds(1))/vf.xresol) + 1;
             % Wrap around boundary.
             i = min(i, vf.dims(2));
+            i = max(i, 1);
         end
         
         function j = getIndex_y(vf, y)
             j = round((y - vf.ybounds(1))/vf.yresol) + 1;
-            % Wrap around boundary.
+            % Wrap around boundaries.
             j = min(j, vf.dims(1));
+            j = max(j, 1);
         end
         
         function k = getIndex_z(vf, z)
             k = round((z - vf.zbounds(1))/vf.zresol) + 1;
             % Wrap around boundary.
             k = min(k, vf.dims(3));
+            k = max(k, 1);
         end
         
         function ind = getIndices(vf, pos)
             ind = [vf.getIndex_x(pos(1)), vf.getIndex_y(pos(2)), vf.getIndex_z(pos(3))];
+        end
+        
+        function int = inBounds(vf, pos)
+            int = pos(:,1)>=vf.xbounds(1) && pos(:,1)<=vf.xbounds(2) && ...
+                pos(:,2)>=vf.ybounds(1) && pos(:,2)<=vf.ybounds(2) && ...
+                pos(:,3)>=vf.zbounds(1) && pos(:,3)<=vf.zbounds(2);
         end
         
         function x = get_x(vf, i)
@@ -410,7 +419,8 @@ classdef VelocityField < handle
         %%%%%%%%%%%%%%%%%%%%%%%% Smoothers %%%%%%%%%%%%%%%%%%%%%%%%%
         
         function U_pre = smoothVelocity(vf, smoother)
-            % Inplace smoothing of velocity field.
+            % Inplace smoothing of velocity field. Supported options of
+            % 'smoother' are "box" and "gaussian".
             
             % Return previous velocity for convenience.
             U_pre = vf.U_e;
