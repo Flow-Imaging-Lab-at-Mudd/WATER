@@ -68,6 +68,9 @@ classdef VelocityField < handle
         % Customized struct for user to store related properties not ordained in object definition.
         data
         
+        % Dimensionality of the field. 3 for 3D, 2, for 2D, minimum of 1D.
+        ax
+        
     end
     
     methods(Static)
@@ -121,14 +124,23 @@ classdef VelocityField < handle
             vf.N = zeros(size(U));
             
             vf.xbounds = [X(1,1,1,1) X(1,end,1,1)];
-            % Suppose our data is not planar and uniformly spaced in
+            % Assume data is uniformly spaced in
             % position.
-            vf.xresol = X(1,2,1,1) - X(1,1,1,1);
+            if dims(2) > 1
+                vf.xresol = X(1,2,1,1) - X(1,1,1,1);
+            end
             vf.ybounds = [X(1,1,1,2) X(end,1,1,2)];
-            vf.yresol = X(2,1,1,2) - X(1,1,1,2);
+            if dims(1) > 1
+                vf.yresol = X(2,1,1,2) - X(1,1,1,2);
+            end
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
-            vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+            if dims(3) > 1
+                vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+            end
             vf.resol = [vf.xresol vf.yresol vf.zresol];
+            
+            % Dimensionality of our field.
+            ax = sum(vf.dims > 1);
             
             vf.range = [ones(3, 1) vf.dims'];
             vf.span = (vf.range*[-1; 1])' + 1;
@@ -137,8 +149,10 @@ classdef VelocityField < handle
             vf.N_e = vf.N;
             
             % Compute vorticity.
-            vf.vort = vf.vorticity(0);
-            vf.vort_e = vf.vort;
+            if ax == 3
+                vf.vort = vf.vorticity(0);
+                vf.vort_e = vf.vort;
+            end
             
             vf.initPropertyStructs()
             set(0, 'defaultTextInterpreter', 'latex');
@@ -196,7 +210,6 @@ classdef VelocityField < handle
             vf.solver.dv = vf.scale.len^3*vf.xresol*vf.yresol*vf.zresol;
         end
             
-        
         function setPropertyStructs(vf, fluid, solver, plotter)
             % Modify the requisite property structs.
             
