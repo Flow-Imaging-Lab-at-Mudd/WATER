@@ -1,19 +1,8 @@
-% function [fres_min_bias, fres_min_err] = ...
-%     impulse_window_resol(fr, winsize, overlap, min_fres, max_fres, fres_inc, ...
-%         origin, err_level, props)
-fr = 1;
-winsize = 4;
-overlap = 0.75;
-min_fres = 1;
-max_fres = 1;
-fres_inc = 1;
-origin = [0 0 0]';
-err_level = 0.1;
-props = 0: 0.1: 3;
-
+function [fres_min_bias, fres_min_err] = ...
+    impulse_window_resol(fr, winsize, overlap, fres, origin, err_level, props)
 % Variation of error with variation in uniform resolutions incorporating
 % downsampling. The resolutions plotted are the feature resolutions and not
-% the global resolutions.
+% the global resolutions. These are specified in ascending order by 'fres'.
 % 
 % The returned values is the minimum feature resolution required to reduce
 % error beneath the specified level of error. 
@@ -26,26 +15,14 @@ u0 = 1;
 
 % Generate range of downsampled spacings for evenly spaced feature
 % resolutions.
-
-% Global spacing of downsampled data.
-dsps = zeros(1, floor((max_fres-1)/fres_inc) + 1);
-% Minimal feature resolution.
-dsps(1) = fr / min_fres;
-
-for i = 2: size(dsps, 2)
-    dsps(i) = fr / (fres_inc + fr/dsps(i-1));
-end
-
-% Reverse ordering of spacing so that high resolutions precede low.
-dsps = flip(dsps);
+fres = flip(fres);
 
 % Compute initial resolutions to produce the desired given feature
 % resolutions after downsampling.
-sps = dsps / ((1-overlap)*(winsize));
+op = round(winsize .* overlap);
+op = min([op; winsize-1], [], 1);
+sps = 2*fr ./ (2*fres * (winsize-op) + winsize - 1);
 sps_count = size(sps, 2);
-
-% Feature resolution.
-fres = fr ./ dsps;
 
 % Consider stochastic effect.
 num_ite = 5;
@@ -78,10 +55,6 @@ for k = 1: sps_count
     vf.addVelocity(-vf.U(1,1,1,:))
     % Focus on vortical region.
     vf.setRangePosition(fr*repmat([-1 1], 3, 1))
-    
-    k
-    fres(k)
-    vf.dims
     
     for i = 1: num_ite
         % Run script for impulse error sampling.

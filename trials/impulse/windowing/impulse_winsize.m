@@ -16,7 +16,7 @@ origin = [0 0 0]';
 vf.setRangePosition(fr * repmat([-1 1], 3, 1))
 
 % Uniform windows in x, y, z.
-windows = 2.^(1: 5);
+windows = 2.^(1: 4);
 windows_count = size(windows, 2);
 
 % Constant overlap used.
@@ -37,20 +37,25 @@ dI_sd_gss = zeros(3, windows_count);
 bias_box = zeros(3, windows_count);
 bias_gss = zeros(3, windows_count);
 
-% % Minimum feature resolution to reduce error beneath an error level.
-% err_level = 0.1;
-% min_bias_fres = zeros(2, windows_count);
-% min_err_fres = zeros(2, windows_count);
-% % Maximum freature size tried.
-% max_fres = 40;
-% % Increment.
-% fres_inc = 1;
+% Minimum feature resolution to reduce error beneath an error level.
+err_level = 0.1;
+min_bias_fres = zeros(3, windows_count);
+min_err_fres = zeros(3, windows_count);
+% Maximum freature size tried.
+max_fres = 12;
+min_fres = 3;
+% Increment.
+fres_inc = 1;
 
 for i = 1: windows_count
     winsize = windows(i);
     [dId(:,i), dI(:,i), dI_sd(:,i), dI_box(:,i), dI_sd_box(:,i), dI_gss(:,i), ...
         dI_sd_gss(:,i), bias_box(:,i), bias_gss(:,i), ~] = ...
         impulse_err_window_stats(vf, props, origin, fr, u0, winsize, overlap);
+    % Compute required resolution to compensate for 
+    [min_bias_fres(:,i), min_err_fres(:,i)] = ...
+        impulse_window_resol(fr, winsize, overlap, min_fres:fres_inc:max_fres, ...
+            origin, err_level, props);
 end
 
 % 'dId' retains sign.
@@ -135,7 +140,7 @@ for dim = dims
     
     xlabel('Window Size $w$')
     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('Mean smoother error at overlap $o=$', {' '}, string(overlap)))
+    title(strcat('$', dim_str{dim}, '$ mean smoother error at overlap $o=$', {' '}, string(overlap)))
     saveas(gcf, strcat(img_fdr, 'err-', dim_str{dim}, '.jpg'));
 end
 
@@ -225,28 +230,28 @@ saveas(gcf, strcat(img_fdr, 'err-mag.jpg'));
 
 
 
-% 
-% %%%%%% Make graphs for required minimum feature resolution.
-% % Bias graph.
-% figure;
-% scatter(windows, min_bias_fres(1, :), 'r', 'filled')
-% hold on
-% scatter(windows, min_bias_fres(2, :), 'b', 'filled')
-% 
-% legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
-% xlabel('Window Size $w$')
-% ylabel('$\frac{r}{s}$')
-% title(strcat('Minimum feature resolution required to reduce bias under', ...
-%     {' '}, string(err_level), '\%'))
-% 
-% % Mean error graph.
-% figure;
-% scatter(windows, min_err_fres(1, :), 'r', 'filled')
-% hold on
-% scatter(windows, min_err_fres(2, :), 'b', 'filled')
-% 
-% legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
-% xlabel('Window Size $w$')
-% ylabel('$\frac{r}{s}$')
-% title(strcat('Minimum feature resolution required to reduce mean error under', ...
-%     {' '}, string(err_level), '\%', ' given 0-', string(100*props(end)), ' $\delta u$'))
+
+%%%%%% Make graphs for required minimum feature resolution.%%%%%%
+% Bias graph.
+figure;
+scatter(windows, min_bias_fres(1, :), 'r', 'filled')
+hold on
+scatter(windows, min_bias_fres(2, :), 'b', 'filled')
+
+legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+xlabel('Window Size $w$')
+ylabel('$\frac{r}{s}$')
+title(strcat('Minimum feature resolution for', ...
+    {' '}, string(err_level*100), '\% smoother bias'))
+
+% Mean error graph.
+figure;
+scatter(windows, min_err_fres(1, :), 'r', 'filled')
+hold on
+scatter(windows, min_err_fres(2, :), 'b', 'filled')
+
+legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+xlabel('Window Size $w$')
+ylabel('$\frac{r}{s}$')
+title(strcat('Minimum feature resolution for', {' '}, ...
+    string(err_level*100), '\% mean error'))
