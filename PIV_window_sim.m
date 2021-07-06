@@ -34,13 +34,13 @@ ydim = size(X, 1);
 zdim = size(X, 3);
 
 % Ensure overlap between windows is in integers.
-overlap = int32(winsize .* overlap);
+overlap = round(winsize .* overlap);
 overlap = min([overlap; winsize-1], [], 1);
 
 
 % Box averaging of velociy values.
 % after this step, vectors are still on input grid, but filtered like
-% PIV processing; only those on left vertices are valid.
+% PIV processing.
 
 ker = 1/prod(winsize) * ones(winsize);
 
@@ -72,20 +72,16 @@ if min(winsize) >= 1
     zrange = 1: shift_z: endIndex_z;
     
     % Use central indices.
-    Uwin = Ufilt(yrange + floor(winsize(2)/2), ...
-        xrange + floor(winsize(1)/2), ...
-        zrange + floor(winsize(3)/2), :);
+    Uwin = Ufilt(yrange + floor(winsize(2)/2 - 1), ...
+        xrange + floor(winsize(1)/2 - 1), ...
+        zrange + floor(winsize(3)/2 - 1), :);
 
     % If original coordinates are to be retained.
     if Xscale == 1
         [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
-            meshgrid(X(1,xrange,1,1) + (X(1,1+shift_x,1,1)-X(1,1,1,1))/2, ...
-                X(yrange,1,1,2) + (X(1+shift_y,1,1,2)-X(1,1,1,2))/2, ...
-                X(1,1,zrange,3) + (X(1,1,1+shift_z,3)-X(1,1,1,3))/2);
-    elseif Xscale == 1
-        % Box averaging of positions.
-        Xfilt = pseudoAverageLeft(X, winsize);
-        Xwin = Xfilt(yrange, xrange, zrange, :);
+            meshgrid(X(1,xrange,1,1) + (X(1,winsize(1),1,1)-X(1,1,1,1))/2, ...
+                X(yrange,1,1,2) + (X(winsize(2),1,1,2)-X(1,1,1,2))/2, ...
+                X(1,1,zrange,3) + (X(1,1,winsize(3),3)-X(1,1,1,3))/2);
     else
         [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
             meshgrid(xrange*Xscale(1), yrange*Xscale(2), zrange*Xscale(3));
