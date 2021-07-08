@@ -73,6 +73,14 @@ classdef VelocityField < handle
         
     end
     
+    % Some rarer quantities used for convenience.
+    properties (Access = private)
+        % The boundary indices of the effective region given in ascending
+        % order. Identical to [ones(1,3) vf.getSpan()'] except where the
+        % index proceeds in the negative direction of position.
+        ascLim
+    end
+    
     methods(Static)
         
         %%%%%%%%%%%%%%%%%%% Adapters of Recorded Data %%%%%%%%%%%%%%%%%%%
@@ -103,6 +111,10 @@ classdef VelocityField < handle
             err = sum((V - V0).^2, 4);
         end
         
+        function sum3Vector(V, v)
+            % TODO
+        end
+        
     end
     
     methods
@@ -111,6 +123,10 @@ classdef VelocityField < handle
             % Constructor taking in valid 4D matrices of position and
             % velocity whose first three dimensions conform to that of a
             % meshgrid.
+            
+            if ~isequal(ndims(X), 4) || ~isequal(size(X, 4), 3)
+                error('Invalid grids: 4D matrices required!')
+            end
             
             vf.X = X;
             vf.U = U;
@@ -147,6 +163,15 @@ classdef VelocityField < handle
             vf.X_e = X;
             vf.U_e = U;
             vf.N_e = vf.N;
+            
+            % Ascending positions.
+            vf.ascLim = [ones(3, 1) vf.getSpan()'];
+            for i = 1: 3
+                sp = vf.resol(i);
+                if sp < 0
+                    vf.ascLim(i, :) = flip(vf.ascLim(i, :));
+                end
+            end
             
             % Compute vorticity.
             if ax == 3
@@ -234,6 +259,15 @@ classdef VelocityField < handle
             vf.range(2, :) = range(1, :);
             vf.range(3, :) = range(3, :);
             vf.span = (vf.range*[-1; 1])' + 1;
+            % Ascending positions.
+            vf.ascLim = [ones(3, 1) vf.getSpan()'];
+            for i = 1: 3
+                sp = vf.resol(i);
+                if sp < 0
+                    vf.ascLim(i, :) = flip(vf.ascLim(i, :));
+                end
+            end
+            
             % Subset effective region.
             vf.X_e = vf.subsetVector(vf.X);
             vf.U_e = vf.subsetVector(vf.U);
@@ -507,7 +541,7 @@ classdef VelocityField < handle
             X = reshape(vf.X_e, [], 3);
             S = S(:);
             % Scaled size of each dot displayed. TODO: better fitting
-            % expression.
+            % expression for dot size.
             dif = sort(vf.range(:,2) - vf.range(:,1), 2);
             dot_size = 40^(sum(dif ~= 0)-1)/(dif(1)*dif(2));
             
@@ -829,7 +863,7 @@ classdef VelocityField < handle
             %
             % Discrepant with expected results for now.
             
-             % Subset region of interest.
+            % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetVector(V);
             end
@@ -843,6 +877,117 @@ classdef VelocityField < handle
                         vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zresol>0));
             end
         end
+        
+        
+       %%%%%%%%%%%%%%%%%%%%%%% Integral Methods %%%%%%%%%%%%%%%%%%%%%%%%
+       
+       % Scalar surface integral (scalar area element).
+       function summed = intCubicSurf(vf, F)
+           % Integrate on the faces of the current effective region, which
+           % is a cube, the given field, vector or scalar, 'F', using a
+           % scalar surface elements.
+           % 
+           % The indices of V are assumed to match that of X_e.
+           
+           if ~isequal(vf.span, size(F, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           summed = abs(vf.yresol*vf.zresol)*(sum(F(:,vf.ascLim(1,1),:), 'all') + ...
+               sum(F(:,vf.ascLim(1,2),:), 'all')) + ...
+               abs(vf.xresol*vf.zresol)*(sum(F(vf.ascLim(2,1),:,:), 'all') + ...
+               sum(F(vf.ascLim(2,2),:,:), 'all')) + ...
+               abs(vf.xresol*vf.yresol)*(sum(F(:,:,vf.ascLim(3,1)), 'all') + ...
+               sum(F(:,:,vf.ascLim(3,2)), 'all'));
+       end
+       
+       function vec = intCubicSurf_vec(vf, S)
+           % Integrate on the faces of the current effective region, which
+           % is a cube, the six vector surface elements multiplied by the
+           % given scalar field.
+           % 
+           % The indices of V are assumed to match that of X_e.
+           
+           if ~isequal(vf.span, size(S, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           vec = abs(vf.yresol*vf.zresol)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all') + ...
+               [1 0 0]'*sum(S(:,vf.ascLim(1,2),:), 'all')) + ...
+               abs(vf.xresol*vf.zresol)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all') + ...
+               [0 1 0]'*sum(S(vf.ascLim(2,2),:,:), 'all')) + ...
+               abs(vf.xresol*vf.yresol)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all') + ...
+               [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all'));
+       end
+       
+       function flux = intCubicSurf_flux(vf, V)
+           % Compute the flux on the six faces of the cube as defined by
+           % the current effective region by the given vector field 'V'.
+           % The indices of 'V' are assumed to match that of X_e.
+           
+           if ~isequal(vf.span, size(V, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           % Left face.
+           flux_left = sum(-V(:,vf.ascLim(1,1),:,1)*abs(vf.yresol)*abs(vf.zresol), 'all');
+           % Right face.
+           flux_right = sum(V(:,vf.ascLim(1,2),:,1)*abs(vf.yresol)*abs(vf.zresol), 'all');
+           % Bottom face.
+           flux_bottom = sum(-V(vf.ascLim(2,1),:,:,2)*abs(vf.xresol)*abs(vf.zresol), 'all');
+           % Top face.
+           flux_top = sum(V(vf.ascLim(2,2),:,:,2)*abs(vf.xresol)*abs(vf.zresol), 'all');
+           % Back face.
+           flux_back = sum(-V(:,:,vf.ascLim(3,1),3)*abs(vf.xresol)*abs(vf.yresol), 'all');
+           % Front face.
+           flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xresol)*abs(vf.yresol), 'all');
+           
+           flux = flux_left + flux_right + flux_top + flux_bottom + flux_front + flux_back;
+       end
+       
+       function crs = intCubicSurf_cross(vf, V)
+           % Compute the integral of the cross product V x n, where the
+           % latter is the normal vector on one of the six faces of the
+           % effective cube. 'V' is expected as a standard 4D array, whose
+           % indices are assumed to match that of X_e.
+           
+           if ~isequal(vf.span, size(V, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           % Left face.
+           crs_pd = zeros(vf.span(1), vf.span(3), 3);
+           crs_pd(:,:,2) = -squeeze(V(:, vf.ascLim(1,1), :, 3));
+           crs_pd(:,:,3) = squeeze(V(:, vf.ascLim(1,1), :, 2));
+           left = abs(vf.yresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           % Right face.
+           crs_pd = zeros(vf.span(1), vf.span(3), 3);
+           crs_pd(:,:,2) = squeeze(V(:, vf.ascLim(1,2), :, 3));
+           crs_pd(:,:,3) = -squeeze(V(:, vf.ascLim(1,2), :, 2));
+           right = abs(vf.yresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           % Bottom face.
+           crs_pd = zeros(vf.span(2), vf.span(3), 3);
+           crs_pd(:,:,1) = squeeze(V(vf.ascLim(2,1), :, :, 3));
+           crs_pd(:,:,3) = -squeeze(V(vf.ascLim(2,1), :, :, 1));
+           bottom = abs(vf.xresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           % Top face.
+           crs_pd = zeros(vf.span(2), vf.span(3), 3);
+           crs_pd(:,:,1) = -squeeze(V(vf.ascLim(2,2), :, :, 3));
+           crs_pd(:,:,3) = squeeze(V(vf.ascLim(2,2), :, :, 1));
+           top = abs(vf.xresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           % Back face.
+           crs_pd = zeros(vf.span(1), vf.span(2), 3);
+           crs_pd(:,:,1) = -squeeze(V(:, :, vf.ascLim(3,1), 2));
+           crs_pd(:,:,2) = squeeze(V(:, :, vf.ascLim(3,1), 1));
+           back = abs(vf.xresol)*abs(vf.yresol)*sum(crs_pd, [1 2]);
+           % Front face.
+           crs_pd = zeros(vf.span(1), vf.span(2), 3);
+           crs_pd(:,:,1) = squeeze(V(:, :, vf.ascLim(3,2), 2));
+           crs_pd(:,:,2) = -squeeze(V(:, :, vf.ascLim(3,2), 1));
+           front = abs(vf.xresol)*abs(vf.yresol)*sum(crs_pd, [1 2]);
+           
+           crs = squeeze(left + right + bottom + top + back + front);
+       end
         
     end
 end
