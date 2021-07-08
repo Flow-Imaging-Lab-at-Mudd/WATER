@@ -1,3 +1,7 @@
+% Object representation of a 3D PIV Velocity Field.
+%
+% Derek Li & Leah Mendelson
+
 classdef VelocityField < handle
     properties
         % Imported fields.
@@ -23,6 +27,9 @@ classdef VelocityField < handle
         N
         % Noise in the region of interest.
         N_e
+%         % Vortivity noise.
+%         Nvort
+%         Nvort_e
         
         % Commonly computed fields. Not computed automatically over
         % subsetting operations.
@@ -109,10 +116,6 @@ classdef VelocityField < handle
         
         function err = error_L2(V, V0)
             err = sum((V - V0).^2, 4);
-        end
-        
-        function sum3Vector(V, v)
-            % TODO
         end
         
     end
@@ -836,6 +839,27 @@ classdef VelocityField < handle
             end
             % Compute displacement in direction and differentiate.
             nder = dif / norm(vf.resol .* ind_inc);
+        end
+        
+        function grad = gradient(vf, F)
+            % Wrapper for 1st order central difference from Matlab.
+            
+            if ~isequal(size(F, 1:3), vf.span)
+                error('Field matching the effective position grid expected!')
+            end
+            
+            grad = NaN([size(F) 3]);
+            % If a scalar field is given.
+            if ndims(F) == 3
+                [grad(:,:,:,1), grad(:,:,:,2), grad(:,:,:,3)] = ...
+                    gradient(F, vf.xresol, vf.yresol, vf.zresol);
+            % Otherwise a vector field.
+            else
+                % Last dimension is difference among components of one
+                % vector, discard.
+                [grad(:,:,:,:,1), grad(:,:,:,:,2), grad(:,:,:,:,3), ~] = ...
+                    gradient(F, vf.xresol, vf.yresol, vf.zresol, 1);
+            end
         end
         
         function jacob = jacobian(vf, V, mode)
