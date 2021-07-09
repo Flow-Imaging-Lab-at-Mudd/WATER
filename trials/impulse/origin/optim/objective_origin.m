@@ -1,6 +1,8 @@
-function err = objective_origin(origin, vf)
+function [err, derv] = objective_origin(origin, vf)
 % Objective function for the two integral equations that determine the
-% Ringuette objective origin.
+% Ringuette objective origin, given in (Ringuette, 2014).
+% 
+% Derek Li, July
 
 % Distance units (specified in vf) are not multiplied in this problem.
 dv = abs(vf.xresol*vf.yresol*vf.zresol);
@@ -24,6 +26,9 @@ for j = 1: size(vf.X_e, 1)
     end
 end
 
+% A term appearing in the vector integral of the second equation.
+mat_cross = dux + cross(U, vort, 4);
+
 % Remainders of the two equations, both vectors, their norms to be
 % minimized.
 rem1 = 2*dv*squeeze(sum(U, [1 2 3])) - ...
@@ -31,6 +36,21 @@ rem1 = 2*dv*squeeze(sum(U, [1 2 3])) - ...
     vf.intCubicSurf_cross(cross(X_rel, U, 4));
 
 rem2 = -vf.intCubicSurf_vec(U.^2) + ...
-    vf.intCubicSurf_cross(cross(X_rel, dux + cross(U, vort, 4), 4));
+    vf.intCubicSurf_cross(cross(X_rel, mat_cross, 4));
 
-err = (norm(rem1) + norm(rem2)) / 2;
+r1 = norm(rem1);
+r2 = norm(rem2);
+
+err = r1 + r2;
+
+% Compute gradient for this objective function.
+derv = zeros(3, 1);
+% Identity matrix used for diff indexing.
+I = eye(3);
+
+for i = 1: 3
+    derv1 = rem1'/r1 * cross(I(:,i), squeeze(dv*sum(vort, [1 2 3])) + ...
+        vf.intCubicSurf_cross(U));
+    derv2 = -rem2'/r2 * cross(I(:,i), vf.intCubicSurf_cross(mat_cross));
+    derv(i) = derv1 + derv2;
+end
