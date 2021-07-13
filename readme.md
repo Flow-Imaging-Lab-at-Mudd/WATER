@@ -1,4 +1,4 @@
-# Library for manipulating, visualizing, and analyzing synthetic noise of 3D PIV velocity fields
+# Manipulating, visualizing, and analyzing synthetic noise of 3D PIV velocity fields
 
 ## Data Structure
 
@@ -11,7 +11,7 @@ Is a data structure for a 3D velocity vector field with two essential data/varia
 Via various import functions, common formats of data from 3D PIV experiment can be converted to a `VelocityField` object. For example, if the positions and velocities are recorded in components in separate arrays organized on the 3D grid representing the interrogation volume
 
 ```matlab
-vf = VelocityField.import_grid_separate(xw, yw, zw, uw, vw, zw)
+vf = VelocityField.import_grid_separate(x, y, z, u, v, w)
 ```
 
 This is one of the static methods which adapt data of different original formats into the current object representation.
@@ -62,7 +62,7 @@ vf.noise_wgn(sd = 0, snr = 10)
 We can visualize the magnitude of this noise along a regular plane, a plane orthogonal to one of the basis vectors. Here we use an additional parameter to specify the plane, considering the planar region probably differs from the 3D region of interest specified earlier. Picking the i<sup>th</sup> orthogonal plane to the x axis, we use `range = [i i; j_0 j_f; k_0 k_f]`, where the dimension with identical beginning and ending indices indicates the direction of normality as well as the index of the plane, and the other two dimensions specify the range of the plane on which noise is to be plotted.
 
 ```matlab
-vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), range, noise = 0, title_str = 'noise $\delta u$')
+vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), range, noise = 0, title_str = 'noise $\Delta u$')
 ```
 ![plane velocity](https://github.com/epicderek/flow/blob/master/illu/noise_plane.jpg)
 
@@ -93,7 +93,21 @@ vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
 
 ## Integration on a Cubic Surface
 
-Surface integration is supported on a rectangular surface, specified by setting the effective region. Using as an example a synthetic Hill's vortex, a spherical structure, we compute the mass flux on the cubic surface `[-1 1; -1 1; -1 1]` which envelopes it.
+Surface integration is supported on a rectangular surface, specified by setting the effective region, with the `vf.intCubicSurf` prefix. To illustrate, we create a Hill's vortex, a synthetic spherical structure, which is commonly used in our error study.
 
+```matlab
+[x, y, z, u, v, w, ~] = Hill_vortex_3D(spacing = 0.1, sphere_radius = 1, u0 = 1, z_proportion = 1);
+vf = VelocityField.import_grid_separate(x, y, z, u, v, w);
+vf.plotVector(vf.U, noise = 0, '$\vec{u}$')
+```
 
+![Hill-vortex](https://github.com/epicderek/flow/blob/master/illu/hill-vortex.jpg)
+
+Now we integrate the mass flux through this cubic surface, which is applying the del operator in a dot product with the velocity field. Since our fluid is incompressible, there should not be accumulation or net flux. The result is 6.9389e-18, negligible compared to the typical value of speed. In general, we can compute the flux of any vector field which is properly subsetted to be matching in dimension to the current effective region.
+
+```matlab
+vf.intCubicSurf_flux(vf.U_e)
+```
+
+The common operations under surface integrations are scalar surface elemtns multiplied by scalar or vector fields, vector surface elements (scalar element with normal vector) multiplied by scalar field, by vector field as dot product (flux), by vector field as cross product. These operations are implemented for a cubic surface, understood, when the ordering of multiplication matters, as `F x dS`.
 
