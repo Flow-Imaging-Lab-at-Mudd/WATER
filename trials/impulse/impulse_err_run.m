@@ -1,6 +1,10 @@
 function [dI, dI_box, dI_gss, bias_box, bias_gss] = ...
-    impulse_err_run(vf, props, origin, fr, u0)
-
+    impulse_err_run(vf, props, origin, origin0)
+% For synthetic data set, impulse_err_run(vf, props, origin, fr, u0)
+% For experimental data set, impulse_err_run(vf, props, origin, I0),
+% where 'origin0' is the origin from which the impulse taken as correct is
+% computed.
+% 
 % Introduce levels of noise proportional to the mean speed in the effective
 % region, according to 'props', e.g. 0: 0.1: 3. 'vf' is presume to have
 % range properly set. 'origin' specifies the reference point to which
@@ -22,10 +26,12 @@ vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
+% I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
+% i0 = I0(2);
+
+% Experimental momentum used as comparison level.
+I0 = vf.impulse(0, origin0);
 i0 = norm(I0);
-% I0 = vf.impulse(0, origin);
-% i0 = norm(I0);
 
 % Error in impulse computation given noise.
 dI = zeros(3, props_count);
@@ -70,162 +76,68 @@ mag_bias_gss = norm(bias_gss);
 abs_bias_box = abs(bias_box);
 abs_bias_gss = abs(bias_gss);
 
+% Dimension, i.e., x, y, z, to plot, specified correspondingly by 1, 2, 3.
+dims = [2 1 3];
+dim_str = {'x', 'y', 'z'};
+
 %%%%%%%%%%% Plot signed impulse error %%%%%%%%%%%%%%%
-% % y dimension.
-% figure;
-% scatter(props, dI(2,:))
-% hold on
-% scatter(props, dI_box(2,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(dI_box(2,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, dI_gss(2,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(dI_gss(2,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $\frac{\delta I_y}{I} = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $\frac{\delta I_y}{I} = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\delta I_y}{I}$')
-% title('Axial Impulse Error')
-% 
-% 
-% % z dimension.
-% figure;
-% scatter(props, dI(3,:))
-% hold on
-% scatter(props, dI_box(3,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(dI_box(3,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, dI_gss(3,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(dI_gss(3,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $\frac{\delta I_z}{I} = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $\frac{\delta I_z}{I} = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\delta I_z}{I}$')
-% title('Impulse Error in $z$ Direction')
-% 
-% % x dimension.
-% figure;
-% scatter(props, dI(1,:))
-% hold on
-% scatter(props, dI_box(1,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(dI_box(1,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, dI_gss(1,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(dI_gss(1,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $\frac{\delta I_x}{I} = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $\frac{\delta I_x}{I} = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\delta I_x}{I}$')
-% title('Impulse Error in $x$ Direction')
+
+% for dim = dims
+%     figure;
+%     scatter(props, dI(dim,:))
+%     hold on
+%     scatter(props, dI_box(dim,:), 'r', 'filled')
+%     hold on
+%     err_mean_box = mean(dI_box(dim,:));
+%     yline(err_mean_box, '-')
+%     hold on
+%     scatter(props, dI_gss(dim,:), 'b', 'filled')
+%     hold on
+%     err_mean_gss = mean(dI_gss(dim,:));
+%     yline(err_mean_gss, '-')
+%     
+%     legend({'unfiltered error', ...
+%         'box-filtered $\vec{u}$', ...
+%         strcat('box mean $\frac{\delta I_y}{I} = $', string(err_mean_box)), ...
+%         'Gaussian-filtered $\vec{u}$', ...
+%         strcat('Gaussian mean $\frac{\delta I_y}{I} = $', string(err_mean_gss))})
+%     xlabel('$\frac{|\delta u|}{\bar{u}}$')
+%     ylabel(strcat('$\frac{\delta I_', dim_str{dim}, '}{I}$'))
+%     title(strcat('$', dim_str{dim}, '$ Impulse Error'))
+% end
 
 
 %%%%%%%%%%%%%%%%%% Plot absolute impulse error %%%%%%%%%%%%%%%%%%%%
 
-% % y dimension.
-% figure;
-% scatter(props, abs_dI(2,:))
-% hold on
-% err_mean0 = mean(abs_dI(2, :));
-% yline(err_mean0, '-')
-% hold on
-% scatter(props, abs_dI_box(2,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(abs_dI_box(2,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, abs_dI_gss(2,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(abs_dI_gss(2,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     strcat('unfiltered mean $|\frac{\delta I_y}{I}| = $', string(err_mean0)), ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $|\frac{\delta I_y}{I}| = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $|\frac{\delta I_y}{I}| = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\left|\frac{\delta I_y}{I}\right|$')
-% title('Absolute Axial Impulse Error')
-% 
-% % z dimension.
-% figure;
-% scatter(props, abs_dI(3,:))
-% hold on
-% err_mean0 = mean(abs_dI(3, :));
-% yline(err_mean0, '-')
-% hold on
-% scatter(props, abs_dI_box(3,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(abs_dI_box(3,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, abs_dI_gss(3,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(abs_dI_gss(3,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     strcat('unfiltered mean $|\frac{\delta I_z}{I}| = $', string(err_mean0)), ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $|\frac{\delta I_z}{I}| = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $|\frac{\delta I_z}{I}| = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\left|\frac{\delta I_z}{I}\right|$')
-% title('Absolute Impulse Error in $z$ Direction')
-% 
-% % x dimension.
-% figure;
-% scatter(props, abs_dI(1,:))
-% hold on
-% err_mean0 = mean(abs_dI(1, :));
-% yline(err_mean0, '-')
-% hold on
-% scatter(props, abs_dI_box(1,:), 'r', 'filled')
-% hold on
-% err_mean_box = mean(abs_dI_box(1,:));
-% yline(err_mean_box, '-')
-% hold on
-% scatter(props, abs_dI_gss(1,:), 'b', 'filled')
-% hold on
-% err_mean_gss = mean(abs_dI_gss(1,:));
-% yline(err_mean_gss, '-')
-% 
-% legend({'unfiltered error', ...
-%     strcat('unfiltered mean $|\frac{\delta I_x}{I}| = $', string(err_mean0)), ...
-%     'box-filtered $\vec{u}$', ...
-%     strcat('box mean $|\frac{\delta I_x}{I}| = $', string(err_mean_box)), ...
-%     'Gaussian-filtered $\vec{u}$', ...
-%     strcat('Gaussian mean $|\frac{\delta I_x}{I}| = $', string(err_mean_gss))})
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\left|\frac{\delta I_x}{I}\right|$')
-% title('Absolute Impulse Error in $x$ Direction')
+% for dim = dims
+%     figure;
+%     scatter(props, abs_dI(dim,:))
+%     hold on
+%     err_mean0 = mean(abs_dI(dim, :));
+%     yline(err_mean0, '-')
+%     hold on
+%     scatter(props, abs_dI_box(dim,:), 'r', 'filled')
+%     hold on
+%     err_mean_box = mean(abs_dI_box(dim,:));
+%     yline(err_mean_box, '-')
+%     hold on
+%     scatter(props, abs_dI_gss(dim,:), 'b', 'filled')
+%     hold on
+%     err_mean_gss = mean(abs_dI_gss(dim,:));
+%     yline(err_mean_gss, '-')
+%     
+%     legend({'unfiltered error', ...
+%         strcat('unfiltered mean $|\frac{\delta I_y}{I}| = $', string(err_mean0)), ...
+%         'box-filtered $\vec{u}$', ...
+%         strcat('box mean $|\frac{\delta I_y}{I}| = $', string(err_mean_box)), ...
+%         'Gaussian-filtered $\vec{u}$', ...
+%         strcat('Gaussian mean $|\frac{\delta I_y}{I}| = $', string(err_mean_gss))})
+%     xlabel('$\frac{|\delta u|}{\bar{u}}$')
+%     ylabel(strcat('$\left|\frac{\delta I_', dim_str{dim}, '}{I}\right|$'))
+%     title(strcat('Absolute', ' $', dim_str{dim}, '$ Impulse Error'))
+% end
 
-%%%%%%%%%%% Error magnitude vs proportional noise %%%%%%%%%%%%
+%%%%%%%%%%% Error magnitude %%%%%%%%%%%%
 % figure;
 % scatter(props, di)
 % hold on
@@ -243,8 +155,8 @@ abs_bias_gss = abs(bias_gss);
 %     'Interpreter', 'latex')
 % 
 % xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('Filtered $\frac{|\delta I|}{\bar{I}}$')
-% title('Smoother Efficacy')
+% ylabel('$\frac{|\delta I|}{\bar{I}}$')
+% title('Magnitude of Impulse Error')
 
 
 %%%%%%%%%%%% Impulse error vs impulse noise, in magnitude%%%%%%%%%%%%
@@ -271,49 +183,19 @@ abs_bias_gss = abs(bias_gss);
 % title('Smoother Efficacy')
 
 %%%%%%%%%%%%% Smoothing errors as proportion of smoother bias %%%%%%%%%%%%
-% err_prop_box = abs(dI_box / mag_bias_box);
-% err_prop_gss = abs(dI_gss / mag_bias_gss);
-% 
-% % y dimension.
-% figure;
-% scatter(props, err_prop_box(2,:), 'r', 'filled')
-% hold on
-% scatter(props, err_prop_gss(2,:), 'b', 'filled')
-% 
-% legend({strcat('box $\kappa = $', string(mag_bias_box)), ...
-%     strcat('Gaussian $\kappa = $', string(mag_bias_gss))}, ...
-%     'Interpreter', 'latex')
-% 
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\left|\frac{\delta I}{I}\right|}{\kappa}$')
-% title(strcat('Axial Error Proportional to Smoother Bias'))
-% 
-% % z dimension.
-% figure;
-% scatter(props, err_prop_box(3,:), 'r', 'filled')
-% hold on
-% scatter(props, err_prop_gss(3,:), 'b', 'filled')
-% 
-% legend({strcat('box $\kappa = $', string(mag_bias_box)), ...
-%     strcat('Gaussian $\kappa = $', string(mag_bias_gss))}, ...
-%     'Interpreter', 'latex')
-% 
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\left|\frac{\delta I}{I}\right|}{\kappa}$')
-% title(strcat('$z$ Error Proportional to Smoother Bias'))
-% 
-% 
-% % x dimension.
-% figure;
-% scatter(props, err_prop_box(1,:), 'r', 'filled')
-% hold on
-% scatter(props, err_prop_gss(1,:), 'b', 'filled')
-% 
-% legend({strcat('box $\kappa = $', string(mag_bias_box)), ...
-%     strcat('Gaussian $\kappa = $', string(mag_bias_gss))}, ...
-%     'Interpreter', 'latex')
-% 
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{\left|\frac{\delta I}{I}\right|}{\kappa}$')
-% title(strcat('$x$ Error Proportional to Smoother Bias'))
-% 
+err_prop_box = abs(dI_box / mag_bias_box);
+err_prop_gss = abs(dI_gss / mag_bias_gss);
+
+% for dim = dims
+%     figure;
+%     scatter(props, err_prop_box(dim,:), 'r', 'filled')
+%     hold on
+%     scatter(props, err_prop_gss(dim,:), 'b', 'filled')
+%     
+%     legend({strcat('box $\kappa = $', string(mag_bias_box)), ...
+%         strcat('Gaussian $\kappa = $', string(mag_bias_gss))}, ...
+%         'Interpreter', 'latex')
+%     xlabel('$\frac{|\delta u|}{\bar{u}}$')
+%     ylabel(strcat('$\frac{\left|\frac{\delta I_', dim_str{dim}, '}{I}\right|}{\kappa}$'))
+%     title(strcat('$', dim_str{dim}, '$ Error Proportional to Smoother Bias'))
+% end
