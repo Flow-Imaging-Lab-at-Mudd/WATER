@@ -2,7 +2,7 @@
 % origin constraints computed in objective_origin.m, which is suggested in
 % (Ringuette 2014).
 %
-% Derek Li, July
+% Derek Li, July 2021
 
 
 % Paremeters held constant.
@@ -18,6 +18,12 @@ vf.addVelocity(-vf.U(1,1,1,:))
 % Zoom in on vortical region.
 vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 
+% Use experimental vortex.
+% load('turbulent_vortex_post.mat');
+% vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
+% % Vortical region.
+% vf.setRangePosition([-20 10; -5 25; -5 -35])
+
 % Consider stochatic effect of noise introduction.
 num_ite = 5;
 % Proportional noise.
@@ -30,6 +36,10 @@ u_mean = vf.meanSpeed(0, 0);
 % Theoretical momentum.
 I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
 i0 = I0(2);
+
+% % Momentum computed without noise.
+% I0 = vf.impulse(0, [0 0 0]');
+% i0 = norm(I0);
 
 % Objective origins identified per noise level per trial. For no filtering,
 % box filtering, and Gaussian filtering.
@@ -48,7 +58,7 @@ err0_gss = zeros(props_count, num_ite, 3);
 
 % Minimization options.
 min_opt = optimoptions(@fminunc,'Algorithm','trust-region','SpecifyObjectiveGradient',true);
-
+origin0 = [0 0 0]';
 
 % Identify objective origin under different proportions of noise.
 for i = 1: props_count
@@ -57,8 +67,8 @@ for i = 1: props_count
         % Add noise.
         N = vf.noise_uniform(props(i)*u_mean);
         % Identify objective origin without smoothing.
-        % Randomize initial origin guess.
-        origin0 = -2 + 4*rand(3, 1);
+%         % Randomize initial origin guess.
+%         origin0 = -2 + 4*rand(3, 1);
         origin = fminunc(@(o) objective_origin(o, vf), origin0, min_opt);
         % Compute corresponding error.
         err_unf(i,j,:) = vf.impulse(1, origin) - I0;
@@ -117,12 +127,13 @@ dot_size = 20;
 origins = reshape(origin_unf, [], 3);
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_unf(:), 'filled')
 
-colorbar
-
+cb = colorbar;
+cb.Label.String = 'error per $I$';
+cb.Label.Interpreter = 'latex';
 xlabel('$x$')
 ylabel('$y$')
 zlabel('$z$')
-title('objective origins without filtering')
+title('Error of objective origins without filtering')
 
 % Box filtered.
 figure;
@@ -130,11 +141,13 @@ dot_size = 20;
 origins = reshape(origin_box, [], 3);
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_box(:), 'filled')
 
-colorbar
+cb = colorbar;
+cb.Label.String = 'error per $I$';
+cb.Label.Interpreter = 'latex';
 xlabel('$x$')
 ylabel('$y$')
 zlabel('$z$')
-title('objective origins after box-filtering')
+title('Error of objective origins after box-filtering')
 
 % Gaussian Filtered.
 figure;
@@ -142,9 +155,10 @@ dot_size = 20;
 origins = reshape(origin_gss, [], 3);
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_gss(:), 'filled')
 
-colorbar
+cb = colorbar;
+cb.Label.String = 'error per $I$';
+cb.Label.Interpreter = 'latex';
 xlabel('$x$')
 ylabel('$y$')
 zlabel('$z$')
-title('objective origins after Gaussian-filtering')
-
+title('Error of objective origins after Gaussian-filtering')
