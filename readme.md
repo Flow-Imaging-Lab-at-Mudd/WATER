@@ -1,4 +1,6 @@
-Library for manipulating and visualizing 3D PIV velocity fields.
+# Library for manipulating, visualizing, and analyzing synthetic noise of 3D PIV velocity fields
+
+## Data Structure
 
 ```matlab
 vf = VelocityField(X, U)
@@ -20,7 +22,15 @@ We may wish to inspect and perform computations on a restricted region of our ov
 vf.setRange([i_0 i_f; j_0 j_f; k_0 k_f])
 ```
 
-Such indices may be obtained from a set of mapping functions from position to index such as `vf.getIndex_x()`. Indices is the preferred means of access by most methods.
+Such indices may be obtained from a set of mapping functions from position to index such as `vf.getIndex_x()`. Currently, the `vf.getIndex()` methods interpolate to the nearest grid position and wrap around the boundaries, so that even an external position will be assigned a valid index on the grid. To exclude external points, one may use the `vf.inBounds([x y z]')` handle to check for inclusion. Index is the preferred means of access by most methods.
+
+Nonetheless, we may also specify the effective region by position, where the input is a typical range array of dimensions 3 x 2, speicifying the positions of the end points in each dimension. It is not required that the position is given in ascending order, for some fields has descending positions with increasing indices. The indexing is handled properly as to proceed in the same direction of position as in the original field. **It is required however that the subsetted region, and the velocity field in general, be a 3D region--with at least two distinct positions per dimension.**
+
+```matlab
+vf.setRangePosition([-5 5; 5 -5; 0 3])
+```
+
+## Graphing
 
 We may plot a vector field over our earlier specified range, here the velocity
 
@@ -28,7 +38,7 @@ We may plot a vector field over our earlier specified range, here the velocity
 plt = vf.plotVector(vf.U, noise = 0, title_str = 'Velocity $\vec{u}$')
 ```
 
-Producing
+Which produces
 ![global velocity](https://github.com/epicderek/flow/blob/master/illu/3dv.jpg)
 
 The vector field plotted here, `vf.U`, or involved in computation in other methods, if given in the global range, not restricted to the region of interest specified, is automatically subsetted. 
@@ -80,4 +90,10 @@ vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
 ```
 
 ![isosurface](https://github.com/epicderek/flow/blob/master/illu/isosurface.jpg)
+
+## Integration on a Cubic Surface
+
+Surface integration is supported on a rectangular surface, specified by setting the effective region. Using as an example a synthetic Hill's vortex, a spherical structure, we compute the mass flux on the cubic surface `[-1 1; -1 1; -1 1]` which envelopes it.
+
+
 
