@@ -1,4 +1,4 @@
-# Manipulating, visualizing, and analyzing synthetic noise of 3D PIV velocity fields
+# 3D PIV velocity fields--Manipulation, visualization, and analysis of random synthetic noise
 
 ## Data Structure
 
@@ -53,7 +53,9 @@ Where `vf.getRegPlaneEq([i 0 0])` calculates the required format of the plane as
 
 ![plane velocity](https://github.com/epicderek/flow/blob/master/illu/plane.jpg)
 
-Now, we introduce noise to our system. This noise will be added to the instance variable `vf.N`, not directly added to `vf.U`, though the user may perform such an addition. Adding Gaussian white noise,
+Now, we introduce noise to our system. This noise will be added to the instance variable `vf.N`, not directly added to `vf.U`, though the user may perform such an addition. The separate fields `vf.N` and `vf.N_e` storing noise is velocity are useful in studying the effect of synthetic noise, since the original field is not altered while the effect of noise is obtained by replacing `vf.U_e` with `vf.U_e + vf.N_e` in computations with noise. Methods in the class are thus implemented.
+
+Adding Gaussian white noise,
 
 ```matlab
 vf.noise_wgn(sd = 0, snr = 10)
@@ -90,6 +92,28 @@ vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
 ```
 
 ![isosurface](https://github.com/epicderek/flow/blob/master/illu/isosurface.jpg)
+
+## Computation of Physical Quantities
+
+There are corresponding solvers for typical PIV mechanical quantities. For instance, to compute the total kinetic energy of the effective region with noise,
+
+```matlab
+K = vf.kineticEnergy(with_noise = true)
+```
+
+The last argument of all functions computing a physical quantity is a boolean indicating whether noise, that is, as stored in `vf.N_e`, is to be combined with the original velocity. Here is a function computing the vorticity field from the velocity field.
+
+```matlab
+vort = vf.vorticity(with_noise = true)
+```
+
+The vorticity field is stored as a variable in `vf` as `vf.vort`, and this function is implicitly called upon construction of a `VelocityField` object. To avoid computaitons of these derivative quantities during initialization, use an optional flag in initialization.
+
+Impulse is computed by specifying an origin. Say we use the natural origin implied by the positions on the grid.
+
+```matlab
+I = vf.impulse(origin = [0 0 0]', with_noise = true)
+```
 
 ## Integration on a Cubic Surface
 
