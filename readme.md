@@ -1,4 +1,6 @@
-Library for manipulating and visualizing 3D PIV velocity fields.
+# 3D PIV velocity fields--Manipulation, visualization, and analysis of random synthetic noise
+
+## Data Structure
 
 ```matlab
 vf = VelocityField(X, U)
@@ -9,7 +11,7 @@ Is a data structure for a 3D velocity vector field with two essential data/varia
 Via various import functions, common formats of data from 3D PIV experiment can be converted to a `VelocityField` object. For example, if the positions and velocities are recorded in components in separate arrays organized on the 3D grid representing the interrogation volume
 
 ```matlab
-vf = VelocityField.import_grid_separate(xw, yw, zw, uw, vw, zw)
+vf = VelocityField.import_grid_separate(x, y, z, u, v, w)
 ```
 
 This is one of the static methods which adapt data of different original formats into the current object representation.
@@ -20,7 +22,15 @@ We may wish to inspect and perform computations on a restricted region of our ov
 vf.setRange([i_0 i_f; j_0 j_f; k_0 k_f])
 ```
 
-Such indices may be obtained from a set of mapping functions from position to index such as `vf.getIndex_x()`. Indices is the preferred means of access by most methods.
+Such indices may be obtained from a set of mapping functions from position to index such as `vf.getIndex_x()`. Currently, the `vf.getIndex()` methods interpolate to the nearest grid position and wrap around the boundaries, so that even an external position will be assigned a valid index on the grid. To exclude external points, one may use the `vf.inBounds([x y z]')` handle to check for inclusion. Index is the preferred means of access by most methods.
+
+Nonetheless, we may also specify the effective region by position, where the input is a typical range array of dimensions 3 x 2, speicifying the positions of the end points in each dimension. It is not required that the position is given in ascending order, for some fields has descending positions with increasing indices. The indexing is handled properly as to proceed in the same direction of position as in the original field. **It is required however that the subsetted region, and the velocity field in general, be a 3D region--with at least two distinct positions per dimension.**
+
+```matlab
+vf.setRangePosition([-5 5; 5 -5; 0 3])
+```
+
+## Graphing
 
 We may plot a vector field over our earlier specified range, here the velocity
 
@@ -28,7 +38,7 @@ We may plot a vector field over our earlier specified range, here the velocity
 plt = vf.plotVector(vf.U, noise = 0, title_str = 'Velocity $\vec{u}$')
 ```
 
-Producing
+Which produces
 ![global velocity](https://github.com/epicderek/flow/blob/master/illu/3dv.jpg)
 
 The vector field plotted here, `vf.U`, or involved in computation in other methods, if given in the global range, not restricted to the region of interest specified, is automatically subsetted. 
@@ -43,7 +53,9 @@ Where `vf.getRegPlaneEq([i 0 0])` calculates the required format of the plane as
 
 ![plane velocity](https://github.com/epicderek/flow/blob/master/illu/plane.jpg)
 
-Now, we introduce noise to our system. This noise will be added to the instance variable `vf.N`, not directly added to `vf.U`, though the user may perform such an addition. Adding Gaussian white noise,
+Now, we introduce noise to our system. This noise will be added to the instance variable `vf.N`, not directly added to `vf.U`, though the user may perform such an addition. The separate fields `vf.N` and `vf.N_e` storing noise is velocity are useful in studying the effect of synthetic noise, since the original field is not altered while the effect of noise is obtained by replacing `vf.U_e` with `vf.U_e + vf.N_e` in computations with noise. Methods in the class are thus implemented.
+
+Adding Gaussian white noise,
 
 ```matlab
 vf.noise_wgn(sd = 0, snr = 10)
@@ -52,7 +64,7 @@ vf.noise_wgn(sd = 0, snr = 10)
 We can visualize the magnitude of this noise along a regular plane, a plane orthogonal to one of the basis vectors. Here we use an additional parameter to specify the plane, considering the planar region probably differs from the 3D region of interest specified earlier. Picking the i<sup>th</sup> orthogonal plane to the x axis, we use `range = [i i; j_0 j_f; k_0 k_f]`, where the dimension with identical beginning and ending indices indicates the direction of normality as well as the index of the plane, and the other two dimensions specify the range of the plane on which noise is to be plotted.
 
 ```matlab
-vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), range, noise = 0, title_str = 'noise $\delta u$')
+vf.plotPlaneScalar(sqrt(sum(vf.N.^2, 4)), range, noise = 0, title_str = 'noise $\Delta u$')
 ```
 ![plane velocity](https://github.com/epicderek/flow/blob/master/illu/noise_plane.jpg)
 
@@ -80,4 +92,46 @@ vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
 ```
 
 ![isosurface](https://github.com/epicderek/flow/blob/master/illu/isosurface.jpg)
+
+## Computation of Physical Quantities
+
+There are corresponding solvers for typical PIV mechanical quantities. For instance, to compute the total kinetic energy of the effective region with noise,
+
+```matlab
+K = vf.kineticEnergy(with_noise = true)
+```
+
+The last argument of all functions computing a physical quantity is a boolean indicating whether noise, that is, as stored in `vf.N_e`, is to be combined with the original velocity. Here is a function computing the vorticity field from the velocity field.
+
+```matlab
+vort = vf.vorticity(with_noise = true)
+```
+
+The vorticity field is stored as a variable in `vf` as `vf.vort`, and this function is implicitly called upon construction of a `VelocityField` object. To avoid computaitons of these derivative quantities during initialization, use an optional flag in initialization.
+
+Impulse is computed by specifying an origin. Say we use the natural origin implied by the positions on the grid.
+
+```matlab
+I = vf.impulse(origin = [0 0 0]', with_noise = true)
+```
+
+## Integration on a Cubic Surface
+
+Surface integration is supported on a rectangular surface, specified by setting the effective region, with the `vf.intCubicSurf` prefix. To illustrate, we create a Hill's vortex, a synthetic spherical structure, which is commonly used in our error study.
+
+```matlab
+[x, y, z, u, v, w, ~] = Hill_vortex_3D(spacing = 0.1, sphere_radius = 1, u0 = 1, z_proportion = 1);
+vf = VelocityField.import_grid_separate(x, y, z, u, v, w);
+vf.plotVector(vf.U, noise = 0, '$\vec{u}$')
+```
+
+![Hill-vortex](https://github.com/epicderek/flow/blob/master/illu/hill-vortex.jpg)
+
+Now we integrate the mass flux through this cubic surface, which is applying the del operator in a dot product with the velocity field. Since our fluid is incompressible, there should not be accumulation or net flux. The result is 6.9389e-18, negligible compared to the typical value of speed. In general, we can compute the flux of any vector field which is properly subsetted to be matching in dimension to the current effective region.
+
+```matlab
+vf.intCubicSurf_flux(vf.U_e)
+```
+
+The common operations under surface integrations are scalar surface elemtns multiplied by scalar or vector fields, vector surface elements (scalar element with normal vector) multiplied by scalar field, by vector field as dot product (flux), by vector field as cross product. These operations are implemented for a cubic surface, understood, when the ordering of multiplication matters, as `F x dS`.
 
