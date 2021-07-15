@@ -2,10 +2,10 @@ function [err, derv] = objective_origin(origin, vf)
 % Objective function for the two integral equations that determine the
 % Ringuette objective origin, given in (Ringuette, 2014).
 % 
-% Derek Li, July
+% Derek Li, July 2021
 
 % Distance units (specified in vf) are not multiplied in this problem.
-dv = abs(vf.xresol*vf.yresol*vf.zresol);
+dv = abs(vf.xsp*vf.ysp*vf.zsp);
 
 % Noisy velocity.
 U = vf.U_e + vf.N_e;
@@ -16,7 +16,7 @@ vort = vf.vorticity(1);
 % Relative position to the given origin.
 X_rel = operate3Vector(vf.X_e, origin, @minus);
 % Compute the matrix product of velocity gradient and velocity.
-dux = NaN([vf.span 3]);
+dux = zeros([vf.span 3]);
 
 for j = 1: size(vf.X_e, 1)
     for i = 1: size(vf.X_e, 2)

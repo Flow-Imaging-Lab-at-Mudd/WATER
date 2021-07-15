@@ -27,9 +27,6 @@ classdef VelocityField < handle
         N
         % Noise in the region of interest.
         N_e
-%         % Vortivity noise.
-%         Nvort
-%         Nvort_e
         
         % Commonly computed fields. Not computed automatically over
         % subsetting operations.
@@ -43,20 +40,18 @@ classdef VelocityField < handle
         
         % Lower and upper bounds of x values.
         xbounds
-        % Resolution of x.
-        xresol
-        
-        % y and z value may progres from positive to negative.
+        % Uniform spacing in x.
+        xsp
         % Lower and upper bounds of y values.
         ybounds
-        % Resolution of y.
-        yresol
+        % Uniform spacing y.
+        ysp
         % Lower and upper bounds of z values.
         zbounds
-        % Resolution of z.
-        zresol
-        % Array of resolutions.
-        resol
+        % Uniform spacing in z.
+        zsp
+        % Array of spacings.
+        sps
         
         % Range for computation and visualization. This region is denoted
         % the Effective Region.
@@ -143,20 +138,19 @@ classdef VelocityField < handle
             vf.N = zeros(size(U));
             
             vf.xbounds = [X(1,1,1,1) X(1,end,1,1)];
-            % Assume data is uniformly spaced in
-            % position.
+            % Assume data is uniformly spaced in position.
             if dims(2) > 1
-                vf.xresol = X(1,2,1,1) - X(1,1,1,1);
+                vf.xsp = X(1,2,1,1) - X(1,1,1,1);
             end
             vf.ybounds = [X(1,1,1,2) X(end,1,1,2)];
             if dims(1) > 1
-                vf.yresol = X(2,1,1,2) - X(1,1,1,2);
+                vf.ysp = X(2,1,1,2) - X(1,1,1,2);
             end
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
             if dims(3) > 1
-                vf.zresol = X(1,1,2,3) - X(1,1,1,3);
+                vf.zsp = X(1,1,2,3) - X(1,1,1,3);
             end
-            vf.resol = [vf.xresol vf.yresol vf.zresol];
+            vf.sps = [vf.xsp vf.ysp vf.zsp];
             
             % Dimensionality of our field.
             ax = sum(vf.dims > 1);
@@ -170,7 +164,7 @@ classdef VelocityField < handle
             % Ascending positions.
             vf.ascLim = [ones(3, 1) vf.getSpan()'];
             for i = 1: 3
-                sp = vf.resol(i);
+                sp = vf.sps(i);
                 if sp < 0
                     vf.ascLim(i, :) = flip(vf.ascLim(i, :));
                 end
@@ -235,7 +229,7 @@ classdef VelocityField < handle
         function derivePropertyStructs(vf)
             % Derive certain attributes from given elementary ones.
             
-            vf.solver.dv = vf.scale.len^3*vf.xresol*vf.yresol*vf.zresol;
+            vf.solver.dv = vf.scale.len^3*vf.xsp*vf.ysp*vf.zsp;
         end
             
         function setPropertyStructs(vf, fluid, solver, plotter)
@@ -265,7 +259,7 @@ classdef VelocityField < handle
             % Ascending positions.
             vf.ascLim = [ones(3, 1) vf.getSpan()'];
             for i = 1: 3
-                sp = vf.resol(i);
+                sp = vf.sps(i);
                 if sp < 0
                     vf.ascLim(i, :) = flip(vf.ascLim(i, :));
                 end
@@ -280,15 +274,17 @@ classdef VelocityField < handle
         
         function setRangePosition(vf, Xrange)
             % Variant of vf.setRange that first derives range in indices
-            % from given positions.
+            % from given positions. 'Xrange' can be given in either
+            % ascending or descending order per row.
+            
             range(1, :) = vf.getIndex_x(Xrange(1, :));
             range(2, :) = vf.getIndex_y(Xrange(2, :));
             range(3, :) = vf.getIndex_z(Xrange(3, :));
+            range = sort(range, 2);
             
-            if (prod(range(:,2) - range(:,1)) < 0)
-                error('Index of Subgrid proceeding in negative indices')
+            if prod(range(:,2) - range(:,1)) == 0
+                error('Not a 3D subgrid!')
             end
-            
             vf.setRange(range)
         end
         
@@ -323,21 +319,21 @@ classdef VelocityField < handle
         % to the nearest coordinate corresponding to an index.
         
         function i = getIndex_x(vf, x)
-            i = round((x - vf.xbounds(1))/vf.xresol) + 1;
+            i = round((x - vf.xbounds(1))/vf.xsp) + 1;
             % Wrap around boundary.
             i = min(i, vf.dims(2));
             i = max(i, 1);
         end
         
         function j = getIndex_y(vf, y)
-            j = round((y - vf.ybounds(1))/vf.yresol) + 1;
+            j = round((y - vf.ybounds(1))/vf.ysp) + 1;
             % Wrap around boundaries.
             j = min(j, vf.dims(1));
             j = max(j, 1);
         end
         
         function k = getIndex_z(vf, z)
-            k = round((z - vf.zbounds(1))/vf.zresol) + 1;
+            k = round((z - vf.zbounds(1))/vf.zsp) + 1;
             % Wrap around boundary.
             k = min(k, vf.dims(3));
             k = max(k, 1);
@@ -354,15 +350,15 @@ classdef VelocityField < handle
         end
         
         function x = get_x(vf, i)
-            x = vf.xbounds(1) + (i-1)*vf.xresol;
+            x = vf.xbounds(1) + (i-1)*vf.xsp;
         end
         
         function y = get_y(vf, j)
-            y = vf.ybounds(1) + (j-1)*vf.yresol;
+            y = vf.ybounds(1) + (j-1)*vf.ysp;
         end
         
         function z = get_z(vf, k)
-            z = vf.zbounds(1) + (k-1)*vf.zresol;
+            z = vf.zbounds(1) + (k-1)*vf.zsp;
         end
         
         function eq = getRegPlaneEq(vf, index)
@@ -763,7 +759,7 @@ classdef VelocityField < handle
             end
         end
         
-        function I = impulse(vf, with_noise, origin)
+        function I = impulse(vf, origin, with_noise)
             % Computes the momentum of the fluid in the current region of
             % interest.
             %
@@ -772,6 +768,10 @@ classdef VelocityField < handle
             % origin implied in the current coordinates.
             %
             % 'I' is a column vector.
+            
+            if ~isequal(size(origin), [3 1])
+                error('Invalid origin')
+            end
             
             if ~exist('origin', 'var')
                 origin = [0 0 0]';
@@ -838,7 +838,7 @@ classdef VelocityField < handle
                     return
             end
             % Compute displacement in direction and differentiate.
-            nder = dif / norm(vf.resol .* ind_inc);
+            nder = dif / norm(vf.sps .* ind_inc);
         end
         
         function grad = gradient(vf, F)
@@ -852,13 +852,13 @@ classdef VelocityField < handle
             % If a scalar field is given.
             if ndims(F) == 3
                 [grad(:,:,:,1), grad(:,:,:,2), grad(:,:,:,3)] = ...
-                    gradient(F, vf.xresol, vf.yresol, vf.zresol);
+                    gradient(F, vf.xsp, vf.ysp, vf.zsp);
             % Otherwise a vector field.
             else
                 % Last dimension is difference among components of one
                 % vector, discard.
                 [grad(:,:,:,:,1), grad(:,:,:,:,2), grad(:,:,:,:,3), ~] = ...
-                    gradient(F, vf.xresol, vf.yresol, vf.zresol, 1);
+                    gradient(F, vf.xsp, vf.ysp, vf.zsp, 1);
             end
         end
         
@@ -875,9 +875,9 @@ classdef VelocityField < handle
             
             switch mode
                 case 'unit'
-                    jacob(:, :, :, 1, :) = (vf.xresol>0)*vf.diff1(V, [1 0 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 2, :) = (vf.yresol>0)*vf.diff1(V, [0 1 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 3, :) = (vf.zresol>0)*vf.diff1(V, [0 0 1], vf.solver.diff.mode);
+                    jacob(:, :, :, 1, :) = (vf.xsp>0)*vf.diff1(V, [1 0 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 2, :) = (vf.ysp>0)*vf.diff1(V, [0 1 0], vf.solver.diff.mode);
+                    jacob(:, :, :, 3, :) = (vf.zsp>0)*vf.diff1(V, [0 0 1], vf.solver.diff.mode);
             end
         end
         
@@ -896,16 +896,16 @@ classdef VelocityField < handle
             switch vf.solver.diff.order
                 case 1
                     % Ensure diff direction in increasing x, y, z by boolean multiplication.
-                    div = squeeze(vf.diff1(V(:,:,:,1), [1 0 0], vf.solver.diff.mode)*(vf.xresol>0) + ...
-                        vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.yresol>0) + ...
-                        vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zresol>0));
+                    div = squeeze(vf.diff1(V(:,:,:,1), [1 0 0], vf.solver.diff.mode)*(vf.xsp>0) + ...
+                        vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.ysp>0) + ...
+                        vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zsp>0));
             end
         end
         
         
        %%%%%%%%%%%%%%%%%%%%%%% Integral Methods %%%%%%%%%%%%%%%%%%%%%%%%
        
-       % Scalar surface integral (scalar area element).
+       % Scalar surface integral (scalar area elements).
        function summed = intCubicSurf(vf, F)
            % Integrate on the faces of the current effective region, which
            % is a cube, the given field, vector or scalar, 'F', using a
@@ -917,15 +917,17 @@ classdef VelocityField < handle
                error('Mismatching Grids Dimensions!')
            end
            
-           summed = abs(vf.yresol*vf.zresol)*(sum(F(:,vf.ascLim(1,1),:,:), 'all') + ...
+           summed = abs(vf.ysp*vf.zsp)*(sum(F(:,vf.ascLim(1,1),:,:), 'all') + ...
                sum(F(:,vf.ascLim(1,2),:,:), 'all')) + ...
-               abs(vf.xresol*vf.zresol)*(sum(F(vf.ascLim(2,1),:,:,:), 'all') + ...
+               abs(vf.xsp*vf.zsp)*(sum(F(vf.ascLim(2,1),:,:,:), 'all') + ...
                sum(F(vf.ascLim(2,2),:,:,:), 'all')) + ...
-               abs(vf.xresol*vf.yresol)*(sum(F(:,:,vf.ascLim(3,1),:), 'all') + ...
+               abs(vf.xsp*vf.ysp)*(sum(F(:,:,vf.ascLim(3,1),:), 'all') + ...
                sum(F(:,:,vf.ascLim(3,2),:), 'all'));
            summed = squeeze(summed);
        end
        
+       % Vector integral of scalar field paired with vector surface
+       % elements.
        function vec = intCubicSurf_vec(vf, S)
            % Integrate on the faces of the current effective region, which
            % is a cube, the six vector surface elements multiplied by the
@@ -937,11 +939,11 @@ classdef VelocityField < handle
                error('Mismatching Grids Dimensions!')
            end
            
-           vec = abs(vf.yresol*vf.zresol)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all') + ...
+           vec = abs(vf.ysp*vf.zsp)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all') + ...
                [1 0 0]'*sum(S(:,vf.ascLim(1,2),:), 'all')) + ...
-               abs(vf.xresol*vf.zresol)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all') + ...
+               abs(vf.xsp*vf.zsp)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all') + ...
                [0 1 0]'*sum(S(vf.ascLim(2,2),:,:), 'all')) + ...
-               abs(vf.xresol*vf.yresol)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all') + ...
+               abs(vf.xsp*vf.ysp)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all') + ...
                [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all'));
        end
        
@@ -955,17 +957,17 @@ classdef VelocityField < handle
            end
            
            % Left face.
-           flux_left = sum(-V(:,vf.ascLim(1,1),:,1)*abs(vf.yresol)*abs(vf.zresol), 'all');
+           flux_left = sum(-V(:,vf.ascLim(1,1),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all');
            % Right face.
-           flux_right = sum(V(:,vf.ascLim(1,2),:,1)*abs(vf.yresol)*abs(vf.zresol), 'all');
+           flux_right = sum(V(:,vf.ascLim(1,2),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all');
            % Bottom face.
-           flux_bottom = sum(-V(vf.ascLim(2,1),:,:,2)*abs(vf.xresol)*abs(vf.zresol), 'all');
+           flux_bottom = sum(-V(vf.ascLim(2,1),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all');
            % Top face.
-           flux_top = sum(V(vf.ascLim(2,2),:,:,2)*abs(vf.xresol)*abs(vf.zresol), 'all');
+           flux_top = sum(V(vf.ascLim(2,2),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all');
            % Back face.
-           flux_back = sum(-V(:,:,vf.ascLim(3,1),3)*abs(vf.xresol)*abs(vf.yresol), 'all');
+           flux_back = sum(-V(:,:,vf.ascLim(3,1),3)*abs(vf.xsp)*abs(vf.ysp), 'all');
            % Front face.
-           flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xresol)*abs(vf.yresol), 'all');
+           flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xsp)*abs(vf.ysp), 'all');
            
            flux = flux_left + flux_right + flux_top + flux_bottom + flux_front + flux_back;
        end
@@ -984,32 +986,32 @@ classdef VelocityField < handle
            crs_pd = zeros(vf.span(1), vf.span(3), 3);
            crs_pd(:,:,2) = -squeeze(V(:, vf.ascLim(1,1), :, 3));
            crs_pd(:,:,3) = squeeze(V(:, vf.ascLim(1,1), :, 2));
-           left = abs(vf.yresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           left = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
            % Right face.
            crs_pd = zeros(vf.span(1), vf.span(3), 3);
            crs_pd(:,:,2) = squeeze(V(:, vf.ascLim(1,2), :, 3));
            crs_pd(:,:,3) = -squeeze(V(:, vf.ascLim(1,2), :, 2));
-           right = abs(vf.yresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           right = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
            % Bottom face.
            crs_pd = zeros(vf.span(2), vf.span(3), 3);
            crs_pd(:,:,1) = squeeze(V(vf.ascLim(2,1), :, :, 3));
            crs_pd(:,:,3) = -squeeze(V(vf.ascLim(2,1), :, :, 1));
-           bottom = abs(vf.xresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           bottom = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
            % Top face.
            crs_pd = zeros(vf.span(2), vf.span(3), 3);
            crs_pd(:,:,1) = -squeeze(V(vf.ascLim(2,2), :, :, 3));
            crs_pd(:,:,3) = squeeze(V(vf.ascLim(2,2), :, :, 1));
-           top = abs(vf.xresol)*abs(vf.zresol)*sum(crs_pd, [1 2]);
+           top = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
            % Back face.
            crs_pd = zeros(vf.span(1), vf.span(2), 3);
            crs_pd(:,:,1) = -squeeze(V(:, :, vf.ascLim(3,1), 2));
            crs_pd(:,:,2) = squeeze(V(:, :, vf.ascLim(3,1), 1));
-           back = abs(vf.xresol)*abs(vf.yresol)*sum(crs_pd, [1 2]);
+           back = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2]);
            % Front face.
            crs_pd = zeros(vf.span(1), vf.span(2), 3);
            crs_pd(:,:,1) = squeeze(V(:, :, vf.ascLim(3,2), 2));
            crs_pd(:,:,2) = -squeeze(V(:, :, vf.ascLim(3,2), 1));
-           front = abs(vf.xresol)*abs(vf.yresol)*sum(crs_pd, [1 2]);
+           front = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2]);
            
            crs = squeeze(left + right + bottom + top + back + front);
        end
