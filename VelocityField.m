@@ -129,6 +129,11 @@ classdef VelocityField < handle
             vf.X = X;
             vf.U = U;
             
+            if any(isnan(U), 'all')
+                warning(strcat("Some velocity vector on grid is NaN.", ...
+                    " Treatment for computing differet quantities may vary!"))
+            end
+            
             if ~isequal(size(X), size(U))
                 error('Mismatching grid dimensions for position and velocity data')
             end
@@ -729,7 +734,8 @@ classdef VelocityField < handle
         % initialization from the position and velocity field given.
         
         function vort = vorticity(vf, with_noise)
-            % Computes and stores the vorticity with unit.
+            % Compute the vorticity field with unit. NaN values in velocity
+            % will result in NaN in vorticity, which are not replaced.
             % 
             % Currently just a wrapper for the built-in curl function.
             
@@ -741,12 +747,15 @@ classdef VelocityField < handle
         end
         
         function k = kineticEnergy(vf, with_noise)
+            % Compute the kinetic energy of the effective region with
+            % definitional formula. NaN values of velocity are ignored in
+            % sum.
             
             % Selected mode of computation.
             switch vf.solver.ke.mode
                 case 'direct'
                     k = 1/2*vf.fluid.density * abs(vf.solver.dv) * vf.scale.len^2 * ...
-                            sum((vf.U_e + with_noise*vf.N_e).^2, 'all');
+                            sum((vf.U_e + with_noise*vf.N_e).^2, 'all', 'omitnan');
             end
         end
         
@@ -760,14 +769,15 @@ classdef VelocityField < handle
         end
         
         function I = impulse(vf, origin, with_noise)
-            % Computes the momentum of the fluid in the current region of
-            % interest.
+            % Compute the momentum of the fluid in the current region of
+            % interest. NaN entires in vorticity field is ignored in total
+            % sum over effective region.
             %
             % 'origin' specifies the arbitrary reference point used in
             % computing impulse. If not specified, it is assumed to be the
             % origin implied in the current coordinates.
             %
-            % 'I' is a column vector.
+            % 'I' returned is a column vector.
             
             if ~isequal(size(origin), [3 1])
                 error('Invalid origin')
@@ -779,11 +789,13 @@ classdef VelocityField < handle
             
             if with_noise
                 I = squeeze(vf.fluid.density/2 * ...
-                    sum(cross(vf.X_e - dimen(origin, vf.span), vf.vorticity(1), 4), [1 2 3]) * ...
+                    sum(cross(vf.X_e - dimen(origin, vf.span), ...
+                        vf.vorticity(1), 4), [1 2 3], 'omitnan') * ...
                     vf.solver.dv*vf.scale.len);
             else
                 I = squeeze(vf.fluid.density/2 * ...
-                    sum(cross(vf.X_e - dimen(origin, vf.span), vf.vort_e, 4), [1 2 3]) ...
+                    sum(cross(vf.X_e - dimen(origin, vf.span), ...
+                        vf.vort_e, 4), [1 2 3], 'omitnan') ...
                     * vf.solver.dv*vf.scale.len);
             end
         end
