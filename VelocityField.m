@@ -17,7 +17,7 @@ classdef VelocityField < handle
         % X, U subsetted into region of interest by vf.range.
         X_e
         U_e
-        vort_e
+        vort_e = NaN
         
         % Grid dimension. Note that the indices on grid, due to meshgrid
         % convension, is given as (y, x, z), where x represent the number
@@ -52,6 +52,9 @@ classdef VelocityField < handle
         zsp
         % Array of spacings.
         sps
+        % Collection of bounds, parallels vf.dims, though natural in x-y
+        % ordering, which is flipped for vf.dims.
+        bounds
         
         % Range for computation and visualization. This region is denoted
         % the Effective Region.
@@ -81,6 +84,14 @@ classdef VelocityField < handle
         % order. Identical to [ones(1,3) vf.getSpan()'] except where the
         % index proceeds in the negative direction of position.
         ascLim
+    end
+    
+    properties (Constant)
+        % For printing given dimension as number.
+        dim_str = ['x', 'y', 'z'];
+        % For converting between natural x, y, z dimensional ordering to
+        % meshgrid y, x, z ordering.
+        dim_flip = [2 1 3];
     end
     
     methods(Static)
@@ -117,10 +128,16 @@ classdef VelocityField < handle
     
     methods
         
-        function vf = VelocityField(X, U)
-            % Constructor taking in valid 4D matrices of position and
-            % velocity whose first three dimensions conform to that of a
-            % meshgrid.
+        function vf = VelocityField(X, U, minimal)
+            % vf = VelocityField(X, U, minimal)
+            % Accepts valid 4D matrices of position and velocity whose
+            % first three dimensions conform to that of a meshgrid and last
+            % dimension corresponds to 3-vectors stored in the [x y z]'
+            % format.
+            %
+            % The flag 'minimal' when set true omits the computation of
+            % derived quantities from the velocity field, currently only
+            % the vorticity field.
             
             if ~isequal(ndims(X), 4) || ~isequal(size(X, 4), 3)
                 error('Invalid grids: 4D matrices required!')
@@ -156,9 +173,10 @@ classdef VelocityField < handle
                 vf.zsp = X(1,1,2,3) - X(1,1,1,3);
             end
             vf.sps = [vf.xsp vf.ysp vf.zsp];
+            vf.bounds = [vf.xbounds; vf.ybounds; vf.zbounds];
             
             % Dimensionality of our field.
-            ax = sum(vf.dims > 1);
+            vf.ax = sum(vf.dims > 1);
             
             vf.range = [ones(3, 1) vf.dims'];
             vf.span = (vf.range*[-1; 1])' + 1;
@@ -175,15 +193,49 @@ classdef VelocityField < handle
                 end
             end
             
-            % Compute vorticity.
-            if ax == 3
-                vf.vort = vf.vorticity(0);
-                vf.vort_e = vf.vort;
+            % Derive quantities if not proscribed.
+            if exist('minimal', 'var') && minimal
+                vf.vort_e = NaN;
+            else
+                vf.deriveQuantities();
             end
+            
+            vf.vort = vf.vort_e;
             
             vf.initPropertyStructs()
             set(0, 'defaultTextInterpreter', 'latex');
             set(0, 'DefaultLegendInterpreter', 'latex')
+        end
+        
+        function deriveQuantities(vf)
+            % Derive physical quantities of the velocity field in the
+            % effective region. The global fields, when these exist, are
+            % not updated.
+            
+            if vf.ax == 3
+                vf.vort_e = vf.vorticity(0);
+            end
+        end
+        
+        function updateGlobal(vf)
+            % Update the global fields, excepting the velocity field, based
+            % on the field in the current effective region. This is,
+            % updatting the field data structures with suffix 'e' to the
+            % corresponding portions in their global counterparts.
+            %
+            % Given that this handle updates all the data structures of
+            % fields supported in this class, its use is expensive and
+            % dissuaded unless modification is resulted in all such fields.
+            
+            % Update velocity.
+            vf.U(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2), :) = vf.U_e;
+            % Update noise.
+            vf.N(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2), :) = vf.N_e;
+            % Update physical quantities.
+            vf.vort(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2), :) = vf.vort_e;
         end
         
         function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
@@ -315,6 +367,7 @@ classdef VelocityField < handle
         function v = subsetVector(vf, V)
             % Identical to VF.getVector except that 'range' is now in the
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
+            % Both scalar and vector fields allowed.
             v = V(vf.range(1,1): vf.range(1,2), ...
                 vf.range(2,1): vf.range(2,2), vf.range(3,1): vf.range(3,2), :);
         end
@@ -853,6 +906,21 @@ classdef VelocityField < handle
             nder = dif / norm(vf.sps .* ind_inc);
         end
         
+        function diff(vf, F, dim, n)
+            % Differentiate the given scalar or vector field 'F' with
+            % respect to change in 'dim' dimension, using polynomial
+            % interpolant of order 'n'.
+            
+            if n > vf.dims(vf.dim_flip(dim))
+                error(strcat('Insufficient number of grid points in', ...
+                    ' ', vf.dim_str(dim), 'for polynomial interpolation!'))
+            end
+            
+            
+            
+            
+        end
+        
         function grad = gradient(vf, F)
             % Wrapper for 1st order central difference from Matlab.
             
@@ -917,6 +985,8 @@ classdef VelocityField < handle
         
        %%%%%%%%%%%%%%%%%%%%%%% Integral Methods %%%%%%%%%%%%%%%%%%%%%%%%
        
+       % NaN entries are ignored in the cubic surface integrations.
+       
        % Scalar surface integral (scalar area elements).
        function summed = intCubicSurf(vf, F)
            % Integrate on the faces of the current effective region, which
@@ -929,12 +999,12 @@ classdef VelocityField < handle
                error('Mismatching Grids Dimensions!')
            end
            
-           summed = abs(vf.ysp*vf.zsp)*(sum(F(:,vf.ascLim(1,1),:,:), 'all') + ...
-               sum(F(:,vf.ascLim(1,2),:,:), 'all')) + ...
-               abs(vf.xsp*vf.zsp)*(sum(F(vf.ascLim(2,1),:,:,:), 'all') + ...
-               sum(F(vf.ascLim(2,2),:,:,:), 'all')) + ...
-               abs(vf.xsp*vf.ysp)*(sum(F(:,:,vf.ascLim(3,1),:), 'all') + ...
-               sum(F(:,:,vf.ascLim(3,2),:), 'all'));
+           summed = abs(vf.ysp*vf.zsp)*(sum(F(:,vf.ascLim(1,1),:,:), 'all', 'omitnan') + ...
+               sum(F(:,vf.ascLim(1,2),:,:), 'all', 'omitnan')) + ...
+               abs(vf.xsp*vf.zsp)*(sum(F(vf.ascLim(2,1),:,:,:), 'all', 'omitnan') + ...
+               sum(F(vf.ascLim(2,2),:,:,:), 'all', 'omitnan')) + ...
+               abs(vf.xsp*vf.ysp)*(sum(F(:,:,vf.ascLim(3,1),:), 'all', 'omitnan') + ...
+               sum(F(:,:,vf.ascLim(3,2),:), 'all', 'omitnan'));
            summed = squeeze(summed);
        end
        
@@ -951,12 +1021,12 @@ classdef VelocityField < handle
                error('Mismatching Grids Dimensions!')
            end
            
-           vec = abs(vf.ysp*vf.zsp)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all') + ...
-               [1 0 0]'*sum(S(:,vf.ascLim(1,2),:), 'all')) + ...
-               abs(vf.xsp*vf.zsp)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all') + ...
-               [0 1 0]'*sum(S(vf.ascLim(2,2),:,:), 'all')) + ...
-               abs(vf.xsp*vf.ysp)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all') + ...
-               [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all'));
+           vec = abs(vf.ysp*vf.zsp)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all', 'omitnan') + ...
+               [1 0 0]'*sum(S(:,vf.ascLim(1,2),:), 'all', 'omitnan')) + ...
+               abs(vf.xsp*vf.zsp)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all', 'omitnan') + ...
+               [0 1 0]'*sum(S(vf.ascLim(2,2),:,:), 'all', 'omitnan')) + ...
+               abs(vf.xsp*vf.ysp)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all', 'omitnan') + ...
+               [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all', 'omitnan'));
        end
        
        function flux = intCubicSurf_flux(vf, V)
@@ -969,17 +1039,17 @@ classdef VelocityField < handle
            end
            
            % Left face.
-           flux_left = sum(-V(:,vf.ascLim(1,1),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all');
+           flux_left = sum(-V(:,vf.ascLim(1,1),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all', 'omitnan');
            % Right face.
-           flux_right = sum(V(:,vf.ascLim(1,2),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all');
+           flux_right = sum(V(:,vf.ascLim(1,2),:,1)*abs(vf.ysp)*abs(vf.zsp), 'all', 'omitnan');
            % Bottom face.
-           flux_bottom = sum(-V(vf.ascLim(2,1),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all');
+           flux_bottom = sum(-V(vf.ascLim(2,1),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all', 'omitnan');
            % Top face.
-           flux_top = sum(V(vf.ascLim(2,2),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all');
+           flux_top = sum(V(vf.ascLim(2,2),:,:,2)*abs(vf.xsp)*abs(vf.zsp), 'all', 'omitnan');
            % Back face.
-           flux_back = sum(-V(:,:,vf.ascLim(3,1),3)*abs(vf.xsp)*abs(vf.ysp), 'all');
+           flux_back = sum(-V(:,:,vf.ascLim(3,1),3)*abs(vf.xsp)*abs(vf.ysp), 'all', 'omitnan');
            % Front face.
-           flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xsp)*abs(vf.ysp), 'all');
+           flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xsp)*abs(vf.ysp), 'all', 'omitnan');
            
            flux = flux_left + flux_right + flux_top + flux_bottom + flux_front + flux_back;
        end
@@ -998,32 +1068,32 @@ classdef VelocityField < handle
            crs_pd = zeros(vf.span(1), vf.span(3), 3);
            crs_pd(:,:,2) = -squeeze(V(:, vf.ascLim(1,1), :, 3));
            crs_pd(:,:,3) = squeeze(V(:, vf.ascLim(1,1), :, 2));
-           left = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
+           left = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
            % Right face.
            crs_pd = zeros(vf.span(1), vf.span(3), 3);
            crs_pd(:,:,2) = squeeze(V(:, vf.ascLim(1,2), :, 3));
            crs_pd(:,:,3) = -squeeze(V(:, vf.ascLim(1,2), :, 2));
-           right = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
+           right = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
            % Bottom face.
            crs_pd = zeros(vf.span(2), vf.span(3), 3);
            crs_pd(:,:,1) = squeeze(V(vf.ascLim(2,1), :, :, 3));
            crs_pd(:,:,3) = -squeeze(V(vf.ascLim(2,1), :, :, 1));
-           bottom = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
+           bottom = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
            % Top face.
            crs_pd = zeros(vf.span(2), vf.span(3), 3);
            crs_pd(:,:,1) = -squeeze(V(vf.ascLim(2,2), :, :, 3));
            crs_pd(:,:,3) = squeeze(V(vf.ascLim(2,2), :, :, 1));
-           top = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2]);
+           top = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
            % Back face.
            crs_pd = zeros(vf.span(1), vf.span(2), 3);
            crs_pd(:,:,1) = -squeeze(V(:, :, vf.ascLim(3,1), 2));
            crs_pd(:,:,2) = squeeze(V(:, :, vf.ascLim(3,1), 1));
-           back = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2]);
+           back = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
            % Front face.
            crs_pd = zeros(vf.span(1), vf.span(2), 3);
            crs_pd(:,:,1) = squeeze(V(:, :, vf.ascLim(3,2), 2));
            crs_pd(:,:,2) = -squeeze(V(:, :, vf.ascLim(3,2), 1));
-           front = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2]);
+           front = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
            
            crs = squeeze(left + right + bottom + top + back + front);
        end
