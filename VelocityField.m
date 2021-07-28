@@ -62,6 +62,10 @@ classdef VelocityField < handle
         % Length of range in 3 dimensions. Row vector.
         span
         
+        % Corresponding limits of position of the current effective region,
+        % stored however in natural x-y-z order.
+        lims
+        
         % struct for properties of solvers.
         solver
         % struct for graphers.
@@ -92,13 +96,19 @@ classdef VelocityField < handle
         % For converting between natural x, y, z dimensional ordering to
         % meshgrid y, x, z ordering.
         dim_flip = [2 1 3];
+        % Useless variable for loading differentiation module.
+        load_diff = VelocityField.load_finite_diffs();
     end
     
     methods(Static)
         
         %%%%%%%%%%%%%%%%%%% Adapters of Recorded Data %%%%%%%%%%%%%%%%%%%
-        function vf = import_grid_separate(xw, yw, zw, uw, vw, ww)
+        function vf = import_grid_separate(xw, yw, zw, uw, vw, ww, minimal)
            
+            if ~exist('minimal', 'var')
+                minimal = 0;
+            end
+            
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
             X = xw;
             X(:,:,:,2) = yw;
@@ -107,7 +117,18 @@ classdef VelocityField < handle
             U(:,:,:,2) = vw;
             U(:,:,:,3) = ww;
             
-            vf = VelocityField(X, U);
+            vf = VelocityField(X, U, minimal);
+        end
+        
+        %%%%%%% Loading pre-computed differentiation formulas %%%%%%%
+        function l = load_finite_diffs()
+            % Load pre-computed finite difference formulas as a global
+            % variable 'PDF'. This should not be replaced for centricMatrix
+            % performs look-up on it.
+            
+            global PDF
+            load('C:\Users\derek\flow\diff\finite-differences.mat', 'PDF')
+            l = 1;
         end
         
         %%%%%%%%%%%%%%%%%%% Various Helpers %%%%%%%%%%%%%%%%%%%%%%
@@ -122,6 +143,67 @@ classdef VelocityField < handle
         
         function err = error_L2(V, V0)
             err = sum((V - V0).^2, 4);
+        end
+        
+        %%%%%%%%%%%%%%%%%% Time-resolved Quantities %%%%%%%%%%%%%%%%%%%
+        
+        function ds = scalar_time_deriv(vf, s, dt, diff_order, noise)
+            
+            if ~isvector(s)
+                error('A scalar array expected!')
+            end
+            
+            if ~exist('noise', 'var')
+                noise = 0;
+            % Let pass for a uniform noise.
+            elseif isequal(size(noise), [1 1])
+            elseif ~isvector(noise) || ~isequal(length(noise), length(s))
+                error('Noise not matching original vector in dimension!')
+            else
+                s = reshape(s, [], 1);
+                noise = reshape(noise, [], 1);
+            end
+            
+            ds = dt^(-diff_order)*centricMatrix(size(s, 1), ...
+                diff_order, vf.solver.diff.err_order) * (s+noise);
+        end
+        
+        function dv = vector_time_deriv(vf, v, dt, diff_order, noise)
+            % Assume the vectors are stored in the column of the matrix
+            % 'v'.
+            
+            if ~exist('noise', 'var')
+                noise = zeros(size(v));
+            % Let pass for uniform noises
+            elseif isequal(size(noise), [1 1])
+                noise = repmat(noise, size(v, 1), size(v, 2));
+            elseif isequal(size(noise), [3 1])
+                noise = repmat(noise, 1, size(v, 2));
+            elseif ~isequal(size(noise), size(v))
+                error('Noise not matching original matrix in dimension!')
+            end
+            
+            dv = zeros(size(v));
+            for d = 1: size(v, 1)
+                dv(d, :) = vf.scalar_time_deriv(v(d, :), dt, diff_order, noise(d, :));
+            end
+        end
+        
+        function [dI_dt, I] = impulse_time_deriv(vfs, origins, dt, with_noise)
+           % Assume regions are properly subsetted in the given array of
+           % velocity fields traced over time.
+           
+           I = zeros(3, length(vfs));
+           for i = 1: length(vfs)
+               I(:,i) = vfs{i}.impulse(origins(:,i), with_noise);
+           end
+           
+           % Compute derivative.
+           dI_dt = zeros(3, length(vfs));
+           D = centricMatrix(length(vfs), 1, vfs{1}.solver.diff.err_order) / dt;
+           for d = 1: 3
+               dI_dt(d,:) = D * I(d,:)';
+           end
         end
         
     end
@@ -174,6 +256,7 @@ classdef VelocityField < handle
             end
             vf.sps = [vf.xsp vf.ysp vf.zsp];
             vf.bounds = [vf.xbounds; vf.ybounds; vf.zbounds];
+            vf.lims = vf.bounds;
             
             % Dimensionality of our field.
             vf.ax = sum(vf.dims > 1);
@@ -193,6 +276,9 @@ classdef VelocityField < handle
                 end
             end
             
+            % Initialize innate quantities and customized settings.
+            vf.initPropertyStructs()
+            
             % Derive quantities if not proscribed.
             if exist('minimal', 'var') && minimal
                 vf.vort_e = NaN;
@@ -202,9 +288,29 @@ classdef VelocityField < handle
             
             vf.vort = vf.vort_e;
             
-            vf.initPropertyStructs()
             set(0, 'defaultTextInterpreter', 'latex');
             set(0, 'DefaultLegendInterpreter', 'latex')
+        end
+        
+        function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
+            % Perform box averaging on the effective region of the velocity
+            % field and construct a downsampled field.
+            %
+            % newXscale is presumed to be a scalar, so that the positions
+            % of the grid are in the same unit.
+            
+            % By default retain the coordinates.
+            if ~exist('newXscale', 'var')
+                newXscale = 1;
+            end
+            
+            [Xd, Ud] = PIV_window_sim(vf.X_e, vf.U_e + with_noise*vf.N_e, ...
+                winsize, overlap, newXscale);
+            vfd = VelocityField(Xd, Ud);
+            % Preserve certain properties.
+            vfd.fluid = vf.fluid;
+            vfd.scale.len = vf.scale.len / newXscale;
+            vfd.derivePropertyStructs()
         end
         
         function deriveQuantities(vf)
@@ -238,27 +344,6 @@ classdef VelocityField < handle
                 vf.range(3,1): vf.range(3,2), :) = vf.vort_e;
         end
         
-        function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
-            % Perform box averaging on the effective region of the velocity
-            % field and construct a downsampled field.
-            %
-            % newXscale is presumed to be a scalar, so that the positions
-            % of the grid are in the same unit.
-            
-            % By default retain the coordinates.
-            if ~exist('newXscale', 'var')
-                newXscale = 1;
-            end
-            
-            [Xd, Ud] = PIV_window_sim(vf.X_e, vf.U_e + with_noise*vf.N_e, ...
-                winsize, overlap, newXscale);
-            vfd = VelocityField(Xd, Ud);
-            % Preserve certain properties.
-            vfd.fluid = vf.fluid;
-            vfd.scale.len = vf.scale.len / newXscale;
-            vfd.derivePropertyStructs()
-        end
-        
         function initPropertyStructs(vf)
             % Initialize attributes encoded in struct objects for plotting,
             % computing derived quantities, and innate properties of the
@@ -272,14 +357,18 @@ classdef VelocityField < handle
             vf.scale.len = 0.001;
             
             % Properties of differentiation.
-            vf.solver.diff.order = 1;
-            vf.solver.diff.mode = 'central';
-            
-            vf.solver.ke.mode = 'direct';
+            vf.solver.diff.err_order = 2;
+            vf.solver.diff.mode = 'centric';
             
             % Default plotter attributes.
             vf.plotter.quiverScale = 1;
             
+            vf.derivePropertyStructs()
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%% Set Physical Units %%%%%%%%%%%%%%%%%%%%%%
+        function setLengthScale(vf, toMeter)
+            vf.scale.len = toMeter;
             vf.derivePropertyStructs()
         end
         
@@ -299,9 +388,12 @@ classdef VelocityField < handle
         
         % Setters needed for updating dependent quantities, e.g. dv.
         
-        function setRange(vf, range)
+        function setRange(vf, range, minimal)
             % Set range = [i_min i_max; j_min j_max; k_min k_max] on which
             % computation and plotting are performed.
+            %
+            % Note that differentiated quantities, such as vorticity, are
+            % re-calculated instead of simply subsetted.
             
             % Short hand for resetting to global.
             if range == 0
@@ -313,6 +405,8 @@ classdef VelocityField < handle
             vf.range(2, :) = range(1, :);
             vf.range(3, :) = range(3, :);
             vf.span = (vf.range*[-1; 1])' + 1;
+            vf.lims = vf.getX(range);
+            
             % Ascending positions.
             vf.ascLim = [ones(3, 1) vf.getSpan()'];
             for i = 1: 3
@@ -323,13 +417,19 @@ classdef VelocityField < handle
             end
             
             % Subset effective region.
-            vf.X_e = vf.subsetVector(vf.X);
-            vf.U_e = vf.subsetVector(vf.U);
-            vf.N_e = vf.subsetVector(vf.N);
-            vf.vort_e = vf.subsetVector(vf.vort);
+            vf.X_e = vf.subsetField(vf.X);
+            vf.U_e = vf.subsetField(vf.U);
+            vf.N_e = vf.subsetField(vf.N);
+            
+            % Recompute vorticity since the boundary values are different.
+            if exist('minimal', 'var') && minimal == 1
+                vf.anullQuantities()
+            else
+                vf.deriveQuantities()
+            end
         end
         
-        function setRangePosition(vf, Xrange)
+        function setRangePosition(vf, Xrange, minimal)
             % Variant of vf.setRange that first derives range in indices
             % from given positions. 'Xrange' can be given in either
             % ascending or descending order per row.
@@ -342,7 +442,12 @@ classdef VelocityField < handle
             if prod(range(:,2) - range(:,1)) == 0
                 error('Not a 3D subgrid!')
             end
-            vf.setRange(range)
+            
+            % If physical quantities should not be automatically derived.
+            if ~exist('minimal', 'var')
+                minimal = 0;
+            end
+            vf.setRange(range, minimal)
         end
         
         function range = getRange(vf)
@@ -364,7 +469,7 @@ classdef VelocityField < handle
             dims = [vf.span(2) vf.span(1) vf.span(3)];
         end
         
-        function v = subsetVector(vf, V)
+        function v = subsetField(vf, V)
             % Identical to VF.getVector except that 'range' is now in the
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
             % Both scalar and vector fields allowed.
@@ -375,6 +480,10 @@ classdef VelocityField < handle
         %%%%%%%%%%%%%%%%%%%%% Coordinate Helpers %%%%%%%%%%%%%%%%%%%%%
         % Convert spatial coordinates to indices. The position is rounded
         % to the nearest coordinate corresponding to an index.
+        
+        function v = getVectorat(vf, V, pos)
+            v = VelocityField.getVector(V, vf.getIndices(pos));
+        end
         
         function i = getIndex_x(vf, x)
             i = round((x - vf.xbounds(1))/vf.xsp) + 1;
@@ -417,6 +526,10 @@ classdef VelocityField < handle
         
         function z = get_z(vf, k)
             z = vf.zbounds(1) + (k-1)*vf.zsp;
+        end
+        
+        function X = getX(vf, index)
+            X = [vf.get_x(index(1,:)); vf.get_y(index(2,:));  vf.get_z(index(3,:))];
         end
         
         function eq = getRegPlaneEq(vf, index)
@@ -571,11 +684,11 @@ classdef VelocityField < handle
             % 'vf.range'.
             
             if ~isequal(size(V, 1:3), vf.span)
-                V = vf.subsetVector(V);
+                V = vf.subsetField(V);
             end
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             
             plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale);
@@ -587,11 +700,11 @@ classdef VelocityField < handle
             % specified, defaulted to global.
             
             if ~isequal(size(S, 1:3), vf.span)
-                S = vf.subsetVector(S);
+                S = vf.subsetField(S);
             end
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             
             % Collapse 4D matrix into a set of points.
@@ -620,11 +733,11 @@ classdef VelocityField < handle
             plt = figure;
             % Subset grid.
             if ~isequal(size(S, 1:3), vf.span)
-                S = vf.subsetVector(S);
+                S = vf.subsetField(S);
             end
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             
             for i = 1: size(planes, 1)
@@ -682,11 +795,11 @@ classdef VelocityField < handle
             % formula, stored as column vectors in a matrix.
             
             if ~isequal(size(V, 1:3), vf.span)
-                V = vf.subsetVector(V);
+                V = vf.subsetField(V);
             end
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             % Obtain a matching 4D boolean matrix indicating membership of
             % points on the plane.
@@ -717,7 +830,7 @@ classdef VelocityField < handle
             
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             
             % Flip x-y due to meshgrid convention.
@@ -762,11 +875,11 @@ classdef VelocityField < handle
             
             % Subset region of interest.
             if ~isequal(size(S, 1:3), vf.span)
-                S = vf.subsetVector(S);
+                S = vf.subsetField(S);
             end
             % Global noise allowed for automatic subsetting.
             if isequal(size(noise, 1:3), vf.dims)
-                noise = vf.subsetVector(noise);
+                noise = vf.subsetField(noise);
             end
             
             plt = figure;
@@ -789,27 +902,17 @@ classdef VelocityField < handle
         function vort = vorticity(vf, with_noise)
             % Compute the vorticity field with unit. NaN values in velocity
             % will result in NaN in vorticity, which are not replaced.
-            % 
-            % Currently just a wrapper for the built-in curl function.
             
-            [vort(:,:,:,1), vort(:,:,:,2), vort(:,:,:,3)] = ...
-                curl(vf.X_e(:,:,:,1), vf.X_e(:,:,:,2), vf.X_e(:,:,:,3), ...
-                vf.U_e(:,:,:,1) + with_noise*vf.N_e(:,:,:,1), ...
-                vf.U_e(:,:,:,2) + with_noise*vf.N_e(:,:,:,1), ...
-                vf.U_e(:,:,:,3) + with_noise*vf.N_e(:,:,:,1));
+            vort = vf.curl(vf.U_e + with_noise*vf.N_e);
         end
         
-        function k = kineticEnergy(vf, with_noise)
+        function K = kineticEnergy(vf, with_noise)
             % Compute the kinetic energy of the effective region with
             % definitional formula. NaN values of velocity are ignored in
             % sum.
             
-            % Selected mode of computation.
-            switch vf.solver.ke.mode
-                case 'direct'
-                    k = 1/2*vf.fluid.density * abs(vf.solver.dv) * vf.scale.len^2 * ...
+            K = 1/2*vf.fluid.density * abs(vf.solver.dv) * vf.scale.len^2 * ...
                             sum((vf.U_e + with_noise*vf.N_e).^2, 'all', 'omitnan');
-            end
         end
         
         function u_mean = meanSpeed(vf, with_unit, with_noise)
@@ -867,7 +970,7 @@ classdef VelocityField < handle
 
             % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
-                V = vf.subsetVector(V);
+                V = vf.subsetField(V);
             end
             % Flip meshgrid x-y.
             ind_inc2 = [ind_inc(2) ind_inc(1) ind_inc(3)];
@@ -906,19 +1009,42 @@ classdef VelocityField < handle
             nder = dif / norm(vf.sps .* ind_inc);
         end
         
-        function diff(vf, F, dim, n)
+        function dF = diff(vf, F, dim, diff_order)
             % Differentiate the given scalar or vector field 'F' with
             % respect to change in 'dim' dimension, using polynomial
             % interpolant of order 'n'.
             
-            if n > vf.dims(vf.dim_flip(dim))
-                error(strcat('Insufficient number of grid points in', ...
-                    ' ', vf.dim_str(dim), 'for polynomial interpolation!'))
+            % Order of accuracy.
+            err_order = vf.solver.diff.err_order;
+            % Differentiation matrix to be applied on each edge.
+            D = 1/vf.sps(dim)^diff_order * ...
+                centricMatrix(size(F, vf.dim_flip(dim)), diff_order, err_order);
+            
+            dF = zeros(size(F));
+            
+            % Differentiate each dimension.
+            for d = 1: size(F, 4)
+                switch dim
+                    case 1
+                        for j = 1: size(F, 1)
+                            for k = 1: size(F, 3)
+                                dF(j,:,k,d) = D*reshape(F(j,:,k,d), [], 1);
+                            end
+                        end
+                    case 2
+                        for i = 1: size(F, 2)
+                            for k = 1: size(F, 3)
+                                dF(:,i,k,d) = D*reshape(F(:,i,k,d), [], 1);
+                            end
+                        end
+                    case 3
+                        for j = 1: size(F, 1)
+                            for i = 1: size(F, 2)
+                                dF(j,i,:,d) = D*reshape(F(j,i,:,d), [], 1);
+                            end
+                        end
+                end
             end
-            
-            
-            
-            
         end
         
         function grad = gradient(vf, F)
@@ -928,17 +1054,21 @@ classdef VelocityField < handle
                 error('Field matching the effective position grid expected!')
             end
             
+            % By default do not omit undefined derivatives.
             grad = NaN([size(F) 3]);
+            
             % If a scalar field is given.
             if ndims(F) == 3
-                [grad(:,:,:,1), grad(:,:,:,2), grad(:,:,:,3)] = ...
-                    gradient(F, vf.xsp, vf.ysp, vf.zsp);
+                for j = 1: 3
+                    grad(:,:,:,j) = vf.diff(F, j, 1);
+                end
             % Otherwise a vector field.
             else
-                % Last dimension is difference among components of one
-                % vector, discard.
-                [grad(:,:,:,:,1), grad(:,:,:,:,2), grad(:,:,:,:,3), ~] = ...
-                    gradient(F, vf.xsp, vf.ysp, vf.zsp, 1);
+                for i = 1: size(F, 4)
+                    for j = 1: 3
+                        grad(:,:,:,i,j) = vf.diff(F(:,:,:,i), j, 1);
+                    end
+                end
             end
         end
         
@@ -948,7 +1078,7 @@ classdef VelocityField < handle
             
             % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
-               V = vf.subsetVector(V);
+               V = vf.subsetField(V);
             end
             
             jacob = NaN([size(V, 1:3) 3 size(V, 4)]);
@@ -969,7 +1099,7 @@ classdef VelocityField < handle
             
             % Subset region of interest.
             if ~isequal(size(V, 1:3), vf.span)
-                V = vf.subsetVector(V);
+                V = vf.subsetField(V);
             end
             div = NaN(size(V, 1:3));
             
@@ -980,6 +1110,25 @@ classdef VelocityField < handle
                         vf.diff1(V(:,:,:,2), [0 1 0], vf.solver.diff.mode)*(vf.ysp>0) + ...
                         vf.diff1(V(:,:,:,3), [0 0 1], vf.solver.diff.mode)*(vf.zsp>0));
             end
+        end
+        
+        function C = curl(vf, F)
+            % Compute the curl of the velocity field 'F' with the accuracy
+            % order set in vf.solver.diff.err_order.
+            
+            if size(F, 4) ~= 3
+                error('Not a vector field!')
+            end
+            % Order of accuracy.
+            err_order = vf.solver.diff.err_order;
+            
+            C = zeros(size(F));
+            C(:,:,:,1) = vf.diff(F(:,:,:,3), 2, err_order) - ...
+                vf.diff(F(:,:,:,2), 3, err_order);
+            C(:,:,:,2) = vf.diff(F(:,:,:,1), 3, err_order) - ...
+                vf.diff(F(:,:,:,3), 1, err_order);
+            C(:,:,:,3) = vf.diff(F(:,:,:,2), 1, err_order) - ...
+                vf.diff(F(:,:,:,1), 2, err_order);
         end
         
         
