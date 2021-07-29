@@ -189,13 +189,21 @@ classdef VelocityField < handle
             end
         end
         
-        function [dI_dt, I] = impulse_time_deriv(vfs, origins, dt, with_noise)
+        function [dI_dt, I] = impulse_time_deriv(vfs, origins, dt, ...
+                with_noise, smoother, span)
            % Assume regions are properly subsetted in the given array of
            % velocity fields traced over time.
            
            I = zeros(3, length(vfs));
            for i = 1: length(vfs)
                I(:,i) = vfs{i}.impulse(origins(:,i), with_noise);
+           end
+           
+           % Smooth impulse dimensionally if demanded.
+           if exist('smoother', 'var')
+               for d = 1: 3
+                   I(d,:) = smooth(I(d,:), span, smoother);
+               end
            end
            
            % Compute derivative.
@@ -426,6 +434,7 @@ classdef VelocityField < handle
                 vf.anullQuantities()
             else
                 vf.deriveQuantities()
+                % vf.vort_e = vf.subsetField(vf.vort);
             end
         end
         
@@ -1119,16 +1128,14 @@ classdef VelocityField < handle
             if size(F, 4) ~= 3
                 error('Not a vector field!')
             end
-            % Order of accuracy.
-            err_order = vf.solver.diff.err_order;
             
             C = zeros(size(F));
-            C(:,:,:,1) = vf.diff(F(:,:,:,3), 2, err_order) - ...
-                vf.diff(F(:,:,:,2), 3, err_order);
-            C(:,:,:,2) = vf.diff(F(:,:,:,1), 3, err_order) - ...
-                vf.diff(F(:,:,:,3), 1, err_order);
-            C(:,:,:,3) = vf.diff(F(:,:,:,2), 1, err_order) - ...
-                vf.diff(F(:,:,:,1), 2, err_order);
+            C(:,:,:,1) = vf.diff(F(:,:,:,3), 2, 1) - ...
+                vf.diff(F(:,:,:,2), 3, 1);
+            C(:,:,:,2) = vf.diff(F(:,:,:,1), 3, 1) - ...
+                vf.diff(F(:,:,:,3), 1, 1);
+            C(:,:,:,3) = vf.diff(F(:,:,:,2), 1, 1) - ...
+                vf.diff(F(:,:,:,1), 2, 1);
         end
         
         
