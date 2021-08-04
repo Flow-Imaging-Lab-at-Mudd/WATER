@@ -1,20 +1,19 @@
-# 3D PIV velocity fields--Manipulation, visualization, and analysis of random synthetic noise
+# 3D PIV velocity fields--manipulation, visualization, and analysis of random synthetic noise
+![openvf](https://github.com/epicderek/flow/blob/master/illu/openfv.jpg)
 
 ## Data Structure
 
 ```matlab
-vf = VelocityField(X, U)
+vf = VelocityField(X, U, minimal = false)
 ```
 
-Is a data structure for a 3D velocity vector field with two essential data/variables: the positions on which velocity measurements were made, `X`, and the corresponding velocity vectors, `U`. Each is a 4D matrix whose first three indices are the grid indices, which specify the position, and in the fourth dimension, the 3-position or 3-velocity vector is stored.
+The above is the object representation of a 3D velocity vector field with two essential data/variables: the positions on which velocity measurements were made, `X`, and the corresponding velocity vectors, `U`. Each is a 4D numeric array whose first three indices are the grid indices, specifying the grid position, while in the fourth dimension, the 3-position or 3-velocity vector is stored. The `minimal` flag pertains to the derived fields from velocity, such as vorticity. When set to true, this will prevent the calculation of these fields upon object construction.
 
-Via various import functions, common formats of data from 3D PIV experiment can be converted to a `VelocityField` object. For example, if the positions and velocities are recorded in components in separate arrays organized on the 3D grid representing the interrogation volume
+Via different static import functions, common formats of 3D PIV data are converted to a `VelocityField` object. For example, if the positions and velocities are recorded as components on separate 3D grids, the following is used.
 
 ```matlab
-vf = VelocityField.import_grid_separate(x, y, z, u, v, w)
+vf = VelocityField.import_grid_separate(x, y, z, u, v, w, minimal = false)
 ```
-
-This is one of the static methods which adapt data of different original formats into the current object representation.
 
 We may wish to inspect and perform computations on a restricted region of our overall volume, say where the velocity measurements are more reliable. Given a rectangular region specified by the beginning and ending index of each dimension
 
