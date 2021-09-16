@@ -1,9 +1,11 @@
 function [dI, dI_box, dI_gss, bias_box, bias_gss] = ...
-    impulse_err_run(vf, props, origin, origin0)
-% For synthetic data set, impulse_err_run(vf, props, origin, fr, u0)
-% For experimental data set, impulse_err_run(vf, props, origin, I0),
-% where 'origin0' is the origin from which the impulse taken as correct is
-% computed.
+    impulse_err_run(vf, props, origin, fr, u0)
+% For synthetic data set, impulse_err_run(vf, props, origin, fr, u0). The
+% physical parameters 'fr', 'u0' are solely used to compute the theoretical
+% vortical impulse of the Hill's vortex.
+% For experimental data set,
+% impulse_err_run(vf, props, origin, I0), where 'origin_ref' is the origin
+% from which the impulse taken as correct is computed.
 % 
 % Introduce levels of noise proportional to the mean speed in the effective
 % region, according to 'props', e.g. 0: 0.1: 3. 'vf' is presume to have
@@ -14,8 +16,6 @@ function [dI, dI_box, dI_gss, bias_box, bias_gss] = ...
 % Derek Li, June 2021
 
 range = vf.getRange();
-% Formatted string for title.
-range_str = strcat('Range:', {' '}, mat2str(range));
 
 props_count = length(props);
 
@@ -26,12 +26,12 @@ vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-% I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
-% i0 = I0(2);
+I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
+i0 = I0(2);
 
-% Experimental momentum used as comparison level.
-I0 = vf.impulse(0, origin0);
-i0 = norm(I0);
+% % Experimental momentum used as comparison level.
+% I0 = vf.impulse(origin_ref, 0);
+% i0 = norm(I0);
 
 % Error in impulse computation given noise.
 dI = zeros(3, props_count);
@@ -44,14 +44,14 @@ dI_gss = zeros(3, props_count);
 for i = 1: props_count
     vf.clearNoise();
     N = vf.noise_uniform(props(i)*u_mean);
-    dI(:, i) = vf.impulse(1, origin) - I0;
+    dI(:, i) = vf.impulse(origin, 1) - I0;
     % Result with box smoothing.
     vf.smoothNoise('box');
-    dI_box(:, i) = vf.impulse(1, origin) - I0;
+    dI_box(:, i) = vf.impulse(origin, 1) - I0;
     % Reset and smooth with gaussian filter.
     vf.setNoise(N)
     vf.smoothNoise('gaussian');
-    dI_gss(:, i) = vf.impulse(1, origin) - I0;
+    dI_gss(:, i) = vf.impulse(origin, 1) - I0;
 end
 
 % Normalize by magnitude of impulse in the region.
@@ -82,81 +82,81 @@ dim_str = {'x', 'y', 'z'};
 
 %%%%%%%%%%% Plot signed impulse error %%%%%%%%%%%%%%%
 
-% for dim = dims
-%     figure;
-%     scatter(props, dI(dim,:))
-%     hold on
-%     scatter(props, dI_box(dim,:), 'r', 'filled')
-%     hold on
-%     err_mean_box = mean(dI_box(dim,:));
-%     yline(err_mean_box, '-')
-%     hold on
-%     scatter(props, dI_gss(dim,:), 'b', 'filled')
-%     hold on
-%     err_mean_gss = mean(dI_gss(dim,:));
-%     yline(err_mean_gss, '-')
-%     
-%     legend({'unfiltered error', ...
-%         'box-filtered $\vec{u}$', ...
-%         strcat('box mean $\frac{\delta I_y}{I} = $', string(err_mean_box)), ...
-%         'Gaussian-filtered $\vec{u}$', ...
-%         strcat('Gaussian mean $\frac{\delta I_y}{I} = $', string(err_mean_gss))})
-%     xlabel('$\frac{|\delta u|}{\bar{u}}$')
-%     ylabel(strcat('$\frac{\delta I_', dim_str{dim}, '}{I}$'))
-%     title(strcat('$', dim_str{dim}, '$ Impulse Error'))
-% end
+for dim = dims
+    figure;
+    scatter(props, dI(dim,:))
+    hold on
+    scatter(props, dI_box(dim,:), 'r', 'filled')
+    hold on
+    err_mean_box = mean(dI_box(dim,:));
+    yline(err_mean_box, '-')
+    hold on
+    scatter(props, dI_gss(dim,:), 'b', 'filled')
+    hold on
+    err_mean_gss = mean(dI_gss(dim,:));
+    yline(err_mean_gss, '-')
+    
+    legend({'unfiltered error', ...
+        'box-filtered $\vec{u}$', ...
+        strcat('box mean $\frac{\delta I_y}{I} = $', string(err_mean_box)), ...
+        'Gaussian-filtered $\vec{u}$', ...
+        strcat('Gaussian mean $\frac{\delta I_y}{I} = $', string(err_mean_gss))})
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel(strcat('$\frac{\delta I_', dim_str{dim}, '}{I}$'))
+    title(strcat('$', dim_str{dim}, '$ Impulse Error'))
+end
 
 
 %%%%%%%%%%%%%%%%%% Plot absolute impulse error %%%%%%%%%%%%%%%%%%%%
 
-% for dim = dims
-%     figure;
-%     scatter(props, abs_dI(dim,:))
-%     hold on
-%     err_mean0 = mean(abs_dI(dim, :));
-%     yline(err_mean0, '-')
-%     hold on
-%     scatter(props, abs_dI_box(dim,:), 'r', 'filled')
-%     hold on
-%     err_mean_box = mean(abs_dI_box(dim,:));
-%     yline(err_mean_box, '-')
-%     hold on
-%     scatter(props, abs_dI_gss(dim,:), 'b', 'filled')
-%     hold on
-%     err_mean_gss = mean(abs_dI_gss(dim,:));
-%     yline(err_mean_gss, '-')
-%     
-%     legend({'unfiltered error', ...
-%         strcat('unfiltered mean $|\frac{\delta I_y}{I}| = $', string(err_mean0)), ...
-%         'box-filtered $\vec{u}$', ...
-%         strcat('box mean $|\frac{\delta I_y}{I}| = $', string(err_mean_box)), ...
-%         'Gaussian-filtered $\vec{u}$', ...
-%         strcat('Gaussian mean $|\frac{\delta I_y}{I}| = $', string(err_mean_gss))})
-%     xlabel('$\frac{|\delta u|}{\bar{u}}$')
-%     ylabel(strcat('$\left|\frac{\delta I_', dim_str{dim}, '}{I}\right|$'))
-%     title(strcat('Absolute', ' $', dim_str{dim}, '$ Impulse Error'))
-% end
+for dim = dims
+    figure;
+    scatter(props, abs_dI(dim,:))
+    hold on
+    err_mean0 = mean(abs_dI(dim, :));
+    yline(err_mean0, '-')
+    hold on
+    scatter(props, abs_dI_box(dim,:), 'r', 'filled')
+    hold on
+    err_mean_box = mean(abs_dI_box(dim,:));
+    yline(err_mean_box, '-')
+    hold on
+    scatter(props, abs_dI_gss(dim,:), 'b', 'filled')
+    hold on
+    err_mean_gss = mean(abs_dI_gss(dim,:));
+    yline(err_mean_gss, '-')
+    
+    legend({'unfiltered error', ...
+        strcat('unfiltered mean $|\frac{\delta I_y}{I}| = $', string(err_mean0)), ...
+        'box-filtered $\vec{u}$', ...
+        strcat('box mean $|\frac{\delta I_y}{I}| = $', string(err_mean_box)), ...
+        'Gaussian-filtered $\vec{u}$', ...
+        strcat('Gaussian mean $|\frac{\delta I_y}{I}| = $', string(err_mean_gss))})
+    xlabel('$\frac{|\delta u|}{\bar{u}}$')
+    ylabel(strcat('$\left|\frac{\delta I_', dim_str{dim}, '}{I}\right|$'))
+    title(strcat('Absolute', ' $', dim_str{dim}, '$ Impulse Error'))
+end
 
 %%%%%%%%%%% Error magnitude %%%%%%%%%%%%
-% figure;
-% scatter(props, di)
-% hold on
-% scatter(props, di_box, 'r', 'filled')
-% hold on
-% scatter(props, di_gss, 'b', 'filled')
-% hold on
-% yline(mag_bias_box, '-', 'Color', 'r')
-% hold on
-% yline(mag_bias_gss, '-', 'Color', 'b')
-% 
-% legend('unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
-%     strcat('box bias $\kappa = $', string(mag_bias_box)), ...
-%     strcat('Gaussian bias $\kappa = $', string(mag_bias_gss)), ...
-%     'Interpreter', 'latex')
-% 
-% xlabel('$\frac{|\delta u|}{\bar{u}}$')
-% ylabel('$\frac{|\delta I|}{\bar{I}}$')
-% title('Magnitude of Impulse Error')
+figure;
+scatter(props, di)
+hold on
+scatter(props, di_box, 'r', 'filled')
+hold on
+scatter(props, di_gss, 'b', 'filled')
+hold on
+yline(mag_bias_box, '-', 'Color', 'r')
+hold on
+yline(mag_bias_gss, '-', 'Color', 'b')
+
+legend('unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
+    strcat('box bias $\kappa = $', string(mag_bias_box)), ...
+    strcat('Gaussian bias $\kappa = $', string(mag_bias_gss)), ...
+    'Interpreter', 'latex')
+
+xlabel('$\frac{|\delta u|}{\bar{u}}$')
+ylabel('$\frac{|\delta I|}{\bar{I}}$')
+title('Magnitude of Impulse Error')
 
 
 %%%%%%%%%%%% Impulse error vs impulse noise, in magnitude%%%%%%%%%%%%

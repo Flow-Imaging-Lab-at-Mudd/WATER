@@ -1,20 +1,20 @@
 function [dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, dI_sd_gss, ...
-    bias_box, bias_gss, dI0] = impulse_err_stats(vf, props, origin, origin0)
-% For synthetic data set, impulse_err_run(vf, props, origin, fr, u0)
-% For experimental data set, impulse_err_run(vf, props, origin, origin0),
-% where 'origin0' is the origin from which the impulse taken as correct is
-% computed.
+    bias_box, bias_gss, dI0] = impulse_err_stats(vf, props, origin, fr, u0)
+% For synthetic data set, impulse_err_stats(vf, props, origin, fr, u0). The
+% physical parameters 'fr', 'u0' are solely used to compute the theoretical
+% vortical impulse of the Hill's vortex.
+% For experimental data set,
+% impulse_err_stats(vf, props, origin, I0), where 'origin_ref' is the
+% origin from which the impulse taken as correct is computed.
 % 
 % Extract sample statistics so that the error is represented at a lower
 % dimension.
 
 % Complete error data.
-% % Synthetic.
-% [dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, fr, u0);
-% Experimental.
-[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, origin0);
-
-
+% Synthetic.
+[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, fr, u0);
+% % Experimental.
+% [dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, origin_ref);
 
 % Consider only absolute error.
 abs_dI = abs(dI);

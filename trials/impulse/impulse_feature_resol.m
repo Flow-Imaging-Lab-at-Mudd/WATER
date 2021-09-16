@@ -2,8 +2,12 @@
 % versus feature resolution, varied both by global resolution and feature
 % size.
 
+% Constant freestream velocity.
+u0 = 1;
+
 % Define global spacing with feature resolution, the minimum of which is
-% assumed to be 1.
+% defined as 1.
+min_fres = 1;
 max_fres = 10;
 fres_inc = 1;
 % Number of uniformly spaced resolutions used.
@@ -20,6 +24,10 @@ radii_count = size(radii, 2);
 dI = zeros(3, sps_count, radii_count);
 dI_box = zeros(3, sps_count, radii_count);
 dI_gss = zeros(3, sps_count, radii_count);
+
+% Imperfection of resolution.
+dI0 = zeros(3, sps_count, radii_count);
+mag_dI0 = zeros(sps_count, radii_count);
 
 bias_box = zeros(3, sps_count, radii_count);
 bias_gss = zeros(3, sps_count, radii_count);
@@ -40,17 +48,21 @@ for i = 1: radii_count
     % Vary global resolution for the given radius.
     [fres, dI(:,:,i), dI_box(:,:,i), dI_gss(:,:,i), bias_box(:,:,i), ...
         bias_gss(:,:,i), mag_dI(:,i), mag_dI_box(:,i), mag_dI_gss(:,i), ...
-        mag_bias_box(:,i), mag_bias_gss(:,i)] = ...
-        impulse_resol(fr, max_fres, fres_inc, origin, props);
+        mag_bias_box(:,i), mag_bias_gss(:,i), dI0(:,:,i), mag_dI0(:,i)] = ...
+        impulse_resol(fr, u0, min_fres, max_fres, fres_inc, origin, props);
 end
 
 % Average over data collected at the same feature resolution over different
 % radii and show variation.
+mean_dI0 = mean(dI0, 3);
+sd_dI0 = std(dI0, 0, 3);
 mean_bias_box = mean(bias_box, 3);
 sd_bias_box = std(bias_box, 0, 3);
 mean_bias_gss = mean(bias_gss, 3);
 sd_bias_gss = std(bias_gss, 0, 3);
 
+mean_mag_dI0 = mean(mag_dI0, 2);
+mag_dI0_sd = std(mag_dI0, 0, 2);
 mean_mag_bias_box = mean(mag_bias_box, 2);
 mag_bias_box_sd = std(mag_bias_box, 0, 2);
 mean_mag_bias_gss = mean(mag_bias_gss, 2);
@@ -83,12 +95,15 @@ dim_str = {'x', 'y', 'z'};
 for dim = dims
     % Smoother bias plot.
     figure;
-    errorbar(fres, mean_bias_box(dim,:), sd_bias_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    errorbar(fres, mean_dI0(dim,:), sd_dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    errorbar(fres, mean_bias_gss(dim,:), sd_bias_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    errorbar(fres, mean_bias_box(dim,:), sd_bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    hold on
+    errorbar(fres, mean_bias_gss(dim,:), sd_bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     hold on
 
-    legend({'box filtered', ...
+    legend({'imperfect resolution', ...
+        'box filtered', ...
         'Gaussian-filtered'}, ...  
         'Interpreter', 'latex')
     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
@@ -111,19 +126,22 @@ for dim = dims
     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
     title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100)))
+        string(props(1)*100), '-', string(props(end)*100), '\%'))
 end
 
 %%%%%%%%%%%%%%%%%%% Magnitude Plots %%%%%%%%%%%%%%%%%%%%%
 
 % Smoother bias plot.
 figure;
-errorbar(fres, mean_mag_bias_box, mag_bias_box_sd, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+errorbar(fres, mean_mag_dI0, mag_dI0_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
 hold on
-scatter(fres, mean_mag_bias_gss, mag_bias_gss_sd, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+errorbar(fres, mean_mag_bias_box, mag_bias_box_sd, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+hold on
+errorbar(fres, mean_mag_bias_gss, mag_bias_gss_sd, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 hold on
 
-legend({'box filtered', ...
+legend({'imperfect resolution', ...
+    'box filtered', ...
     'Gaussian-filtered'}, ...  
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
@@ -146,5 +164,18 @@ legend({'unfiltered', ...
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
 title(strcat('Mean Error Magnitude over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+        string(props(1)*100), '-', string(props(end)*100), '\%'))
+    
+    % Relative smoother bias plot to baseline resolution error.
+figure;
+scatter(fres, abs(mean_mag_dI0 - mean_mag_bias_box), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+hold on
+scatter(fres, abs(mean_mag_dI0 - mean_mag_bias_gss), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+hold on
 
+legend({'box filtered', ...
+    'Gaussian-filtered'}, ...  
+    'Interpreter', 'latex')
+xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+ylabel('$\left|\frac{\delta I}{I} - \frac{\delta I_0}{I}\right|$')
+title(strcat('Smoother bias relative to imperfection of resolution'))
