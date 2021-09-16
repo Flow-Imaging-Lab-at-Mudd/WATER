@@ -12,7 +12,7 @@ The above is the object representation of a 3D velocity vector field with two es
 Via different static import functions, common formats of 3D PIV data are converted to a `VelocityField` object. For example, if the positions and velocities are recorded as components on separate 3D grids, the following is used.
 
 ```matlab
-vf = VelocityField.import_grid_separate(x, y, z, u, v, w, minimal = false)
+vf = VelocityField.importCmps(x, y, z, u, v, w, minimal = false)
 ```
 
 We may wish to inspect and perform computations on a restricted region of our overall volume, say where the velocity measurements are more reliable. Given a rectangular region specified by the beginning and ending index of each dimension
@@ -119,7 +119,7 @@ I = vf.impulse(origin = [0 0 0]', with_noise = true)
 Surface integration is supported on a rectangular surface, specified by setting the effective region, with the `vf.intCubicSurf` prefix. To illustrate, we create a Hill's vortex, a synthetic spherical structure, which is commonly used in our error study.
 
 ```matlab
-[x, y, z, u, v, w, ~] = Hill_vortex_3D(spacing = 0.1, sphere_radius = 1, u0 = 1, z_proportion = 1);
+[x, y, z, u, v, w, ~] = Hill_Vortex(spacing = 0.1, sphere_radius = 1, u0 = 1, z_proportion = 1);
 vf = VelocityField.import_grid_separate(x, y, z, u, v, w);
 vf.plotVector(vf.U, noise = 0, '$\vec{u}$')
 ```
