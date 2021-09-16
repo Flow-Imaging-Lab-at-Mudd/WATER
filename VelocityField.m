@@ -103,19 +103,21 @@ classdef VelocityField < handle
     methods(Static)
         
         %%%%%%%%%%%%%%%%%%% Adapters of Recorded Data %%%%%%%%%%%%%%%%%%%
-        function vf = import_grid_separate(xw, yw, zw, uw, vw, ww, minimal)
+        function vf = importCmps(x, y, z, u, v, w, minimal)
+            % Import velocity field by components of position and velocity,
+            % as 3D arrays.
            
             if ~exist('minimal', 'var')
                 minimal = 0;
             end
             
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
-            X = xw;
-            X(:,:,:,2) = yw;
-            X(:,:,:,3) = zw;
-            U = uw;
-            U(:,:,:,2) = vw;
-            U(:,:,:,3) = ww;
+            X = x;
+            X(:,:,:,2) = y;
+            X(:,:,:,3) = z;
+            U = u;
+            U(:,:,:,2) = v;
+            U(:,:,:,3) = w;
             
             vf = VelocityField(X, U, minimal);
         end
@@ -145,9 +147,42 @@ classdef VelocityField < handle
             err = sum((V - V0).^2, 4);
         end
         
+        %%%%%%%%%%%%%%%%%%% 4D Grid Arithmetic %%%%%%%%%%%%%%%%%%%%%%
+        function V = operate3Vector(V, v, op)
+            % Perform binary operation defined by 'op' on each 3-vector of
+            % the 4D matrix 'V' with the given 3-vector 'v'.
+            
+            if ndims(V) ~= 4 || size(V, 4) ~= 3
+                error('Proper 4D matrix expected!')
+            end
+            V(:,:,:,1) = op(V(:,:,:,1), v(1));
+            V(:,:,:,2) = op(V(:,:,:,2), v(2));
+            V(:,:,:,3) = op(V(:,:,:,3), v(3));
+        end
+        
+        function V = sum3Vector(V, v)
+            % Add the vector to 'v' to every vector on the 3D grid of the
+            % 4D array 'V'.
+            
+            V = VelocityField.operate3Vector(V, v, @plus);
+        end
+        
+        function V = operateGridwise(V, R, op)
+            % Perform position-wise binary operation defined by 'op' on each component
+            % of the 3-vector of the 4D matrix 'V' and the corresponding scalar from
+            % 'R'.
+            
+            if ndims(V) ~= 4 || size(V, 4) ~= 3
+                error('Proper 4D matrix expected!')
+            end
+            V(:,:,:,1) = op(V(:,:,:,1), R);
+            V(:,:,:,2) = op(V(:,:,:,2), R);
+            V(:,:,:,3) = op(V(:,:,:,3), R);
+        end
+        
         %%%%%%%%%%%%%%%%%% Time-resolved Quantities %%%%%%%%%%%%%%%%%%%
         
-        function ds = scalar_time_deriv(vf, s, dt, diff_order, noise)
+        function ds = scalarTimeDeriv(s, dt, diff_order, err_order, noise)
             
             if ~isvector(s)
                 error('A scalar array expected!')
@@ -165,10 +200,10 @@ classdef VelocityField < handle
             end
             
             ds = dt^(-diff_order)*centricMatrix(size(s, 1), ...
-                diff_order, vf.solver.diff.err_order) * (s+noise);
+                diff_order, err_order) * (s+noise);
         end
         
-        function dv = vector_time_deriv(vf, v, dt, diff_order, noise)
+        function dv = vectorTimeDeriv(v, dt, diff_order, err_order, noise)
             % Assume the vectors are stored in the column of the matrix
             % 'v'.
             
@@ -185,7 +220,8 @@ classdef VelocityField < handle
             
             dv = zeros(size(v));
             for d = 1: size(v, 1)
-                dv(d, :) = vf.scalar_time_deriv(v(d, :), dt, diff_order, noise(d, :));
+                dv(d, :) = VelocityField.scalarTimeDeriv(v(d, :), dt, diff_order, ...
+                    err_order, noise(d, :));
             end
         end
         
@@ -1017,6 +1053,8 @@ classdef VelocityField < handle
             % Compute displacement in direction and differentiate.
             nder = dif / norm(vf.sps .* ind_inc);
         end
+        
+        %%%%%%%%%%%%% Spatial Differentiation %%%%%%%%%%%%%
         
         function dF = diff(vf, F, dim, diff_order)
             % Differentiate the given scalar or vector field 'F' with

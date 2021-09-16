@@ -1,4 +1,4 @@
-function [X,Y,Z,u,v,w,Mag]=hill_vortex_3D(sp,a,us,z_factor)
+function [X,Y,Z,u,v,w,Mag] = Hill_Vortex(sp,a,us,z_factor)
 
 % This function outputs synthetic 3D vortex ring flow fields at a
 % user-specified resolution
@@ -14,7 +14,7 @@ function [X,Y,Z,u,v,w,Mag]=hill_vortex_3D(sp,a,us,z_factor)
 % a: outer radius of sphere / outer radius of vortex region
 % us: freestream velocity outside the vortex ring region (in y direction,
 % same direction as vortex ring axis), must be nonzero
-% z_factor: scale factor on z-direction vector spacing; set to 1 for uniform spacing in x,y, and z
+% z_factor: scale factor on z-direction vector spacing; set to 1 for uniform spacing in x, y, and z
 
 % Outputs:
 % X,Y,Z: Arrays of X,Y,Z coordinates in meshgrid format. Vortex ring axis
@@ -70,4 +70,3 @@ U(R>a)=Uo(R>a);
 u = U.*cos(theta);
 v = V;
 w = U.*sin(theta);
-
