@@ -187,6 +187,8 @@ classdef VelocityField < handle
             if ~isvector(s)
                 error('A scalar array expected!')
             end
+            % Ensure shape of vector.
+            s = reshape(s, [], 1);
             
             if ~exist('noise', 'var')
                 noise = 0;
@@ -195,7 +197,6 @@ classdef VelocityField < handle
             elseif ~isvector(noise) || ~isequal(length(noise), length(s))
                 error('Noise not matching original vector in dimension!')
             else
-                s = reshape(s, [], 1);
                 noise = reshape(noise, [], 1);
             end
             
@@ -287,14 +288,18 @@ classdef VelocityField < handle
             
             vf.xbounds = [X(1,1,1,1) X(1,end,1,1)];
             % Assume data is uniformly spaced in position.
+            % Allowing for lower dimensional grid by defaulting sp to 0.
+            vf.xsp = 0;
             if dims(2) > 1
                 vf.xsp = X(1,2,1,1) - X(1,1,1,1);
             end
             vf.ybounds = [X(1,1,1,2) X(end,1,1,2)];
+            vf.ysp = 0;
             if dims(1) > 1
                 vf.ysp = X(2,1,1,2) - X(1,1,1,2);
             end
             vf.zbounds = [X(1,1,1,3) X(1,1,end,3)];
+            vf.zsp = 0;
             if dims(3) > 1
                 vf.zsp = X(1,1,2,3) - X(1,1,1,3);
             end
@@ -362,9 +367,22 @@ classdef VelocityField < handle
             % effective region. The global fields, when these exist, are
             % not updated.
             
-            if vf.ax == 3
-                vf.vort_e = vf.vorticity(0);
-            end
+            vf.vort_e = vf.vorticity(0);
+%             if vf.ax == 3
+%                 
+%             elseif vf.ax ==2
+%                 
+%             end
+        end
+        
+        function updateFields(vf)
+            % Succeeding a modification of the effective velocity, update
+            % all fields. This is expensive for vorticity computation.
+            
+            % Update velocity.
+            vf.U(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
+                vf.range(3,1): vf.range(3,2), :) = vf.U_e;
+            vf.vort_e = vf.vorticity(0);
         end
         
         function updateGlobal(vf)
@@ -419,7 +437,11 @@ classdef VelocityField < handle
         function derivePropertyStructs(vf)
             % Derive certain attributes from given elementary ones.
             
-            vf.solver.dv = vf.scale.len^3*vf.xsp*vf.ysp*vf.zsp;
+            % Allow lower dimensional element, area or length, for which
+            % the unit is assumed to be the same as the largest non-trivial
+            % grid length.
+            sps = vf.sps(vf.sps~=0);
+            vf.solver.dv = vf.scale.len^3*prod(sps) * max(sps)^(3-vf.ax);
         end
             
         function setPropertyStructs(vf, fluid, solver, plotter)
@@ -996,8 +1018,8 @@ classdef VelocityField < handle
             else
                 I = squeeze(vf.fluid.density/2 * ...
                     sum(cross(vf.X_e - dimen(origin, vf.span), ...
-                        vf.vort_e, 4), [1 2 3], 'omitnan') ...
-                    * vf.solver.dv*vf.scale.len);
+                        vf.vort_e, 4), [1 2 3], 'omitnan') * ...
+                    vf.solver.dv*vf.scale.len);
             end
         end
         
@@ -1168,6 +1190,21 @@ classdef VelocityField < handle
             end
             
             C = zeros(size(F));
+            
+            % Special case of 2D field.
+            if vf.ax == 2
+                nulldim = find(vf.sps == 0);
+                % Right handed indices.
+                vdims = mod([nulldim + 1, nulldim + 2], 3);
+                vdims(vdims==0) = 3;
+                % Compute curl in just the absent vector component.
+                C(:,:,:,nulldim) = vf.diff(F(:,:,:,vdims(2)), vdims(1), 1) - ...
+                    vf.diff(F(:,:,:,vdims(1)), vdims(2), 1);
+                C(:,:,:,vdims(1)) = 0;
+                C(:,:,:,vdims(2)) = 0;
+                return
+            end
+            % 3D velocity field.
             C(:,:,:,1) = vf.diff(F(:,:,:,3), 2, 1) - ...
                 vf.diff(F(:,:,:,2), 3, 1);
             C(:,:,:,2) = vf.diff(F(:,:,:,1), 3, 1) - ...
