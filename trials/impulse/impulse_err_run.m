@@ -26,7 +26,7 @@ vol = prod(range(:,2) - range(:,1) + 1)*vf.solver.dv;
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = vf.fluid.density*[0 2*pi*fr^3*u0*vf.scale.len^4 0]';
+I0 = theoImpulse(vf, fr, u0, fr);
 i0 = I0(2);
 
 % % Experimental momentum used as comparison level.
@@ -77,7 +77,7 @@ abs_bias_box = abs(bias_box);
 abs_bias_gss = abs(bias_gss);
 
 % Dimension, i.e., x, y, z, to plot, specified correspondingly by 1, 2, 3.
-dims = [2 1 3];
+dims = [];
 dim_str = {'x', 'y', 'z'};
 
 %%%%%%%%%%% Plot signed impulse error %%%%%%%%%%%%%%%
@@ -138,25 +138,25 @@ for dim = dims
 end
 
 %%%%%%%%%%% Error magnitude %%%%%%%%%%%%
-figure;
-scatter(props, di)
-hold on
-scatter(props, di_box, 'r', 'filled')
-hold on
-scatter(props, di_gss, 'b', 'filled')
-hold on
-yline(mag_bias_box, '-', 'Color', 'r')
-hold on
-yline(mag_bias_gss, '-', 'Color', 'b')
-
-legend('unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
-    strcat('box bias $\kappa = $', string(mag_bias_box)), ...
-    strcat('Gaussian bias $\kappa = $', string(mag_bias_gss)), ...
-    'Interpreter', 'latex')
-
-xlabel('$\frac{|\delta u|}{\bar{u}}$')
-ylabel('$\frac{|\delta I|}{\bar{I}}$')
-title('Magnitude of Impulse Error')
+% figure;
+% scatter(props, di)
+% hold on
+% scatter(props, di_box, 'r', 'filled')
+% hold on
+% scatter(props, di_gss, 'b', 'filled')
+% hold on
+% yline(mag_bias_box, '-', 'Color', 'r')
+% hold on
+% yline(mag_bias_gss, '-', 'Color', 'b')
+% 
+% legend('unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
+%     strcat('box bias $\kappa = $', string(mag_bias_box)), ...
+%     strcat('Gaussian bias $\kappa = $', string(mag_bias_gss)), ...
+%     'Interpreter', 'latex')
+% 
+% xlabel('$\frac{|\delta u|}{\bar{u}}$')
+% ylabel('$\frac{|\delta I|}{\bar{I}}$')
+% title('Magnitude of Impulse Error')
 
 
 %%%%%%%%%%%% Impulse error vs impulse noise, in magnitude%%%%%%%%%%%%

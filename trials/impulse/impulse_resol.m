@@ -20,15 +20,13 @@ for i = 2: size(sps, 2)
     sps(i) = fr / (fres_inc + fr/sps(i-1));
 end
 
-% Reverse ordering of spacing so that high resolutions precede low.
-sps = flip(sps);
 sps_count = size(sps, 2);
 
 % Feature resolution.
 fres = fr ./ sps;
 
 % Consider stochastic effect.
-num_ite = 5;
+num_ite = 10;
 
 % Containers for data across all runs.
 % Errors here are mean absolute errors.
@@ -49,11 +47,9 @@ dI0 = zeros(3, sps_count);
 for k = 1: sps_count
     % Construct Hill vortex with specified resolution.
     sp = sps(k);
-    [x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1);
+    [x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1, 1);
     vf = VelocityField.importCmps(x,y,z,u,v,w);
     
-    % Subtract freestream velocity to focus on central feature region.
-    vf.addVelocity(-vf.U(1,1,1,:))
     % Focus on vortical region.
     vf.setRangePosition(fr*repmat([-1 1], 3, 1))
     
@@ -80,40 +76,46 @@ dI_sd_gss = mean(err_sd_gss, 3);
 dims = [];
 dim_str = {'x', 'y', 'z'};
 
-for dim = dims
-    % Smoother bias plot.
-    figure;
-    scatter(fres, dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-    hold on
-    scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-    hold on
-    scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+% Whether the plots are displayed.
+show_plot = 0;
 
-    legend({'imperfect resolution', ...
-        'box filtered', ...
-        'Gaussian-filtered'}, ...  
-        'Interpreter', 'latex')
-    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', dim_str{dim}, '$ Smoother Bias at $r = $', {' '}, string(fr)))
-
-    % Mean error plot.
-    figure;
-    errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-    hold on
-    errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-    hold on
-    errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-
-    legend({'unfiltered', ...
-        'box-filtered', ...
-        'Gaussian-filtered'}, ...  
-        'Interpreter', 'latex')
-    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+if show_plot
+    for dim = dims
+        % Smoother bias plot.
+        figure;
+        scatter(fres, dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+        hold on
+        scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+        hold on
+        scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+        
+        legend({'imperfect resolution', ...
+            'box filtered', ...
+            'Gaussian-filtered'}, ...
+            'Interpreter', 'latex')
+        xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+        ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
+        title(strcat('$', dim_str{dim}, '$ Smoother Bias at $r = $', {' '}, string(fr)))
+        
+        % Mean error plot.
+        figure;
+        errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+        hold on
+        errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+        hold on
+        errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+        
+        legend({'unfiltered', ...
+            'box-filtered', ...
+            'Gaussian-filtered'}, ...
+            'Interpreter', 'latex')
+        xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+        ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
+        title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
+            string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+    end
 end
+
 
 %%%%%%%%%%%%%%%%%%% Magnitude Plots %%%%%%%%%%%%%%%%%%%%
 mag_dI0 =  sqrt(sum(dI0.^2, 1));
@@ -126,37 +128,41 @@ mag_dI_box = sqrt(sum(dI_box.^2, 1));
 mag_dI_sd_box = sqrt(sum(dI_sd_box.^2, 1));
 mag_dI_gss = sqrt(sum(dI_gss.^2, 1));
 mag_dI_sd_gss = sqrt(sum(dI_sd_gss.^2, 1));
- 
-% % Smoother bias plot.
-% figure;
-% scatter(fres, mas_dI0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-% hold on
-% scatter(fres, mag_bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-% hold on
-% scatter(fres, mag_bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-% hold on
-% 
-% legend({'box filtered', ...
-%     'Gaussian-filtered'}, ...  
-%     'Interpreter', 'latex')
-% xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-% ylabel('$\left|\frac{\delta I}{I}\right|$')
-% title(strcat('Magnitude of Smoother Bias at $r = $', {' '}, string(fr)))
-% 
-% % Mean error plot.
-% figure;
-% errorbar(fres, mag_dI, mag_dI_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-% hold on
-% errorbar(fres, mag_dI_box, mag_dI_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-% hold on
-% errorbar(fres, mag_dI_gss, mag_dI_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-% hold on
-% 
-% legend({'unfiltered', ...
-%     'box-filtered', ...
-%     'Gaussian-filtered'}, ...  
-%     'Interpreter', 'latex')
-% xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-% ylabel('$\left|\frac{\delta I}{I}\right|$')
-% title(strcat('Mean Error Magnitude over $\delta u = $', ...
-%         string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+
+if ~show_plot
+    return
+end
+
+% Smoother bias plot.
+figure;
+scatter(fres, mag_dI0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+hold on
+scatter(fres, mag_bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+hold on
+scatter(fres, mag_bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+hold on
+
+legend({'box filtered', ...
+    'Gaussian-filtered'}, ...  
+    'Interpreter', 'latex')
+xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+ylabel('$\left|\frac{\delta I}{I}\right|$')
+title(strcat('Magnitude of Smoother Bias at $r = $', {' '}, string(fr)))
+
+% Mean error plot.
+figure;
+errorbar(fres, mag_dI, mag_dI_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+hold on
+errorbar(fres, mag_dI_box, mag_dI_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+hold on
+errorbar(fres, mag_dI_gss, mag_dI_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+hold on
+
+legend({'unfiltered', ...
+    'box-filtered', ...
+    'Gaussian-filtered'}, ...  
+    'Interpreter', 'latex')
+xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+ylabel('$\left|\frac{\delta I}{I}\right|$')
+title(strcat('Mean Error Magnitude over $\delta u = $', ...
+        string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))

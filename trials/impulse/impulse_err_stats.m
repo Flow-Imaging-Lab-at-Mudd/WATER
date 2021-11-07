@@ -18,16 +18,17 @@ function [dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, dI_sd_gss, ...
 
 % Consider only absolute error.
 abs_dI = abs(dI);
-dI_mean = mean(abs_dI, 2);
-dI_sd = std(abs_dI, 0, 2);
+% Average only over noisy results.
+dI_mean = mean(abs_dI(:, 2:end), 2);
+dI_sd = std(abs_dI(:, 2:end), 0, 2);
 
 abs_dI_box = abs(dI_box);
-dI_mean_box = mean(abs_dI_box, 2);
-dI_sd_box = std(abs_dI_box, 0, 2);
+dI_mean_box = mean(abs_dI_box(:, 2:end), 2);
+dI_sd_box = std(abs_dI_box(:, 2:end), 0, 2);
 
 abs_dI_gss = abs(dI_gss);
-dI_mean_gss = mean(abs_dI_gss, 2);
-dI_sd_gss = std(abs_dI_gss, 0, 2);
+dI_mean_gss = mean(abs_dI_gss(:, 2:end), 2);
+dI_sd_gss = std(abs_dI_gss(:, 2:end), 0, 2);
 
 % Error due to imperfect resolution (perfect being infinite) and origin
 % selection.

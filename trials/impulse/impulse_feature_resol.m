@@ -40,7 +40,7 @@ mag_dI_box = zeros(sps_count, radii_count);
 mag_dI_gss = zeros(sps_count, radii_count);
 
 % Proportions of velocity noise introduced.
-props = 0: 0.1: 3;
+props = [0 2];
 
 % Collect data for different radii.
 for i = 1: radii_count
@@ -92,14 +92,20 @@ mag_dI_sd_gss = std(mag_dI_gss, 0, 2);
 dims = [2 1 3];
 dim_str = {'x', 'y', 'z'};
 
+% Font size for titles.
+titleFsize = 15;
+
+fres_ini = 2;
+fresp = fres(fres_ini: end);
+
 for dim = dims
     % Smoother bias plot.
     figure;
-    errorbar(fres, mean_dI0(dim,:), sd_dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    errorbar(fresp, mean_dI0(dim, fres_ini:end), sd_dI0(dim, fres_ini:end), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    errorbar(fres, mean_bias_box(dim,:), sd_bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    errorbar(fresp, mean_bias_box(dim, fres_ini:end), sd_bias_box(dim, fres_ini:end), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
-    errorbar(fres, mean_bias_gss(dim,:), sd_bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    errorbar(fresp, mean_bias_gss(dim, fres_ini:end), sd_bias_gss(dim, fres_ini:end), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     hold on
 
     legend({'imperfect resolution', ...
@@ -108,15 +114,15 @@ for dim = dims
         'Interpreter', 'latex')
     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', dim_str{dim}, '$ Smoother Bias'))
+    title(strcat('$', dim_str{dim}, '$ Smoother Bias'), 'FontSize', titleFsize)
 
     % Mean error plot.
     figure;
-    errorbar(fres, mean_dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+    errorbar(fresp, mean_dI(dim, fres_ini:end), dI_sd(dim, fres_ini:end), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
     hold on
-    errorbar(fres, mean_dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    errorbar(fresp, mean_dI_box(dim, fres_ini:end), dI_sd_box(dim, fres_ini:end), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
     hold on
-    errorbar(fres, mean_dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    errorbar(fresp, mean_dI_gss(dim, fres_ini:end), dI_sd_gss(dim, fres_ini:end), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
     hold on
 
     legend({'unfiltered', ...
@@ -125,19 +131,19 @@ for dim = dims
         'Interpreter', 'latex')
     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100), '\%'))
+    title(strcat('$', string(dim_str{dim}), '$ Mean Error at $\delta u = $', ...
+        string(props(end)*100), '\%'), 'FontSize', titleFsize)
 end
 
 %%%%%%%%%%%%%%%%%%% Magnitude Plots %%%%%%%%%%%%%%%%%%%%%
 
 % Smoother bias plot.
 figure;
-errorbar(fres, mean_mag_dI0, mag_dI0_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+errorbar(fresp, mean_mag_dI0(fres_ini:end), mag_dI0_sd(fres_ini:end), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
 hold on
-errorbar(fres, mean_mag_bias_box, mag_bias_box_sd, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+errorbar(fresp, mean_mag_bias_box(fres_ini:end), mag_bias_box_sd(fres_ini:end), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
 hold on
-errorbar(fres, mean_mag_bias_gss, mag_bias_gss_sd, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+errorbar(fresp, mean_mag_bias_gss(fres_ini:end), mag_bias_gss_sd(fres_ini:end), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 hold on
 
 legend({'imperfect resolution', ...
@@ -146,15 +152,15 @@ legend({'imperfect resolution', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Magnitude of Smoother Bias'))
+title('Magnitude of Smoother Bias', 'FontSize', titleFsize)
 
 % Mean error plot.
 figure;
-errorbar(fres, mean_mag_dI, mag_dI_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+errorbar(fresp, mean_mag_dI(fres_ini:end), mag_dI_sd(fres_ini:end), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 hold on
-errorbar(fres, mean_mag_dI_box, mag_dI_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+errorbar(fresp, mean_mag_dI_box(fres_ini:end), mag_dI_sd_box(fres_ini:end), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
 hold on
-errorbar(fres, mean_mag_dI_gss, mag_dI_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+errorbar(fresp, mean_mag_dI_gss(fres_ini:end), mag_dI_sd_gss(fres_ini:end), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
 hold on
 
 legend({'unfiltered', ...
@@ -163,14 +169,14 @@ legend({'unfiltered', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Mean Error Magnitude over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100), '\%'))
+title(strcat('Mean Error Magnitude at $\delta u = $', ...
+        string(props(end)*100), '\%'), 'FontSize', titleFsize)
     
-    % Relative smoother bias plot to baseline resolution error.
+% Relative smoother bias plot to baseline resolution error.
 figure;
-scatter(fres, abs(mean_mag_dI0 - mean_mag_bias_box), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+scatter(fresp, abs(mean_mag_dI0(fres_ini:end) - mean_mag_bias_box(fres_ini:end)), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
 hold on
-scatter(fres, abs(mean_mag_dI0 - mean_mag_bias_gss), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+scatter(fresp, abs(mean_mag_dI0(fres_ini:end) - mean_mag_bias_gss(fres_ini:end)), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 hold on
 
 legend({'box filtered', ...
@@ -178,4 +184,4 @@ legend({'box filtered', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I} - \frac{\delta I_0}{I}\right|$')
-title(strcat('Smoother bias relative to imperfection of resolution'))
+title('Smoother bias relative to imperfection of resolution', 'FontSize', titleFsize)
