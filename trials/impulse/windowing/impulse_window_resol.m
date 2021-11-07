@@ -1,5 +1,5 @@
-function [fres_min_bias, fres_min_err] = ...
-    impulse_window_resol(fr, winsize, overlap, fres, origin, err_level, props)
+% function [fres_min_bias, fres_min_err] = ...
+%     impulse_window_resol(fr, winsize, overlap, fres, origin, err_level, props)
 % Variation of error with variation in uniform resolutions incorporating
 % downsampling. The resolutions plotted are the feature resolutions and not
 % the global resolutions. These are specified in ascending order by 'fres'.
@@ -8,6 +8,14 @@ function [fres_min_bias, fres_min_err] = ...
 % error beneath the specified level of error. 
 %
 % Derek Li, June 2021.
+
+fr = 1;
+winsize = 4;
+overlap = 0.75;
+fres = 1: 15;
+origin = [0 0 0]';
+err_level = 0.1;
+props = [1 2];
 
 
 % Freestream velocity.
@@ -42,17 +50,12 @@ err_sd = zeros(3, sps_count, num_ite);
 err_sd_box = zeros(3, sps_count, num_ite);
 err_sd_gss = zeros(3, sps_count, num_ite);
 
-% Flag for under-resolution.
-under_resolved = false;
-
 for k = 1: sps_count
     % Construct Hill vortex with specified resolution.
     sp = sps(k);
-    [x, y, z, u, v, w, ~] = hill_vortex_3D(sp, fr, u0, 1);
-    vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
+    [x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1, 1);
+    vf = VelocityField.importCmps(x, y, z, u, v, w);
     
-    % Subtract freestream velocity to focus on central feature region.
-    vf.addVelocity(-vf.U(1,1,1,:))
     % Focus on vortical region.
     vf.setRangePosition(fr*repmat([-1 1], 3, 1))
     
@@ -121,42 +124,48 @@ end
 
 %%%%%%%%%%%%%%%% Dimensional Plots %%%%%%%%%%%%%%%%%
 % Dimension, i.e., x, y, z, to plot, specified correspondingly by 1, 2, 3.
-dims = [2 1 3];
+dims = [2];
 dim_str = {'x', 'y', 'z'};
+% Font size for plotting.
+fsize = 15;
 
-% for dim = dims
-%     % Smoother bias plot.
-%     figure;
-%     scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-%     hold on
-%     scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-%     hold on
-% 
-%     legend({'box filtered', ...
-%         'Gaussian-filtered'}, ...  
-%         'Interpreter', 'latex')
-%     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-%     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-%     title(strcat('$', dim_str{dim}, '$ Smoother Bias at $r = $', {' '}, string(fr)))
-% 
-%     % Mean error plot.
-%     figure;
-%     errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-%     hold on
-%     errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-%     hold on
-%     errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-%     hold on
-% 
-%     legend({'unfiltered', ...
-%         'box-filtered', ...
-%         'Gaussian-filtered'}, ...  
-%         'Interpreter', 'latex')
-%     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-%     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-%     title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
-%         string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
-% end
+for dim = dims
+    % Smoother bias plot.
+    figure;
+    scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    hold on
+    scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    hold on
+
+    legend({'box filtered', ...
+        'Gaussian-filtered'}, ...  
+        'Interpreter', 'latex')
+    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
+    title(strcat('$', dim_str{dim}, '$ Smoother Bias at $r = $', {' '}, string(fr)))
+    ax = gca;
+    ax.FontSize = fsize;
+
+    % Mean error plot.
+    figure;
+    errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    hold on
+
+    legend({'unfiltered', ...
+        'box-filtered', ...
+        'Gaussian-filtered'}, ...  
+        'Interpreter', 'latex')
+    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
+    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
+    title(strcat('$', string(dim_str{dim}), '$ Mean Error over $\delta u = $', ...
+        string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+    ax = gca;
+    ax.FontSize = fsize;
+end
 
 %%%%%%%%%%%%%%%%%%% Magnitude Plots %%%%%%%%%%%%%%%%%%%%%
 
@@ -174,6 +183,8 @@ legend({'unfiltered', 'box filtered', 'Gaussian-filtered'}, ...
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
 title(strcat('Magnitude of Smoother Bias at $r = $', {' '}, string(fr)))
+ax = gca;
+ax.FontSize = fsize;
 
 % Mean error plot.
 figure;
@@ -191,6 +202,6 @@ legend({'unfiltered', ...
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
 title(strcat('Mean Error Magnitude over $\delta u = $', ...
-        string(props(1)*100), '-', string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
-
-
+        string(props(end)*100), '\% at $r = $', {' '}, string(fr)))
+ax = gca;
+ax.FontSize = fsize;

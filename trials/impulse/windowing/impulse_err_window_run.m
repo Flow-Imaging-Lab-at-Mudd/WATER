@@ -9,14 +9,13 @@ function [dI, dId, dI_box, dI_gss, bias_box, bias_gss, vfd] = ...
 % Derek Li, June 2021
 
 % Theoretical momentum.
-I0 = vf0.fluid.density*[0 2*pi*fr^3*u0*vf0.scale.len^4 0]';
+I0 = theoImpulse(vf0, fr, u0, fr);
 i0 = norm(I0);
 
 % Create downsampled field and compute pure downsampling error.
 vfd = vf0.downsample(winsize, overlap, 0);
-% Shift between noise-free KE vals.
-Id = vfd.impulse(0, origin);
-% KE error from downsampling.
+% Impulse error from downsampling.
+Id = vfd.impulse(origin, 0);
 dId = (Id - I0) / i0;
 
 % Introduce error to the downsampled field. The positions are maintained

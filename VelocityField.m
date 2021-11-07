@@ -80,6 +80,8 @@ classdef VelocityField < handle
         % Dimensionality of the field. 3 for 3D, 2, for 2D, minimum of 1D.
         ax
         
+        % Font size for plotting.
+        fontsize = 10;
     end
     
     % Some rarer quantities used for convenience.
@@ -743,6 +745,10 @@ classdef VelocityField < handle
         
         %%%%%%%%%%%%%%%%%%%%%%%%% Plotters %%%%%%%%%%%%%%%%%%%%%%%%%%%
         
+        function setFontSize(vf, fsize)
+            vf.fontsize = fsize;
+        end
+        
         function plt = plotVector(vf, V, noise, title_str)
             % Make a quiver plot of the given vector field over the range
             % of interest on the current grid. 'V' can be either substted
@@ -759,7 +765,7 @@ classdef VelocityField < handle
             end
             
             plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale);
-            title(title_str)
+            title(title_str, 'FontSize', vfp.fontsize)
         end
         
         function plt = plotScalar(vf, S, noise, title_str)
@@ -786,10 +792,10 @@ classdef VelocityField < handle
             scatter3(X(:,1), X(:,2), X(:,3), dot_size, S + noise, 'filled');
             
             colorbar
-            xlabel('$x$')
-            ylabel('$y$')
-            zlabel('$z$')
-            title(title_str)
+            xlabel('$x$', 'FontSize', vf.fontsize)
+            ylabel('$y$', 'FontSize', vf.fontsize)
+            zlabel('$z$', 'FontSize', vf.fontsize)
+            title(title_str, 'FontSize', vf.fontsize)
         end
         
         function plt = slicePlanes(vf, S, planes, noise, title_str)
