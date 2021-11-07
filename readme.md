@@ -92,7 +92,7 @@ vf.isosurfaces(vf.data.speed, [250, 200], 0, '$u$')
 
 ![isosurface](https://github.com/epicderek/flow/blob/master/illu/isosurface.jpg)
 
-## Computation of Physical Quantities
+## Derivation of Physical Quantities
 
 There are corresponding solvers for typical PIV mechanical quantities. For instance, to compute the total kinetic energy of the effective region with noise,
 
