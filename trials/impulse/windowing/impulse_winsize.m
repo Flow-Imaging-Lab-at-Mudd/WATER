@@ -4,10 +4,8 @@
 sp = 0.02;
 fr = 1;
 u0 = 1;
-[x, y, z, u, v, w, Mag] = hill_vortex_3D(sp, fr, 1, 1);
-vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-% Subtract freestream velocity.
-vf.addVelocity(-vf.U(1,1,1,:))
+[x, y, z, u, v, w, Mag] = Hill_Vortex(sp, fr, 1, 1, 1);
+vf = VelocityField.importCmps(x, y, z, u, v, w);
 
 % Origin chosen.
 origin = [0 0 0]';
@@ -16,14 +14,14 @@ origin = [0 0 0]';
 vf.setRangePosition(fr * repmat([-1 1], 3, 1))
 
 % Uniform windows in x, y, z.
-windows = 2.^(1: 4);
+windows = 2.^(1: 5);
 windows_count = size(windows, 2);
 
 % Constant overlap used.
-overlap = 0.75;
+overlap = 0.5;
 
 % Proportional noise.
-props = 0.1: 0.1: 3;
+props = [0 1.5];
 props_count = size(props, 2);
 
 % Containers for error data at different window sizes.
@@ -43,7 +41,7 @@ min_bias_fres = zeros(3, windows_count);
 min_err_fres = zeros(3, windows_count);
 % Maximum freature size tried.
 max_fres = 12;
-min_fres = 3;
+min_fres = 1;
 % Increment.
 fres_inc = 1;
 
@@ -228,17 +226,16 @@ ylabel('$|\frac{\delta I}{I}|$')
 title(strcat('Mean smoother error magnitude at overlap $o=$', {' '}, string(overlap)))
 saveas(gcf, strcat(img_fdr, 'err-mag.jpg'));
 
-
-
-
 %%%%%% Make graphs for required minimum feature resolution.%%%%%%
 % Bias graph.
 figure;
+scatter(windows, min_bias_fres(3, :), 'k', 'filled')
+hold on
 scatter(windows, min_bias_fres(1, :), 'r', 'filled')
 hold on
 scatter(windows, min_bias_fres(2, :), 'b', 'filled')
 
-legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
 xlabel('Window Size $w$')
 ylabel('$\frac{r}{s}$')
 title(strcat('Minimum feature resolution for', ...
@@ -246,12 +243,15 @@ title(strcat('Minimum feature resolution for', ...
 
 % Mean error graph.
 figure;
+scatter(windows, min_err_fres(3, :), 'k', 'filled')
+hold on
 scatter(windows, min_err_fres(1, :), 'r', 'filled')
 hold on
 scatter(windows, min_err_fres(2, :), 'b', 'filled')
 
-legend({'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
 xlabel('Window Size $w$')
 ylabel('$\frac{r}{s}$')
-title(strcat('Minimum feature resolution for', {' '}, ...
-    string(err_level*100), '\% mean error'))
+title(strcat('Minimum feature resolution for', ...
+    {' '}, string(err_level*100), '\% mean error', ' given', {' '}, ...
+    string(100*props(1)), '-', string(100*props(end)), '\% noise'))
