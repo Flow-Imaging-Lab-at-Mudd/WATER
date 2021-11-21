@@ -170,24 +170,32 @@ classdef VelocityField < handle
             V(:,:,:,3) = op(V(:,:,:,3), v(3));
         end
         
-        function V = sum3Vector(V, v)
+        function V = add3Vector(V, v)
             % Add the vector to 'v' to every vector on the 3D grid of the
             % 4D array 'V'.
             
             V = VelocityField.operate3Vector(V, v, @plus);
         end
         
-        function V = operateGridwise(V, R, op)
+        function V = subtract3Vector(V, v)
+            % Subtract the vector to 'v' from every vector on the 3D grid of the
+            % 4D array 'V'.
+            
+            V = VelocityField.operate3Vector(V, v, @minus);
+        end
+        
+        function V = operateGridwise(V, r, op)
             % Perform position-wise binary operation defined by 'op' on each component
             % of the 3-vector of the 4D matrix 'V' and the corresponding scalar from
             % 'R'.
             
+            V = zeros(size(V));
             if ndims(V) ~= 4 || size(V, 4) ~= 3
                 error('Proper 4D matrix expected!')
             end
-            V(:,:,:,1) = op(V(:,:,:,1), R);
-            V(:,:,:,2) = op(V(:,:,:,2), R);
-            V(:,:,:,3) = op(V(:,:,:,3), R);
+            V(:,:,:,1) = op(V(:,:,:,1), r);
+            V(:,:,:,2) = op(V(:,:,:,2), r);
+            V(:,:,:,3) = op(V(:,:,:,3), r);
         end
         
         %%%%%%%%%%%%%%%%%% Time-resolved Quantities %%%%%%%%%%%%%%%%%%%
@@ -637,11 +645,13 @@ classdef VelocityField < handle
             
             % Accept constant shift given as a column 3-vector.
             if isequal(size(squeeze(U_e)), [3 1])
-                U_e = dimen(U_e, vf.dims);
+                vf.U_e = VelocityField.add3Vector(vf.U_e, U_e);
             elseif ~isequal(size(U_e), size(vf.U_e))
                 error('Mismatching Dimensions of Noise and Global Velocity')
+            else
+                vf.U_e = vf.U_e + U_e;
             end
-            vf.U_e = vf.U_e + U_e;
+            % Update velocity.
             vf.U(vf.range(1,1): vf.range(1,2), vf.range(2,1): vf.range(2,2), ...
                 vf.range(3,1): vf.range(3,2), :) = vf.U_e;
         end
@@ -1023,12 +1033,12 @@ classdef VelocityField < handle
             
             if with_noise
                 I = squeeze(vf.fluid.density/2 * ...
-                    sum(cross(vf.X_e - dimen(origin, vf.span), ...
+                    sum(cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
                         vf.vorticity(1), 4), [1 2 3], 'omitnan') * ...
                     vf.solver.dv*vf.scale.len);
             else
                 I = squeeze(vf.fluid.density/2 * ...
-                    sum(cross(vf.X_e - dimen(origin, vf.span), ...
+                    sum(cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
                         vf.vort_e, 4), [1 2 3], 'omitnan') * ...
                     vf.solver.dv*vf.scale.len);
             end
