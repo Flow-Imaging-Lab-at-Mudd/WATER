@@ -116,7 +116,7 @@ I = vf.impulse(origin = [0 0 0]', with_noise = true)
 
 ## Integration on a Cubic Surface
 
-Surface integration is supported on a rectangular surface, specified by setting the effective region, with the `vf.intCubicSurf` prefix. To illustrate, we create a Hill's vortex, a synthetic spherical structure, which is commonly used in our error study.
+Surface integration is supported on a rectangular surface, specified by setting the effective region, with the `vf.intCubicSurf` prefix. To illustrate, we create a Hill's vortex, a synthetic spherical structure, which is commonly used in our error study. **We note that the Hill_Vortex function only permits a maximum radius of 1.**
 
 ```matlab
 [x, y, z, u, v, w, ~] = Hill_Vortex(spacing = 0.1, sphere_radius = 1, u0 = 1, z_proportion = 1);
@@ -133,4 +133,8 @@ vf.intCubicSurf_flux(vf.U_e)
 ```
 
 The common operations under surface integrations are scalar surface elemtns multiplied by scalar or vector fields, vector surface elements (scalar element with normal vector) multiplied by scalar field, by vector field as dot product (flux), by vector field as cross product. These operations are implemented for a cubic surface, understood, when the ordering of multiplication matters, as `F x dS`.
+
+The other integration methods are analogous in the input argument accepted. The in-file comments for these functions can be consulted for more specifics.
+
+
 
