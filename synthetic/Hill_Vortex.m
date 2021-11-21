@@ -23,6 +23,10 @@ function [X, Y, Z, u, v, w, Mag] = Hill_Vortex(sp, a, us, z_factor, rem)
 % u,v,w: Arrays of velocity components in meshgrid format
 % Mag: Array of velocity magnitudes
 
+if a > 1
+    error('Expected a vortical radius < 1!')
+end
+
 % range of values for x,y,z
 % permits different scaling of z-direction resolution using z_factor input
 x = [-1:sp:1];
