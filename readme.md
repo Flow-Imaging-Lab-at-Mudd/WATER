@@ -136,5 +136,6 @@ The common operations under surface integrations are scalar surface elemtns mult
 
 The other integration methods are analogous in the input argument accepted. The in-file comments for these functions can be consulted for more specifics.
 
+## Error trials for physical quantities.
 
-
+The currently developed error trials include impulse and kinetic energy, with the trials for kinetic energy under revision. The trials generally consist of noise propagation trials, resolution trials (without windowing), and resolution trials with windowing. For each physical quantity, see the readme under the specific folder within the **trials** folder.
