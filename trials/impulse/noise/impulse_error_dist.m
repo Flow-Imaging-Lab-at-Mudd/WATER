@@ -3,8 +3,8 @@
 %
 % Derek Li, August 2021
 
-[x, y, z, u, v, w, Mag] = hill_vortex_3D(0.05, 1, 1, 1);
-vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
+[x, y, z, u, v, w, Mag] = Hill_Vortex(0.05, 1, 1, 1, 1);
+vf = VelocityField.importCmps(x, y, z, u, v, w);
 
 % Computed impulse error to generate distribution.
 num_ite = 10000;

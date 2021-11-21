@@ -1,11 +1,11 @@
 % Verify the expectation that the unfiltered error term in impulse
 % computation is independent from the nature of the field.
 
-[x, y, z, u, v, w, Mag] = hill_vortex_3D(0.05, 1, 1, 1);
+[x, y, z, u, v, w, Mag] = Hill_Vortex(0.05, 1, 1, 1, 1);
 
 % Create velocity fields to compare.
-vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-vf2 = VelocityField.import_grid_separate(x,y,z,u,v,w);
+vf = VelocityField.importCmps(x, y, z, u, v, w);
+vf2 = VelocityField.importCmps(x, y, z, u, v, w);
 
 % Upscale velocity magnitude.
 vf.U_e = 1000 * vf.U_e;
