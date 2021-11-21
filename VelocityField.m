@@ -98,8 +98,9 @@ classdef VelocityField < handle
         % For converting between natural x, y, z dimensional ordering to
         % meshgrid y, x, z ordering.
         dim_flip = [2 1 3];
-        % Useless variable for loading differentiation module.
+        % Flag for loading differentiation module.
         load_diff = VelocityField.load_finite_diffs();
+        set_latex = VelocityField.set_latex_fonts();
     end
     
     methods(Static)
@@ -132,6 +133,13 @@ classdef VelocityField < handle
             
             global PDF
             load('C:\Users\derek\flow\diff\finite-differences.mat', 'PDF')
+            l = 1;
+        end
+        
+        function l = set_latex_fonts()
+            % Set default font for plotting as latex.
+            set(0, 'defaultTextInterpreter', 'latex');
+            set(0, 'DefaultLegendInterpreter', 'latex')
             l = 1;
         end
         
@@ -338,9 +346,6 @@ classdef VelocityField < handle
             end
             
             vf.vort = vf.vort_e;
-            
-            set(0, 'defaultTextInterpreter', 'latex');
-            set(0, 'DefaultLegendInterpreter', 'latex')
         end
         
         function vfd = downsample(vf, winsize, overlap, with_noise, newXscale)
@@ -493,7 +498,7 @@ classdef VelocityField < handle
             if exist('minimal', 'var') && minimal == 1
                 vf.anullQuantities()
             else
-                vf.deriveQuantities()
+                % vf.deriveQuantities()
                 % vf.vort_e = vf.subsetField(vf.vort);
             end
         end
@@ -765,7 +770,7 @@ classdef VelocityField < handle
             end
             
             plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale);
-            title(title_str, 'FontSize', vfp.fontsize)
+            title(title_str, 'FontSize', vf.fontsize)
         end
         
         function plt = plotScalar(vf, S, noise, title_str)
