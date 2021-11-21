@@ -3,7 +3,7 @@ function [I, dIt] = HillImpulse(density, len_unit, r0, u0, y)
 % integration in y as well as its time derivative.
 
 if ~exist('y', 'var')
-    y = 1;
+    y = r0;
 end
 
 I = density*pi*15/8*u0/r0^2 * ...
