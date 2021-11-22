@@ -51,11 +51,9 @@ for o = 1: ops_count
     for k = 1: sps_count
         % Construct Hill vortex with specified resolution.
         sp = sps(k, o);
-        [x, y, z, u, v, w, ~] = hill_vortex_3D(sp, fr, u0, 1);
-        vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
+        [x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1);
+        vf = VelocityField.importCmps(x, y, z, u, v, w, 1);
 
-        % Subtract freestream velocity to focus on central feature region.
-        vf.addVelocity(-vf.U(1,1,1,:))
         % Focus on vortical region.
         vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 
@@ -64,7 +62,9 @@ for o = 1: ops_count
             [dId(:,k,o), err(:,k,i,o), err_sd(:,k,i,o), err_box(:,k,i,o), ...
                 err_sd_box(:,k,i,o), err_gss(:,k,i,o), err_sd_gss(:,k,i,o), ...
                 bias_box(:,k,o), bias_gss(:,k,o), ~] = ...
-                impulse_err_window_stats(vf, props, origin, fr, u0, winsize, overlap(o));
+                impulse_err_window_stats(vf, props, origin, ...
+                    HillImpulse(vf.fluid.density, vf.scale.len, fr, u0), ...
+                    winsize, overlap(o));
         end
     end
 end

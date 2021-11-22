@@ -1,11 +1,13 @@
 function [dId, dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, ...
     dI_sd_gss, bias_box, bias_gss, vfd] = ...
-    impulse_err_window_stats(vf0, props, origin, fr, u0, winsize, overlap)
+    impulse_err_window_stats(vf0, props, origin, I0, winsize, overlap)
 % Identical to impulse_err_window_run.m except that the means and standard
 % deviations of absolute erros are extracted.
+% 
+% 'I0' is the given theoretical or expected momentum taken as true.
 
 [dI, dId, dI_box, dI_gss, bias_box, bias_gss, vfd] = ...
-    impulse_err_window_run(vf0, props, origin, fr, u0, winsize, overlap);
+    impulse_err_window_run(vf0, props, origin, I0, winsize, overlap);
 
 % Consider only absolute error.
 abs_dI = abs(dI);
@@ -22,6 +24,3 @@ dI_sd_gss = std(abs_dI_gss(2:end), 0, 2);
 
 bias_box = abs(bias_box);
 bias_gss = abs(bias_gss);
-
-bias_mag_box = norm(bias_box);
-bias_mag_gss = norm(bias_gss);
