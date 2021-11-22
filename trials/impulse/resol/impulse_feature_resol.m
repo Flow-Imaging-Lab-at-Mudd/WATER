@@ -152,7 +152,7 @@ legend({'imperfect resolution', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
-title('Magnitude of Smoother Bias', 'FontSize', titleFsize)
+title('Resolution Errors', 'FontSize', titleFsize)
 
 % Mean error plot.
 figure;
