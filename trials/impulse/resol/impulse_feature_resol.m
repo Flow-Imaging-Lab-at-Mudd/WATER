@@ -93,7 +93,7 @@ dims = [2 1 3];
 dim_str = {'x', 'y', 'z'};
 
 % Font size for titles.
-titleFsize = 15;
+titleFsize = 11;
 
 fres_ini = 2;
 fresp = fres(fres_ini: end);
@@ -131,7 +131,7 @@ for dim = dims
         'Interpreter', 'latex')
     xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
     ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', string(dim_str{dim}), '$ Mean Error at $\delta u = $', ...
+    title(strcat('$', string(dim_str{dim}), '$ Mean Error at $\delta u = \,$', ...
         string(props(end)*100), '\%'), 'FontSize', titleFsize)
 end
 
@@ -169,7 +169,7 @@ legend({'unfiltered', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Mean Error Magnitude at $\delta u = $', ...
+title(strcat('Mean Error Magnitude at $\delta u = \,$', ...
         string(props(end)*100), '\%'), 'FontSize', titleFsize)
     
 % Relative smoother bias plot to baseline resolution error.
