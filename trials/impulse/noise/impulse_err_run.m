@@ -142,7 +142,6 @@ if plot_abs
 end
 
 %%%%%%%%%%% Error magnitude %%%%%%%%%%%%
-
 figure;
 scatter(props, di)
 hold on

@@ -20,7 +20,7 @@ I0 = HillImpulse(vf.fluid.density, vf.scale.len, r0, u0);
 i0 = I0(2);
 
 % Number of iterates at each level of noise.
-num_ite = 10;
+num_ite = 20;
 
 % Error in impulse computation given noise.
 dI = zeros(3, props_count, num_ite);
@@ -28,21 +28,6 @@ dI = zeros(3, props_count, num_ite);
 dI_box = zeros(3, props_count, num_ite);
 % Gaussian smoothing.
 dI_gss = zeros(3, props_count, num_ite);
-
-% for p = 1: props_count
-%     for k = 1: num_ite
-%         vf.clearNoise();
-%         N = vf.noise_uniform(props(p)*u_mean);
-%         dI(:, p, k) = vf.impulse(origin, 1) - I0;
-%         % Result with box smoothing.
-%         vf.smoothNoise('box');
-%         dI_box(:, p, k) = vf.impulse(origin, 1) - I0;
-%         % Reset and smooth with gaussian filter.
-%         vf.setNoise(N)
-%         vf.smoothNoise('gaussian');
-%         dI_gss(:, p, k) = vf.impulse(origin, 1) - I0;
-%     end
-% end
 
 for k = 1: num_ite
     [dI(:,:,k), dI_box(:,:,k), dI_gss(:,:,k),~,~] = ...
@@ -74,7 +59,7 @@ dim_str = {'x', 'y', 'z'};
 %%%%%%%%%%% Plot signed impulse error %%%%%%%%%%%%%
 
 % Font size for plotting titles and axis labels.
-fsize = 15;
+fsize = 11;
 
 for dim = dims
     % Unfiltered error.
