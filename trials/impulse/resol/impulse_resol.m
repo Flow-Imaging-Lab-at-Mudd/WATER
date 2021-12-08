@@ -14,7 +14,6 @@ function [fres, dI, dI_box, dI_gss, bias_box, bias_gss, mag_dI, mag_dI_box, ...
 % 
 % Derek Li, June 2021
 
-
 % Generate range of spacings for evenly spaced feature
 % resolutions.
 % Global spacing of downsampled data.

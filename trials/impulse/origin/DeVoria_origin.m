@@ -16,7 +16,7 @@ vf = VelocityField.importCmps(x, y, z, u, v, w);
 vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 
 % % Use experimental vortex.
-% load('C:\Users\derek\flow\data\turbulent_vortex_post.mat')
+% load(sprintf('%s%s', folder, '\data\turbulent_vortex_post.mat'))
 % vf = VelocityField.importCmps(x, y, z, u, v, w);% Vortical region.
 % vf.setRangePosition([-20 0; -5 25; -35 -5])
 
@@ -30,7 +30,7 @@ props_count = size(props, 2);
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = theoImpulse(vf, fr, u0, fr);
+I0 = HillImpulse(vf.fluid.density, vf.scale.len, fr, u0, fr);
 i0 = I0(2);
 
 % % Momentum computed without noise.
@@ -139,7 +139,7 @@ title('Error of objective origins without filtering', 'FontSize', fsize)
 % Box filtered.
 figure;
 dot_size = 20;
-origins = reshape(origin_box, [], 3);
+origins = squeeze(origin_box(2,:,:));
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_box(2,:), 'filled')
 
 cb = colorbar;
@@ -153,7 +153,7 @@ title('Error of objective origins after box-filtering', 'FontSize', fsize)
 % Gaussian Filtered.
 figure;
 dot_size = 20;
-origins = reshape(origin_gss, [], 3);
+origins = squeeze(origin_gss(2,:,:));
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_gss(2,:), 'filled')
 
 cb = colorbar;
