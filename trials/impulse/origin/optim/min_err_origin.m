@@ -1,21 +1,25 @@
-% Objective function for minimizing the mean error (bias) by the
-% selection of origin.
+function error = min_err_origin(origin, smoother, num_ite, vf, props, I0)
+% Wrapper objective function for the noisy impulse error with the choice
+% of origin as the decision variable. The error is the average over a
+% number of trials, as specified.
+%
+% Derek Li, December 2021
 
-function err = min_err_origin(origin, smoother, vf, props, fr, u0)
-    % Which situation is considered.
+error = 0;
+for i = 1: num_ite
     switch smoother
         case 'none'
             [err, ~, ~, ~, ~, ~, ...
-                ~, ~, ~] = impulse_err_stats(vf, props, origin, fr, u0);
+                ~, ~, ~] = impulse_err_stats(vf, props, origin, I0);
         case 'box'
             [~, ~, err, ~, ~, ~, ...
-                ~, ~, ~] = impulse_err_stats(vf, props, origin, fr, u0);
+                ~, ~, ~] = impulse_err_stats(vf, props, origin, I0);
         case 'gaussian'
             [~, ~, ~, ~, err, ~, ...
-                ~, ~, ~] = impulse_err_stats(vf, props, origin, fr, u0);
+                ~, ~, ~] = impulse_err_stats(vf, props, origin, I0);
     end
     % Magnitude of error.
-    err = norm(err);
-    err
-    origin
+    error = error + norm(err);
 end
+% Average error over trials.
+error = error / num_ite;

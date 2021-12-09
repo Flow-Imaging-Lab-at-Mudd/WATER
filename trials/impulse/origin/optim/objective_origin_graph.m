@@ -7,16 +7,14 @@ sp = 0.1;
 fr = 1;
 u0 = 1;
 
-[x, y, z, u, v, w, ~] = hill_vortex_3D(sp, fr, u0, 1);
+[x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1, 1);
 
-vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
-% Subtract freestream.
-vf.addVelocity(-vf.U(1,1,1,:))
+vf = VelocityField.importCmps(x, y, z, u, v, w);
 % Zoom in on vortical region.
 vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 
 % Introduce noise to the system.
-% vf.noise_uniform(3*vf.meanSpeed(0, 0));
+vf.noise_uniform(2*vf.meanSpeed(0, 0));
 
 % Range of points to plot the objective function, uniform in 3 dimensions.
 range = -1: 0.2: 1;
@@ -25,6 +23,9 @@ count = size(range, 2);
 clear X
 [X(:,:,:,1), X(:,:,:,2), X(:,:,:,3)] = meshgrid(-2:0.5:2, -2:0.5:2, -2:0.5:2);
 vfp = VelocityField(X, zeros(size(X)));
+
+% Font size for printing titles and axis labels.
+vfp.setFontSize(11)
 
 % Error from the objective function.
 err = zeros(count, count, count);

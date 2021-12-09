@@ -1,6 +1,6 @@
 function [err, derv] = objective_origin(origin, vf)
 % Objective function for the two integral equations that determine the
-% Ringuette objective origin, given in (Ringuette, 2014).
+% Ringuette objective origin, given in (De Voria, 2014).
 % 
 % Derek Li, July 2021
 
@@ -14,7 +14,7 @@ ugrad = vf.gradient(U);
 % Noisy vorticity.
 vort = vf.vorticity(1);
 % Relative position to the given origin.
-X_rel = operate3Vector(vf.X_e, origin, @minus);
+X_rel = VelocityField.operate3Vector(vf.X_e, origin, @minus);
 % Compute the matrix product of velocity gradient and velocity.
 dux = zeros([vf.span 3]);
 
@@ -26,13 +26,15 @@ for j = 1: size(vf.X_e, 1)
     end
 end
 
+dux(isnan(dux)) = 0;
+
 % A term appearing in the vector integral of the second equation.
 mat_cross = dux + cross(U, vort, 4);
 
 % Remainders of the two equations, both vectors, their norms to be
 % minimized.
-rem1 = 2*dv*squeeze(sum(U, [1 2 3])) - ...
-    dv*squeeze(sum(cross(X_rel, vort, 4), [1 2 3])) - ...
+rem1 = 2*dv*squeeze(sum(U, [1 2 3], 'omitnan')) - ...
+    dv*squeeze(sum(cross(X_rel, vort, 4), [1 2 3], 'omitnan')) - ...
     vf.intCubicSurf_cross(cross(X_rel, U, 4));
 
 rem2 = -vf.intCubicSurf_vec(U.^2) + ...
@@ -49,7 +51,7 @@ derv = zeros(3, 1);
 I = eye(3);
 
 for i = 1: 3
-    derv1 = rem1'/r1 * cross(I(:,i), squeeze(dv*sum(vort, [1 2 3])) + ...
+    derv1 = rem1'/r1 * cross(I(:,i), squeeze(dv*sum(vort, [1 2 3], 'omitnan')) + ...
         vf.intCubicSurf_cross(U));
     derv2 = -rem2'/r2 * cross(I(:,i), vf.intCubicSurf_cross(mat_cross));
     derv(i) = derv1 + derv2;
