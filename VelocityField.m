@@ -100,6 +100,7 @@ classdef VelocityField < handle
         dim_flip = [2 1 3];
         % Flag for loading differentiation module.
         load_diff = VelocityField.load_finite_diffs();
+        % Flag for setting latex font for plotting.
         set_latex = VelocityField.set_latex_fonts();
     end
     
@@ -132,7 +133,8 @@ classdef VelocityField < handle
             % performs look-up on it.
             
             global PDF
-            load('C:\Users\derek\flow\diff\finite-differences.mat', 'PDF')
+            global rootFolder
+            load(strcat(rootFolder, '\diff\finite-differences.mat'), 'PDF')
             l = 1;
         end
         
@@ -196,6 +198,52 @@ classdef VelocityField < handle
             V(:,:,:,1) = op(V(:,:,:,1), r);
             V(:,:,:,2) = op(V(:,:,:,2), r);
             V(:,:,:,3) = op(V(:,:,:,3), r);
+        end
+        
+        %%%%%%%%%%%%%%%%%% Plotting Helpers %%%%%%%%%%%%%%%%%%%
+        function on = skewPlaneMatrix(X, orth, base, sz)
+            % SKEWPLANEMATRIX(X, orth, base) returns a matrix corresponding to the
+            % positions in X, indicating whether positions therein are on the plane
+            % defined by the orthogonal vector and the base position given.
+            %
+            % sz is the size of the last dimension used for element-wise multiplication.
+            % For velocity, sz = 4; for a scalar field, say error, sz = 1.
+            
+            % Tolerance for rounding error.
+            tol = 1e-4;
+            
+            % Upper-dimensionalize base and normal vectors for subtraction from 4D X.
+            dims = size(X);
+            dims = dims(1:3);
+            
+            Base = dimen(base, dims);
+            Orth = dimen(orth, dims);
+            
+            onplane = abs(dot(X - Base, Orth, 4)) < repmat(tol, dims);
+            % Expand this logical 3D matrix indicating membership on plane to
+            % the size of the last dimension for direct point-wise multiplication.
+            on = zeros([dims sz]);
+            for i = 1: sz
+                on(:,:,:,i) = onplane;
+            end
+        end
+        
+        function [orth, base, onPlane] = getPlaneEq(x)
+            % [orth, base, onPlane] = getPlaneEq(X)
+            %
+            % Given three positions stored as columns in the x matrix, compute a
+            % representation for a plane: the unit normal vector, the base position,
+            % and a boolean handle that decides whether a given point is on the plane.
+            
+            % Pick first position as base and use displacements from it to compute a
+            % unit normal vector.
+            orth = cross(x(:,2) - x(:,1), x(:,3) - x(:,1));
+            orth = orth / norm(orth);
+            
+            base = x(:,1);
+            
+            % Handle applicable exclusively to 4D matrix.
+            onPlane = @(X) VelocityField.skewPlaneMatrix(X, orth, base);
         end
         
         %%%%%%%%%%%%%%%%%% Time-resolved Quantities %%%%%%%%%%%%%%%%%%%
@@ -891,7 +939,7 @@ classdef VelocityField < handle
             end
             % Obtain a matching 4D boolean matrix indicating membership of
             % points on the plane.
-            onPlane = skewPlaneMatrix(vf.X_e, eq(:,1), eq(:,2), 3);
+            onPlane = VelocityField.skewPlaneMatrix(vf.X_e, eq(:,1), eq(:,2), 3);
             
             plt = plotVF(vf.X_e, (V + noise) .* onPlane, vf.plotter.quiverScale);
             title(title_str)
@@ -903,7 +951,7 @@ classdef VelocityField < handle
                 
             end
             % Boolean predicate for determining if points are on plane.
-            onPlane = skewPlaneMatrix(vf.X, eq(:, 1), eq(:, 2), 1);
+            onPlane = VelocityField.skewPlaneMatrix(vf.X, eq(:, 1), eq(:, 2), 1);
         end
         
         function plt = plotPlaneScalar(vf, S, range, noise, title_str)
