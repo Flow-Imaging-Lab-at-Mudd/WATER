@@ -84,7 +84,7 @@ for dim = dims
         scatter(pp, squeeze(dI_box(dim, p, :)), 'r', 'filled')
         % Comparison with unfiltered.
         hold on
-        scatter(pp, dI(dim, p, :))
+        scatter(pp, squeeze(dI(dim, p, :)))
         hold on
     end
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
