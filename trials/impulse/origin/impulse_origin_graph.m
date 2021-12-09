@@ -19,7 +19,7 @@ vf = VelocityField.importCmps(x, y, z, u, v, w);
 vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 
 % % Experimental data set.
-% load(sprintf('%s%s', folder, '\data\turbulent_vortex_post.mat'))
+% load(sprintf('%s%s', rootFolder, '\data\turbulent_vortex_post.mat'))
 % vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 % % % Vortical region.
 % % vf.setRangePosition([-20 0; -5 25; -35 -5])
@@ -136,33 +136,48 @@ dim_str = {'x', 'y', 'z'};
 vfp.setFontSize(11);
 
 % Save plots.
-img_fdr = strcat('C:\Users\derek\flow\trials\impulse\origin\global\du=', ...
-    props(2)*100, '\%', '\');
-mkdir(img_fdr);
+savePlot = 0;
+if savePlot
+    img_fdr = strcat(rootFolder, '\trials\impulse\origin\global\du=', ...
+        props(2)*100, '\%', '\');
+    mkdir(img_fdr);
+end
 
 for dim = dims
     % Error due to origin selection.
     vfp.plotScalar(squeeze(bias_ori(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ error of resolution and origin'));
-    saveas(gcf, strcat(img_fdr, 'bias-ori-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'bias-ori-', string(dim), '.fig'))
+    end
     % Smoother biases.
     vfp.plotScalar(squeeze(bias_box(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ box smoother bias'));
-    saveas(gcf, strcat(img_fdr, 'bias-box-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'bias-box-', string(dim), '.fig'))
+    end
     vfp.plotScalar(squeeze(bias_gss(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ Gaussian smoother bias'));
-    saveas(gcf, strcat(img_fdr, 'bias-gss-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'bias-gss-', string(dim), '.fig'))
+    end
     % Noise added.
     vfp.plotScalar(squeeze(err(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ unfiltered error'));
-    saveas(gcf, strcat(img_fdr, 'err-unf-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'err-unf-', string(dim), '.fig'))
+    end
     % Smoothed.
     vfp.plotScalar(squeeze(err_box(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ mean error after box smoothing'));
-    saveas(gcf, strcat(img_fdr, 'err-box-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'err-box-', string(dim), '.fig'))
+    end
     vfp.plotScalar(squeeze(err_gss(:,:,:,dim)), 0, ...
         strcat('$', dim_str{dim}, '$ mean error after Gaussian smoothing'));
-    saveas(gcf, strcat(img_fdr, 'err-gss-', string(dim), '.fig'))
+    if savePlot
+        saveas(gcf, strcat(img_fdr, 'err-gss-', string(dim), '.fig'))
+    end
 end
 
 % % Vector plots of error.
@@ -198,22 +213,32 @@ saveas(gcf, strcat(img_fdr, 'bias-ori.fig'))
 % Smoother biases.
 vfp.plotScalar(mag_bias_box, 0, ...
     strcat('Magnitude of box smoother bias'));
-saveas(gcf, strcat(img_fdr, 'bias-box.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'bias-box.fig'))
+end
 vfp.plotScalar(mag_bias_gss, 0, ...
     strcat('Magnitude of Gaussian smoother bias'));
-saveas(gcf, strcat(img_fdr, 'bias-gss.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'bias-gss.fig'))
+end
 
 % Noise added.
 vfp.plotScalar(mag_err, 0, ...
     strcat('Magnitude of unfiltered error'));
-saveas(gcf, strcat(img_fdr, 'err-unf.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'err-unf.fig'))
+end
 % Smoothed.
 vfp.plotScalar(mag_err_box, 0, ...
     strcat('Magnitude of mean error after box smoothing'));
-saveas(gcf, strcat(img_fdr, 'err-box.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'err-box.fig'))
+end
 vfp.plotScalar(mag_err_gss, 0, ...
     strcat('Magnitude of mean error after Gaussian smoothing'));
-saveas(gcf, strcat(img_fdr, 'err-gss.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'err-gss.fig'))
+end
 % 
 % % % Save workspace.
 % % save(strcat(img_fdr, 'data', string(size(X, 2)), '.mat'))
