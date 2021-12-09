@@ -67,7 +67,7 @@ for dim = dims
     for p = 1: props_count
         % Repeated noise level for plotting.
         pp = repmat(props(p), 1, num_ite);
-        scatter(pp, dI(dim, p, :))
+        scatter(pp, squeeze(dI(dim, p, :)))
         hold on
     end
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
@@ -81,10 +81,10 @@ for dim = dims
     for p = 1: props_count
         % Repeated noise level for plotting.
         pp = repmat(props(p), 1, num_ite);
-        scatter(pp, dI_box(dim, p, :), 'r', 'filled')
+        scatter(pp, squeeze(dI_box(dim, p, :)), 'r', 'filled')
         % Comparison with unfiltered.
         hold on
-        scatter(pp, dI(dim, p, :))
+        scatter(pp, squeeze(dI(dim, p, :)))
         hold on
     end
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
@@ -99,10 +99,10 @@ for dim = dims
     for p = 1: props_count
         % Repeated noise level for plotting.
         pp = repmat(props(p), 1, num_ite);
-        scatter(pp, dI_gss(dim, p, :), 'b', 'filled')
+        scatter(pp, squeeze(dI_gss(dim, p, :)), 'b', 'filled')
         % Comparison with unfiltered.
         hold on
-        scatter(pp, dI(dim, p, :))
+        scatter(pp, squeeze(dI(dim, p, :)))
         hold on
     end
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
