@@ -20,7 +20,7 @@ I0 = HillImpulse(vf.fluid.density, vf.scale.len, r0, u0);
 i0 = I0(2);
 
 % Number of iterates at each level of noise.
-num_ite = 20;
+num_ite = 5;
 
 % Error in impulse computation given noise.
 dI = zeros(3, props_count, num_ite);
