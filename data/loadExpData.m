@@ -1,6 +1,8 @@
 function vfs = loadExpData(status, frames)
 % Load experimental data of turbulent vortex ring as velocity field
-% objects given the time frames desired.
+% objects given the time frames desired. Note that the frame indices given
+% have an implied increment of 4, for these first few frames in the folder
+% are invalid.
 
 if ~exist('frames', 'var')
     frames = 1;
@@ -11,7 +13,7 @@ if ~isvector(frames)
 end
 
 % Load data from folder.
-fdr = 'C:\Users\derek\flow\data\L18_Run1\';
+fdr = strcat(rootFolder, '\data\L18_Run1\');
 data = dir(fdr);
 
 % Subfolder names corresponding to frames.
