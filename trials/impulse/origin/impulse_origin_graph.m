@@ -5,7 +5,7 @@
 % Derek Li, July 2021
 
 % Whether figures generated are to be automatically saved.
-savefig = true;
+savefig = false;
 
 % Synethetic data set.
 % Paremeters held constant.
@@ -49,7 +49,7 @@ i0 = I0(2);
 % velocity field, which is only used for plotting. The positions of this
 % velocity field are the origins.
 osp = 1 * ones(1, 3);
-oends = [-2 2; -2 2; -2 2];
+oends = [-1 1; -1 1; -1 1];
 
 % % Experimental.
 % oends = [-30 20; -15 35; -45 -5];
@@ -209,7 +209,9 @@ end
 % Error due to origin selection.
 vfp.plotScalar(mag_bias_ori, 0, ...
     'Magnitude of error of resolution and origin');
-saveas(gcf, strcat(img_fdr, 'bias-ori.fig'))
+if savePlot
+    saveas(gcf, strcat(img_fdr, 'bias-ori.fig'))
+end
 % Smoother biases.
 vfp.plotScalar(mag_bias_box, 0, ...
     strcat('Magnitude of box smoother bias'));
