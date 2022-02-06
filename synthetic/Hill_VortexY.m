@@ -1,4 +1,5 @@
-function [x, y, z, u, v, w] = Hill_Vortex(sp, a, u0, rem)
+function [X, Y, Z, u, v, w] = Hill_Vortex(sp, a, u0, rem)
+
 % This function outputs synthetic 3D vortex ring flow fields at a
 % user-specified resolution
 % Vortex rings generated have a velocity field matching that of Hill's
@@ -13,6 +14,7 @@ function [x, y, z, u, v, w] = Hill_Vortex(sp, a, u0, rem)
 % a: outer radius of sphere / outer radius of vortex region
 % u0: freestream velocity outside the vortex ring region (in y direction,
 % same direction as vortex ring axis), must be nonzero
+% z_factor: scale factor on z-direction vector spacing; set to 1 for uniform spacing in x, y, and z
 % rem: remove free stream velocity.
 
 % Outputs:
@@ -25,12 +27,14 @@ if a > 1
     error('Expected a vortical radius < 1!')
 end
 
+z_factor = 1;
+
 % range of values for x,y,z
 % permits different scaling of z-direction resolution using z_factor input
 x = -1: sp: 1;
 y = -1: sp: 1;
-z = -1: sp: 1;
-[x, y, z] = meshgrid(x, y, z);
+z = -1: sp*z_factor: 1;
+[X, Y, Z] = meshgrid(x, y, z);
 
 % default vortex ring center location at center of volume
 xc = 0;
@@ -38,32 +42,42 @@ yc = 0;
 zc = 0;
 
 % get radial distance R to center point for all coordinates
-R = sqrt((x-xc).^2 + (y-yc).^2 + (z-zc).^2);
+R = sqrt((X-xc).^2 + (Y-yc).^2 + (Z-zc).^2);
 
-% distance from central z axis (simplifies coordinates because flow is
+% distance from center axis (simplifies coordinates because flow is
 % axisymmetric)
-r = sqrt((x-xc).^2 + (y-zc).^2);
-theta = atan2(y, x);
+r = sqrt((X-xc).^2 + (Z-zc).^2);
+theta = atan2(Z,X);
 
-% Interior velocityt field.
-% Velocity in z direction.
-w = 3/2*u0*(1 - (2*r.^2 + z.^2)/a^2);
-% Velocity in planar radial direction.
-p = 3/2*u0/a^2*r.*z;
+% Inner velocity field (axisymmetric)
+A = 15/2*u0/a^2;
 
-% Exterior velocity field.
-wo = u0*((a^2./(z.^2+r.^2)).^(5/2) .* (2*z.^2-r.^2)/(2*a^2) - 1);
-po = 3/2*u0/a^2*z.*r .* (a^2./(z.^2 + r.^2)).^(5/2);
+V = -A/10*(4*r.^2 + 2*Y.^2 - 2*a^2);
+U = A*r.*Y/5;
 
-% Combine interior and exterior, assuming convergence at the spherical
-% boundary.
-ext = R>a;
-w(ext) = wo(ext);
-p(ext) = po(ext);
+% velocity magnitude
+Mag = sqrt(V.^2 + U.^2);
 
-u = p.*cos(theta);
-v = p.*sin(theta);
+% outer region flow field matches flow over a sphere
+Vo = u0*((a^2./(r.^2 + Y.^2)).^(5/2).*(2*Y.^2 - r.^2)/(2*a^2)-1);
+Uo = 3/2*u0/a^2*r.*Y.*(a^2./(r.^2 + Y.^2)).^(5/2);
+
+% outer region flow field is only valid in outer region
+Vo (R <= a) = NaN;
+Uo (R <= a) = NaN;
+
+% velocity magnitude in outer region
+Mo = sqrt(Vo.^2 + Uo.^2);
+
+% Use outer region flow field outside vortex ring radius
+V(R>a)=Vo(R>a);
+U(R>a)=Uo(R>a);
+
+% Coordinate conversion
+u = U.*cos(theta);
+v = V;
+w = U.*sin(theta);
 
 if exist('rem', 'var') && rem == 1
-    v = v - u0;
+    v = v + u0;
 end
