@@ -63,5 +63,5 @@ u = p.*cos(theta);
 v = p.*sin(theta);
 
 if exist('rem', 'var') && rem == 1
-    v = v - u0;
+    w = w + u0;
 end
