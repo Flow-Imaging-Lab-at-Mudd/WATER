@@ -1,12 +1,13 @@
-function [x, y, z, u, v, w] = Hill_Vortex(sp, a, u0, rem)
+function [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, rem)
 % This function outputs synthetic 3D vortex ring flow fields at a
 % user-specified resolution. Vortex rings generated have a velocity field
 % matching that of Hill's spherical vortex, as given in (Akhmetov, 2009,
 % p22).
 %
 % Inputs:
-% sp: spacing between vectors (normalized by vortex ring radius)
-% a: outer radius of sphere / outer radius of vortex region
+% spr: spacing between vectors (normalized by vortex ring radius).
+% l: total length of field, same for three dimensions.
+% vr: normalized vortical radius.
 % u0: freestream velocity outside the vortex ring region (in z direction,
 % same direction as vortex ring axis), must be nonzero
 % rem: remove free stream velocity.
@@ -19,16 +20,20 @@ function [x, y, z, u, v, w] = Hill_Vortex(sp, a, u0, rem)
 % Written by Leah Mendelson 5/1/14
 % Modified by Derek Li 2/6/2022
 
-if a > 1
-    error('Expected a vortical radius < 1!')
-end
-
 % range of values for x,y,z
 % permits different scaling of z-direction resolution using z_factor input
-x = -1: sp: 1;
-y = -1: sp: 1;
-z = -1: sp: 1;
+sp = l*spr;
+x = -l: sp: l;
+y = -l: sp: l;
+z = -l: sp: l;
 [x, y, z] = meshgrid(x, y, z);
+
+% Vortical radius.
+a = l*vr;
+
+if a > l
+    error('Vortical radius larger than field dimension!')
+end
 
 % default vortex ring center location at center of volume
 xc = 0;
