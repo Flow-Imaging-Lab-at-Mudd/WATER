@@ -6,8 +6,7 @@ function [dI, dI_box, dI_gss, bias_box, bias_gss] = ...
 % Introduce levels of noise proportional to the mean speed in the effective
 % region, according to 'props', e.g. 0: 0.1: 3. 'vf' is presume to have
 % range properly set. 'origin' specifies the reference point to which
-% impulse calculations are performed. 'u0' provides the freestream speed by
-% which the theoretical impulse is obtained.
+% impulse calculations are performed. 
 %
 % 'display_plots' is a boolean for displaying plots generated noise
 % propagation plots herein. Which specific types of plots are chosen must
