@@ -7,7 +7,7 @@ function [dK_mean, dK_sd, dK_mean_box, dK_sd_box, dK_mean_gss, dK_sd_gss, ...
 % Derek Li, March 2022
 
 % All errors are given in absolute normalized value.
-[dK, dK_box, dK_gss, bias_box, bias_gss] = KE_err_run(vf, props, K0, KEf);
+[dK, dK_box, dK_gss, bias_box, bias_gss] = KE_err_run(vf, props, K0, KEf, 1);
 
 abs_dK = abs(dK);
 % Average only over noisy results.

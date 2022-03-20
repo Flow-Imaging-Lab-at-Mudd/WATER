@@ -1,5 +1,5 @@
-function [dK, dK_box, dK_gss, bias_box, bias_gss] = KE_err_run(vf, props, K0, KEf, ...
-    display_plots)
+function [dK, dK_box, dK_gss, bias_box, bias_gss, dKd, dKd_box, dKd_gss] = ...
+    KE_err_run(vf, props, K0, KEf, num_ite, display_plots)
 % An noise-propagation trial of computing KE after introducing specified
 % levels of noise.
 % 
@@ -18,6 +18,9 @@ function [dK, dK_box, dK_gss, bias_box, bias_gss] = KE_err_run(vf, props, K0, KE
 %
 % 'vf' is presume to have range properly set.
 %
+% 'num_ite' specifies the number of iterations the computation is to be
+% repeated and their results averaged to account for stochasticity.
+%
 % 'display_plots' is a boolean for displaying plots generated noise
 % propagation plots herein. Which specific types of plots are chosen must
 % be indicated inside this file. Magnitude plots are by deafult displayed
@@ -29,30 +32,41 @@ function [dK, dK_box, dK_gss, bias_box, bias_gss] = KE_err_run(vf, props, K0, KE
 u_mean = vf.meanSpeed(0, 0);
 
 % Error in energy estimation given noise.
-dK = zeros(size(props));
+dK = zeros(length(props), num_ite);
 % Box smoothing.
-dK_box = zeros(size(props));
+dK_box = zeros(length(props), num_ite);
 % Gaussian smoothing.
-dK_gss = zeros(size(props));
+dK_gss = zeros(length(props), num_ite);
 
 % Plot energy estimation error for small and large values of noise.
 for i = 1: size(props, 2)
-    vf.clearNoise();
-    N = vf.noise_uniform(props(i)*u_mean);
-    dK(i) = KEf(vf, 1) - K0;
-    % Result with box smoothing.
-    vf.smoothNoise('box');
-    dK_box(i) = KEf(vf, 1) - K0;
-    % Reset and smooth with gaussian filter.
-    vf.setNoise(N)
-    vf.smoothNoise('gaussian');
-    dK_gss(i) = KEf(vf, 1) - K0;
+    for j = 1: num_ite
+        vf.clearNoise();
+        N = vf.noise_uniform(props(i)*u_mean);
+        dK(i,j) = KEf(vf, 1) - K0;
+        % Result with box smoothing.
+        vf.smoothNoise('box');
+        dK_box(i,j) = KEf(vf, 1) - K0;
+        % Reset and smooth with gaussian filter.
+        vf.setNoise(N)
+        vf.smoothNoise('gaussian');
+        dK_gss(i,j) = KEf(vf, 1) - K0;
+    end
 end
 
 % Normalize.
 dK = dK / K0;
 dK_box = dK_box / K0;
 dK_gss = dK_gss / K0;
+
+% Average.
+dKd = std(dK, 0, 2);
+dKd_box = std(dK_box, 0, 2);
+dKd_gss = std(dK_gss, 0, 2);
+
+dK = mean(dK, 2);
+dK_box = mean(dK_box, 2);
+dK_gss = mean(dK_gss, 2);
 
 % Baseline smoother biases.
 bias_box = dK_box(1);
@@ -66,14 +80,15 @@ if ~exist('display_plots', 'var') || ~display_plots
     return
 end
 
-plot_signed_err = 1;
+plot_signed_err = 0;
 if plot_signed_err
     figure;
-    scatter(props, dK, 'k', 'filled')
+    errorbar(props, dK, dKd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    scatter(props, dK_box, 'r', 'filled')
+    errorbar(props, dK_box, dKd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
-    scatter(props, dK_gss, 'b', 'filled')
+    errorbar(props, dK_gss, dKd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    
     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
     ylabel('$\frac{\delta K}{K}$')
@@ -83,17 +98,21 @@ if plot_signed_err
 end
 
 %%%%%%%%%%%%%%%%%% Plot absolute KE error %%%%%%%%%%%%%%%%%%%%%
-plot_abs_err = 0;
+plot_abs_err = 1;
 if plot_abs_err
     abs_dK = abs(dK);
     abs_dK_box = abs(dK_box);
     abs_dK_gss = abs(dK_gss);
+    abs_dKd = abs(dKd);
+    abs_dKd_box = abs(dKd_box);
+    abs_dKd_gss = abs(dKd_gss);
+    
     figure;
-    scatter(props, abs_dK, 'k', 'filled')
+    errorbar(props, abs_dK, abs_dKd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    scatter(props, abs_dK_box, 'r', 'filled')
+    errorbar(props, abs_dK_box, abs_dKd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
-    scatter(props, abs_dK_gss, 'b', 'filled')
+    errorbar(props, abs_dK_gss, abs_dKd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     
     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
