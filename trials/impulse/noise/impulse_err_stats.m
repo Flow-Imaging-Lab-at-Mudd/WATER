@@ -1,14 +1,13 @@
 function [dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, dI_sd_gss, ...
     bias_box, bias_gss, dI0] = impulse_err_stats(vf, props, origin, I0)
-% The theoretical (expected) impulse of the currently effective region is
-% passed in as 'I0' to determine the error.
-% 
-% Extract sample statistics so that the error is represented at a lower
-% dimension.
+% See impulse_err_run.m for a description of the computation performed. This
+% function is a wrapper which extracts the average of absolute errors over
+% the different levels of noises, if applicable.
+%
+% Derek Li, March 2022
 
 % Complete error data.
-% Synthetic.
-[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, I0, false);
+[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, I0, 1);
 
 % Consider only absolute error.
 abs_dI = abs(dI);
