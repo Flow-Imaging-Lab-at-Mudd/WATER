@@ -55,19 +55,19 @@ if min(winsize) >= 1
     shift_x = winsize(1) - overlap(1);
     shift_y = winsize(2) - overlap(2);
     shift_z = winsize(3) - overlap(3);
-
+    
     % Dimensions of downsampled grid.
     xdim_d = floor((xdim - winsize(1)) / shift_x) + 1;
     ydim_d = floor((ydim - winsize(2)) / shift_y) + 1;
     zdim_d = floor((zdim - winsize(3)) / shift_z) + 1;
-
+    
     % Edge handling
     % Last left coordinate for which enough data is available for a
     % complete interrogation window。
     endIndex_x = shift_x * (xdim_d-1) + 1;
     endIndex_y = shift_y * (ydim_d-1) + 1;
     endIndex_z = shift_z * (zdim_d-1) + 1;
-
+    
     % Downsample. Left indices.
     xrange = 1: shift_x: endIndex_x;
     yrange = 1: shift_y: endIndex_y;
@@ -77,14 +77,17 @@ if min(winsize) >= 1
     Uwin = Ufilt(yrange + floor(winsize(2)/2 - 1), ...
         xrange + floor(winsize(1)/2 - 1), ...
         zrange + floor(winsize(3)/2 - 1), :);
-
+    
     % If original coordinates are to be retained.
     if Xscale == 1
         [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
             meshgrid(X(1,xrange,1,1) + (X(1,winsize(1),1,1)-X(1,1,1,1))/2, ...
-                X(yrange,1,1,2) + (X(winsize(2),1,1,2)-X(1,1,1,2))/2, ...
-                X(1,1,zrange,3) + (X(1,1,winsize(3),3)-X(1,1,1,3))/2);
+            X(yrange,1,1,2) + (X(winsize(2),1,1,2)-X(1,1,1,2))/2, ...
+            X(1,1,zrange,3) + (X(1,1,winsize(3),3)-X(1,1,1,3))/2);
     else
+        if isequal(size(Xscale), [1  1])
+            Xscale = Xscale*ones(1, 3);
+        end
         [Xwin(:,:,:,1), Xwin(:,:,:,2), Xwin(:,:,:,3)] = ...
             meshgrid((xrange-1)*Xscale(1), (yrange-1)*Xscale(2), (zrange-1)*Xscale(3));
     end
