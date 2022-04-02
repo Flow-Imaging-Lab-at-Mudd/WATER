@@ -1,6 +1,7 @@
 % This function simulates 3D PIV windowing effects (i.e. converts from voxel
 % to interrogation window scale)
-% Written by Leah Mendelson & Derek Li
+%
+% Leah Mendelson & Derek Li. April, 2022
 
 function [Xwin, Uwin] = PIV_window_sim(X, U, winsize, overlap, Xscale)
 % inputs
@@ -39,15 +40,11 @@ zdim = size(X, 3);
 overlap = round(winsize .* overlap);
 overlap = min([overlap; winsize-1], [], 1);
 
-% Box averaging of velociy values.
 % after this step, vectors are still on input grid, but filtered like
 % PIV processing.
-
 ker = 1/prod(winsize) * ones(winsize);
-
-Ufilt = convn(U, ker, 'same');
-
-% Ufilt = pseudoAverageLeft(U, winsize);
+% Windowing average via a convolution implemented using fast Fourier transforms.
+Ufilt = convnfft(U, ker, 'same');
 
 % Properly subset the averaged velocities and create windowed position meshgrid.
 if min(winsize) >= 1
