@@ -1,41 +1,55 @@
-function [fres, dK, dK_box, dK_gss, bias_box, bias_gss, dK0, dK_sd, dK_box_sd, dK_gss_sd] = ...
-    KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, display_plots)
+function [fres, dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss] = ...
+    KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, ...
+        num_ite, window_params, display_plots)
 
 % Radius of vortex.
 fr = l*vr;
-% Generate range of spacings for evenly spaced feature
-% resolutions.
-% Global spacing of downsampled data.
-sps = zeros(1, floor((max_fres-1)/fres_inc) + 1);
-% Minimal feature resolution.
-sps(1) = fr / min_fres;
+% Desired feature resolutions.
+fres = min_fres: fres_inc: max_fres;
 
-for i = 2: size(sps, 2)
-    sps(i) = fr / (fres_inc + fr/sps(i-1));
+% Configure windowing parameters, if applicable.
+windowing = false;
+if isvector(window_params) && length(window_params) == 2
+    windowing = true;
+    winsize = window_params(1);
+    overlap = window_params(2);
 end
 
+% Generate range of spacings for evenly spaced feature resolutions.
+if ~windowing
+    % Global spacing of downsampled data.
+    sps = zeros(1, floor((max_fres-1)/fres_inc) + 1);
+    % Minimal feature resolution.
+    sps(1) = fr / min_fres;
+    for i = 2: size(sps, 2)
+        sps(i) = fr / (fres_inc + fr/sps(i-1));
+    end
+else
+    % Compute initial resolutions to produce the desired given feature
+    % resolutions after downsampling.
+    op = round(winsize .* overlap);
+    op = min([op; winsize-1], [], 1);
+    sps = 2*fr ./ (2*fres * (winsize-op) + winsize - 1);
+end
 sps_count = size(sps, 2);
-% Feature resolution.
-fres = fr ./ sps;
 % Normalize spacing.
 spr = sps / fr;
 
-num_ite = 10;
+% Record feature resolutions.
+fres = zeros(1, sps_count);
 % Containers for data across all runs.
 % Errors here are mean absolute errors.
-% Errors here are mean absolute errors.
-err = zeros(sps_count, num_ite);
-err_box = zeros(sps_count, num_ite);
-err_gss = zeros(sps_count, num_ite);
-% Standard deviations are also the average over trials.
-err_sd = zeros(sps_count, num_ite);
-err_sd_box = zeros(sps_count, num_ite);
-err_sd_gss = zeros(sps_count, num_ite);
+dK = zeros(sps_count, 1);
+dK_sd = zeros(sps_count, 1);
+dK_box = zeros(sps_count, 1);
+dK_sd_box = zeros(sps_count, 1);
+dK_gss = zeros(sps_count, 1);
+dK_sd_gss = zeros(sps_count, 1);
 
 % Resolution errors.
+dK0 = zeros(sps_count, 1);
 bias_box = zeros(sps_count, 1);
 bias_gss = zeros(sps_count, 1);
-dK0 = zeros(sps_count, 1);
 
 % Compute vortical KE of Hill's vortex.
 KEf = @(vf, n) Hill_VortKE(vf, fr, n);
@@ -51,55 +65,12 @@ for k = 1: sps_count
     vf = VelocityField.importCmps(x, y, z, u, v, w);
     % Focus on vortical region.
     vf.setRangePosition(fr*repmat([-1 1], 3, 1))
-    
-    % Compute error per resolution.
-    for i = 1: num_ite
-        % Run script for impulse error sampling.
-        [err(k,i), ~, err_box(k,i), ~, err_gss(k,i), ~, ...
-            bias_box(k), bias_gss(k), dK0(k)] = KE_err_stats(vf, props, K0, KEf);
-    end
+    % Windowing is performed within error trial.
+    [dK(k), dK_box(k), dK_gss(k), dK0(k), bias_box(k), bias_gss(k), ...
+        dK_sd(k), dK_sd_box(k), dK_sd_gss(k), vfd] = ...
+            KE_err_run_constN(vf, props, K0, KEf, num_ite, window_params);
+    fres(k) = (vfd.span(1)-1)/2;
 end
-
-% Average over trials.
-dK = mean(err, 2);
-dK_sd = std(err, 0, 2);
-dK_box = mean(err_box, 2);
-dK_box_sd = std(err_box, 0, 2);
-dK_gss = mean(err_gss, 2);
-dK_gss_sd = std(err_gss, 0, 2);
-
-%%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%
-if ~exist('display_plots', 'var') || ~display_plots
-    return
-end
-
-% Smoother bias plot.
-figure;
-scatter(fres, dK0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-hold on
-scatter(fres, bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-hold on
-scatter(fres, bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-
-legend({'imperfect resolution', 'box-filtered', 'Gaussian-filtered'})
-xlabel(strcat('Feature Resolution'))
-ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-title(strcat('Resolution errors at $r = $', {' '}, string(fr)))
-
-% Mean error plot.
-figure;
-errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-hold on
-errorbar(fres, dK_box, dK_box_sd, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-hold on
-errorbar(fres, dK_gss, dK_gss_sd, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-
-legend({'unfiltered', ...
-    'box-filtered', ...
-    'Gaussian-filtered'})
-xlabel(strcat('Feature Resolution'))
-ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-title(sprintf('Mean Error at $\\delta u = %.0f$\\%% at $r = %.0f$', string(props(2)*100), string(fr)))
 
 % Compute minimum resolution needed when smoothers are applied. First row
 % corresponds to biases; second row, noisy error. Box, first column;
@@ -108,29 +79,100 @@ min_res = -1*ones(2, 2);
 
 % Lowest feature resolutions to achieve the desired error level.
 try
-    min_res(1,1) = fres(end - find(flip(bias_box) < err_level, 1) + 1);
+    min_res(1,1) = fres(find(dK0 < err_level, 1));
 catch
 end
 try
-    min_res(1,2) = fres(end - find(flip(bias_gss) < err_level, 1) + 1);
+    min_res(1,2) = fres(find(bias_gss < err_level, 1));
 catch
 end
 
+% try
+%     min_res(2,1) = fres(find(dK_box < err_level, 1));
+% catch
+% end
 try
-    min_res(2,1) = fres(end - find(flip(dK_box) < err_level, 1) + 1);
-catch
-end
-try
-    min_res(2,2) = fres(end - find(flip(dK_gss) < err_level, 1) + 1);
+    min_res(2,2) = fres(find(dK_gss < err_level, 1));
 catch
 end
 
+disp('---------KE minimal resolutions---------')
 % Print resolution requirements.
-fprintf('Minimum resolution for %.0f %% bias: \n', err_level*100)
-fprintf('Box: %d \n', min_res(1,1))
+fprintf('Minimum resolution for %.0f%% bias: \n', err_level*100)
+fprintf('Original: %d \n', min_res(1,1))
 fprintf('Gaussian: %d \n', min_res(1,2))
 
-fprintf('Minimum resolution for %.0f %% noise-propagated error: \n', err_level*100)
-fprintf('Box: %d \n', min_res(2,1))
+fprintf('Minimum resolution for %.0f%% noise-propagated error: \n', err_level*100)
+% fprintf('Box: %d \n', min_res(2,1))
 fprintf('Gaussian: %d \n', min_res(2,2))
 
+%%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%
+if ~exist('display_plots', 'var') || ~display_plots
+    return
+end
+
+plot_signed = 1;
+plot_abs = 0;
+
+if plot_signed
+    % Smoother bias plot.
+    figure;
+    scatter(fres, dK0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    hold on
+    scatter(fres, bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    hold on
+    scatter(fres, bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    
+    legend({'imperfect resolution', 'box-filtered', 'Gaussian-filtered'})
+    xlabel(strcat('Feature Resolution'))
+    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
+    title(strcat('Resolution errors at $r = $', {' '}, string(fr)))
+end
+
+if plot_abs
+    % Smoother bias plot.
+    figure;
+    scatter(fres, abs(dK0), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    hold on
+    scatter(fres, abs(bias_box), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    hold on
+    scatter(fres, abs(bias_gss), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    
+    legend({'imperfect resolution', 'box-filtered', 'Gaussian-filtered'})
+    xlabel(strcat('Feature Resolution'))
+    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
+    title(strcat('Absolute resolution errors at $r = $', {' '}, string(fr)))
+end
+
+% Mean error plot.
+if plot_signed
+    figure;
+    errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dK_box, dK_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dK_gss, dK_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    
+    legend({'unfiltered', ...
+        'box-filtered', ...
+        'Gaussian-filtered'})
+    xlabel(strcat('Feature Resolution'))
+    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
+    title(sprintf('Mean error at $\\delta u = %.0f$\\%% at $r = %.0f$', string(props(2)*100), string(fr)))
+end
+
+if plot_abs
+    figure;
+    errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dK_box, dK_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    hold on
+    errorbar(fres, dK_gss, dK_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    
+    legend({'unfiltered', ...
+        'box-filtered', ...
+        'Gaussian-filtered'})
+    xlabel(strcat('Feature Resolution'))
+    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
+    title(sprintf('Absolute mean error at $\\delta u = %.0f$\\%% at $r = %.0f$', string(props(2)*100), string(fr)))
+end
