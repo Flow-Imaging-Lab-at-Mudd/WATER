@@ -115,11 +115,14 @@ classdef VelocityField < handle
                 minimal = 0;
             end
             
+            dims = [size(x) 3];  
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
-            X = x;
+            X = zeros(dims);
+            X(:,:,:,1) = x;
             X(:,:,:,2) = y;
             X(:,:,:,3) = z;
-            U = u;
+            U = zeros(dims);
+            U(:,:,:,1) = u;
             U(:,:,:,2) = v;
             U(:,:,:,3) = w;
             
@@ -423,6 +426,8 @@ classdef VelocityField < handle
             vfd.fluid = vf.fluid;
             vfd.scale.len = vf.scale.len / newXscale;
             vfd.derivePropertyStructs()
+            % Preserve effective region.
+            vfd.setRangePosition(vf.getRangePosition())
         end
         
         function deriveQuantities(vf)
@@ -585,6 +590,12 @@ classdef VelocityField < handle
             % x y z order.
             
             range = [vf.range(2,:); vf.range(1,:); vf.range(3,:)];
+        end
+        
+        function Xrange = getRangePosition(vf)
+            Xrange = [vf.X_e(1,1,1,1) vf.X_e(1,end,1,1); ...
+                    vf.X_e(1,1,1,2) vf.X_e(end,1,1,2); ...
+                    vf.X_e(1,1,1,3) vf.X_e(1,1,end,3)];
         end
         
         function dims = getDims(vf)
@@ -1186,7 +1197,10 @@ classdef VelocityField < handle
         end
         
         function grad = gradient(vf, F)
-            % Wrapper for 1st order central difference from Matlab.
+            % Spatial gradient of the given field 'F' with grid spacing
+            % corresponding to the measurement grid. If a 3D field is
+            % given, the vector gradient is computed; for a 4D field, the
+            % Jacobian matrix is returned.
             
             if ~isequal(size(F, 1:3), vf.span)
                 error('Field matching the effective position grid expected!')
@@ -1210,24 +1224,6 @@ classdef VelocityField < handle
             end
         end
         
-        function jacob = jacobian(vf, V, mode)
-            % Compute the jacobian matrix (or gradient, or derivative
-            % matrix) of 'V' with numerical scheme given in 'mode'.
-            
-            % Subset region of interest.
-            if ~isequal(size(V, 1:3), vf.span)
-               V = vf.subsetField(V);
-            end
-            
-            jacob = NaN([size(V, 1:3) 3 size(V, 4)]);
-            
-            switch mode
-                case 'unit'
-                    jacob(:, :, :, 1, :) = (vf.xsp>0)*vf.diff1(V, [1 0 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 2, :) = (vf.ysp>0)*vf.diff1(V, [0 1 0], vf.solver.diff.mode);
-                    jacob(:, :, :, 3, :) = (vf.zsp>0)*vf.diff1(V, [0 0 1], vf.solver.diff.mode);
-            end
-        end
         
         function div = div(vf, V)
             % Compute the divergence of the vector in the set region of

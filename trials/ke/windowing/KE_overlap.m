@@ -1,8 +1,6 @@
 function [dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss] = ...
     KE_overlap(vf, K0, KEf, props, window, overlaps, display_plots)
 % Vary the overlap used in downsampling and present its effect on error.
-%
-% April, 2022
 
 if ~isvector(overlaps)
     error('Uniform overlaps ratios expected!')
