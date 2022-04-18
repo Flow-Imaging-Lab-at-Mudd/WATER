@@ -1,5 +1,5 @@
-function [dK, dK_box, dK_gss, bias_box, bias_gss, dKd, dKd_box, dKd_gss] = ...
-    KE_err_run(vf, props, K0, KEf, num_ite, display_plots)
+function [dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dKsd, dKsd_box, dKsd_gss, vf] = ...
+    KE_err_run(vf, props, K0, KEf, num_ite, window_params, display_plots)
 % An noise-propagation trial of computing KE after introducing specified
 % levels of noise.
 % 
@@ -27,6 +27,13 @@ function [dK, dK_box, dK_gss, bias_box, bias_gss, dKd, dKd_box, dKd_gss] = ...
 % if a true value is passed in.
 %
 % Derek Li, March, 2022
+
+% Optional windowing operation.
+if isvector(window_params) && length(window_params) == 2
+    winsize = window_params(1);
+    overlap = window_params(2);
+    vf = vf.downsample(winsize, overlap, 0);
+end
 
 % Set constant maximal magnitude of noise.
 u_mean = vf.meanSpeed(0, 0);
@@ -59,16 +66,17 @@ dK = dK / K0;
 dK_box = dK_box / K0;
 dK_gss = dK_gss / K0;
 
-% Average.
-dKd = std(dK, 0, 2);
-dKd_box = std(dK_box, 0, 2);
-dKd_gss = std(dK_gss, 0, 2);
+% Average across trials.
+dKsd = std(dK, 0, 2);
+dKsd_box = std(dK_box, 0, 2);
+dKsd_gss = std(dK_gss, 0, 2);
 
 dK = mean(dK, 2);
 dK_box = mean(dK_box, 2);
 dK_gss = mean(dK_gss, 2);
 
-% Baseline smoother biases.
+% Baseline resolution errors.
+dK0 = dK(1);
 bias_box = dK_box(1);
 bias_gss = dK_gss(1);
 
@@ -80,14 +88,14 @@ if ~exist('display_plots', 'var') || ~display_plots
     return
 end
 
-plot_signed_err = 0;
+plot_signed_err = 1;
 if plot_signed_err
     figure;
-    errorbar(props, dK, dKd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    errorbar(props, dK, dKsd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    errorbar(props, dK_box, dKd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    errorbar(props, dK_box, dKsd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
-    errorbar(props, dK_gss, dKd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    errorbar(props, dK_gss, dKsd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     
     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
     xlabel('$\frac{|\delta u|}{\bar{u}}$')
@@ -103,9 +111,9 @@ if plot_abs_err
     abs_dK = abs(dK);
     abs_dK_box = abs(dK_box);
     abs_dK_gss = abs(dK_gss);
-    abs_dKd = abs(dKd);
-    abs_dKd_box = abs(dKd_box);
-    abs_dKd_gss = abs(dKd_gss);
+    abs_dKd = abs(dKsd);
+    abs_dKd_box = abs(dKsd_box);
+    abs_dKd_gss = abs(dKsd_gss);
     
     figure;
     errorbar(props, abs_dK, abs_dKd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
