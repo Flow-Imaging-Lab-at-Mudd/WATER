@@ -1,15 +1,16 @@
 % Optimize origin selection by minimizing deviation from the integral objective
 % origin constraints computed in objective_origin.m, which is suggested in
 % (De Voria 2014).
-%
-% Derek Li, July 2021
 
 % Synethetic data set.
-% Paremeters held constant.
-sp = 0.1;
-fr = 1;
+spr = 0.1;
+l = 1;
+vr = 1;
+% Feature radius.
+fr = l*vr;
 u0 = 1;
-[x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1, 1);
+% Remove free stream.
+[x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, 1);
 
 vf = VelocityField.importCmps(x, y, z, u, v, w);
 % Zoom in on vortical region.
@@ -21,7 +22,7 @@ vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 % vf.setRangePosition([-20 0; -5 25; -35 -5])
 
 % Consider stochatic effect of noise introduction.
-num_ite = 10;
+num_ite = 5;
 % Proportional noise.
 props = [0 2];
 props_count = size(props, 2);
@@ -30,8 +31,8 @@ props_count = size(props, 2);
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = HillImpulse(vf.fluid.density, vf.scale.len, fr, u0, fr);
-i0 = I0(2);
+I0 = Hill_Impulse(vf.fluid.density, vf.scale.len, vr, u0, vr);
+i0 = I0(3);
 
 % % Momentum computed without noise.
 % I0 = vf.impulse([0 0 0]', 0);
@@ -67,21 +68,21 @@ for i = 1: props_count
         % Identify objective origin without smoothing.
 %         % Randomize initial origin guess.
 %         origin0 = -2 + 4*rand(3, 1);
-        origin = fminunc(@(o) objective_origin(o, vf), origin0, min_opt);
+        origin = fminunc(@(o) objective_origin_obj(o, vf), origin0, min_opt);
         % Compute corresponding error.
         err_unf(i,j,:) = vf.impulse(origin, 1) - I0;
         err0_unf(i,j,:) = vf.impulse(origin_ref, 1) - I0;
         origin_unf(i,j,:) = origin;
         % Box smoothing and origin identification.
         vf.smoothNoise('box');
-        origin = fminunc(@(o) objective_origin(o, vf), origin0, min_opt);
+        origin = fminunc(@(o) objective_origin_obj(o, vf), origin0, min_opt);
         err_box(i,j,:) = vf.impulse(origin, 1) - I0;
         err0_box(i,j,:) = vf.impulse(origin_ref, 1) - I0;
         origin_box(i,j,:) = origin;
         % Gaussian smoother and identification.
         vf.setNoise(N)
         vf.smoothNoise('gaussian');
-        origin = fminunc(@(o) objective_origin(o, vf), origin0, min_opt);
+        origin = fminunc(@(o) objective_origin_obj(o, vf), origin0, min_opt);
         err_gss(i,j,:) = vf.impulse(origin, 1) - I0;
         err0_gss(i,j,:) = vf.impulse(origin_ref, 1) - I0;
         origin_gss(i,j,:) = origin;
@@ -113,9 +114,9 @@ mean_err0_box = mean(mag_err0_box, 2);
 mean_err0_gss = mean(mag_err0_gss, 2);
 
 % Relative errors.
-err_rel_unf = mean_err0_unf - mean_err_unf;
-err_rel_box = mean_err0_box - mean_err_box;
-err_rel_gss = mean_err0_gss - mean_err_gss;
+err_rel_unf = mean_err_unf - mean_err0_unf;
+err_rel_box = mean_err_box - mean_err0_box;
+err_rel_gss = mean_err_gss - mean_err0_gss;
 
 
 %%%%%%%%%%%%%%%%%% Scatter plot of objective origins %%%%%%%%%%%%%%%%%%%
@@ -168,3 +169,9 @@ disp('Average error at objective origin:')
 fprintf('Unfilteed: %f\n', mean(mag_err_unf(2,:)))
 fprintf('Box: %f\n', mean(mag_err_box(2,:)))
 fprintf('Gaussian: %f\n', mean(mag_err_gss(2,:)))
+
+% Omitting resolution error and smoothing biases, which are negligible.
+disp('Relative errors with respect to reference origin')
+fprintf('Unfilteed: %f\n', err_rel_unf(2))
+fprintf('Box: %f\n', err_rel_box(2))
+fprintf('Gaussian: %f\n', err_rel_gss(2))

@@ -2,17 +2,21 @@
 % computation, as shown by a scatter plot of error on various origin
 % locations.
 %
-% Derek Li, July 2021
+% Currently, the experimental data and synthetic data are processed
+% differently, which should be more effectively organized.
 
 % Whether figures generated are to be automatically saved.
 savefig = false;
 
-% Synethetic data set.
-% Paremeters held constant.
-sp = 0.1;
-fr = 1;
+% Paremeters of vortex.
+spr = 0.1;
+l = 1;
+vr = 1;
+% Feature radius.
+fr = l*vr;
 u0 = 1;
-[x, y, z, u, v, w, ~] = Hill_Vortex(sp, fr, u0, 1, 1);
+% Remove free stream.
+[x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, 1);
 
 vf = VelocityField.importCmps(x, y, z, u, v, w);
 % Zoom in on vortical region.
@@ -27,7 +31,7 @@ vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 % center = [-8 10 -21]';
 
 % Consider stochatic effect of noise introduction.
-num_ite = 10;
+num_ite = 5;
 % Proportional noise. For biases to be properly computed, must include 0.
 props = [0 2];
 props_count = size(props, 2);
@@ -36,8 +40,8 @@ props_count = size(props, 2);
 u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
-I0 = HillImpulse(vf.fluid.density, vf.scale.len, fr, u0);
-i0 = I0(2);
+I0 = Hill_Impulse(vf.fluid.density, vf.scale.len, fr, u0);
+i0 = I0(3);
 
 % % Original momentum computed from central location.
 % I0 = vf.impulse(center, 0);
@@ -140,7 +144,9 @@ savePlot = 0;
 if savePlot
     img_fdr = strcat(rootFolder, '\trials\impulse\origin\global\du=', ...
         props(2)*100, '\%', '\');
-    mkdir(img_fdr);
+    if ~isfolder(img_fdr)
+        mkdir(img_fdr);
+    end
 end
 
 for dim = dims
