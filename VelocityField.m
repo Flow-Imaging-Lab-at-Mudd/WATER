@@ -559,8 +559,8 @@ classdef VelocityField < handle
             if exist('minimal', 'var') && minimal == 1
                 vf.anullQuantities()
             else
-                % vf.deriveQuantities()
-                % vf.vort_e = vf.subsetField(vf.vort);
+                vf.deriveQuantities()
+                vf.vort_e = vf.subsetField(vf.vort);
             end
         end
         
@@ -1096,6 +1096,8 @@ classdef VelocityField < handle
                         vf.vorticity(1), 4), [1 2 3], 'omitnan') * ...
                     vf.solver.dv*vf.scale.len);
             else
+                size(VelocityField.subtract3Vector(vf.X_e, origin))
+                size(vf.vort_e)
                 I = squeeze(vf.fluid.density/2 * ...
                     sum(cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
                         vf.vort_e, 4), [1 2 3], 'omitnan') * ...
