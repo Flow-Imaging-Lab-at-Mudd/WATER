@@ -1,4 +1,4 @@
-function error = min_err_origin(origin, smoother, num_ite, vf, props, I0)
+function error = err_origin_obj(origin, smoother, num_ite, vf, props, I0)
 % Wrapper objective function for the noisy impulse error with the choice
 % of origin as the decision variable. The error is the average over a
 % number of trials, as specified.

@@ -1,4 +1,4 @@
-function [err, derv] = objective_origin(origin, vf)
+function [err, derv] = objective_origin_obj(origin, vf)
 % Objective function for the two integral equations that determine the
 % Ringuette objective origin, given in (De Voria, 2014).
 % 

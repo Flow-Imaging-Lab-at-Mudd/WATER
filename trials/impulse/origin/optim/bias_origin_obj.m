@@ -1,4 +1,4 @@
-function bias = min_bias_origin(origin, smoother, vf, props, I0)
+function bias = bias_origin_obj(origin, smoother, vf, props, I0)
 % Wrapper objective function for the baseline impulse error with the choice
 % of origin as the decision variable. The 'props' input is ignored for
 % computing baseline error.
