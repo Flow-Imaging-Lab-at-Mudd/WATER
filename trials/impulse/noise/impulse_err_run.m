@@ -1,5 +1,6 @@
-function [dI, dI_box, dI_gss, bias_box, bias_gss, did, did_box, did_gss] = ...
-    impulse_err_run(vf, props, origin, I0, num_ite, display_plots)
+function [dI, dI_box, dI_gss, dI0, bias_box, bias_gss, dI_sd, dI_sd_box, dI_sd_gss, ...
+    di, di_box, di_gss, di0, mag_bias_box, mag_bias_gss, di_sd, di_sd_box, di_sd_gss] = ...
+    impulse_err_run(vf, props, origin, I0, num_ite, window_params, display_plots)
 % The theoretical (expected) impulse of the currently effective region is
 % passed in as 'I0' to determine the error.
 % 
@@ -17,6 +18,13 @@ function [dI, dI_box, dI_gss, bias_box, bias_gss, did, did_box, did_gss] = ...
 % if a true value is passed in.
 %
 % Derek Li, November 2021
+
+% Optional windowing operation.
+if isvector(window_params) && length(window_params) == 2
+    winsize = window_params(1);
+    overlap = window_params(2);
+    vf = vf.downsample(winsize, overlap, 0);
+end
 
 props_count = length(props);
 
@@ -51,19 +59,21 @@ end
 
 % Normalize by magnitude of impulse in the region.
 dI = dI / i0;
+dI0 = dI(:,1,1);
 di = squeeze(sqrt(sum(dI.^2, 1)));
+di0 = di(1,1);
 dI_box = dI_box / i0;
 di_box = squeeze(sqrt(sum(dI_box.^2, 1)));
 dI_gss = dI_gss / i0;
 di_gss = squeeze(sqrt(sum(dI_gss.^2, 1)));
 
 % Average.
-dId = std(dI, 0, 3);
-did = std(di, 0, 2);
-dId_box = std(dI_box, 0, 3);
-did_box = std(di_box, 0, 2);
-dId_gss = std(dI_gss, 0, 3);
-did_gss = std(di_gss, 0, 2);
+dI_sd = std(dI, 0, 3);
+di_sd = std(di, 0, 2);
+dI_sd_box = std(dI_box, 0, 3);
+di_sd_box = std(di_box, 0, 2);
+dI_sd_gss = std(dI_gss, 0, 3);
+di_sd_gss = std(di_gss, 0, 2);
 
 dI = squeeze(mean(dI, 3));
 di = mean(di, 2);
@@ -88,19 +98,19 @@ dims = [2];
 dim_str = {'x', 'y', 'z'};
 
 %%%%%%%%%%% Plot signed impulse error %%%%%%%%%%%%%%%
-plot_dim_err = 0;
+plot_dim_err = 1;
 
 if plot_dim_err
     for dim = dims
         figure;
-        errorbar(props, dI(dim,:), dId(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+        errorbar(props, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
         hold on
-        errorbar(props, dI_box(dim,:), dId_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+        errorbar(props, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
         hold on
         err_mean_box = mean(dI_box(dim,:));
         yline(err_mean_box, '-')
         hold on
-        errorbar(props, dI_gss(dim,:), dId_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+        errorbar(props, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
         hold on
         err_mean_gss = mean(dI_gss(dim,:));
         yline(err_mean_gss, '-')
@@ -126,17 +136,17 @@ if plot_abs
         abs_dI_gss = abs(dI_gss);
         
         figure;
-        errorbar(props, abs_dI(dim,:), dId(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+        errorbar(props, abs_dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
         hold on
         err_mean0 = mean(abs_dI(dim, :));
         yline(err_mean0, '-')
         hold on
-        errorbar(props, abs_dI_box(dim,:), dId_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+        errorbar(props, abs_dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
         hold on
         err_mean_box = mean(abs_dI_box(dim,:));
         yline(err_mean_box, '-')
         hold on
-        errorbar(props, abs_dI_gss(dim,:), dId_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+        errorbar(props, abs_dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
         hold on
         err_mean_gss = mean(abs_dI_gss(dim,:));
         yline(err_mean_gss, '-')
@@ -155,11 +165,11 @@ end
 
 %%%%%%%%%%% Error magnitude %%%%%%%%%%%%
 figure;
-errorbar(props, di, did, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+errorbar(props, di, di_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
 hold on
-errorbar(props, di_box, did_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+errorbar(props, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
 hold on
-errorbar(props, di_gss, did_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+errorbar(props, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 hold on
 yline(mag_bias_box, '-', 'Color', 'r')
 hold on
