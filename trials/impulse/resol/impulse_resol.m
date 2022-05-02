@@ -1,5 +1,6 @@
 function [fres, dI, dI_box, dI_gss, dI0, bias_box, bias_gss, di, di_box, ...
-    di_gss, di0, mag_bias_box, mag_bias_gss, di_sd, di_sd_box, di_sd_gss] = ...
+    di_gss, di0, mag_bias_box, mag_bias_gss, dI_sd, dI_sd_box, dI_sd_gss, ...
+    di_sd, di_sd_box, di_sd_gss, vfd] = ...
     impulse_resol(l, vr, u0, min_fres, max_fres, fres_inc, origin, props, err_level, ...
         num_ite, window_params, show_plot)
 % Variation of error with feature resolution. Parameters held constant are
@@ -93,17 +94,15 @@ for k = 1: sps_count
     % Construct Hill vortex with specified resolution.
     [x, y, z, u, v, w] = Hill_Vortex(spr(k), l, vr, u0, 1);
     vf = VelocityField.importCmps(x, y, z, u, v, w);
-    if windowing
-        vf = vf.downsample(winsize, overlap, 0);
-    end
     % Focus on vortical region.
     vf.setRangePosition(fr*repmat([-1 1], 3, 1))
-    fres(k) = (vf.span(1)-1)/2;
     
     [dI(:,k), dI_box(:,k), dI_gss(:,k), dI0(:,k), bias_box(:,k), bias_gss(:,k), ...
         dI_sd(:,k), dI_sd_box(:,k), dI_sd_gss(:,k), di(:,k), di_box(:,k), di_gss(:,k), ...
-        di0(k), mag_bias_box(k), mag_bias_gss(k), di_sd(k), di_sd_box(k), di_sd_gss(k)] = ...
+        di0(k), mag_bias_box(k), mag_bias_gss(k), di_sd(k), di_sd_box(k), di_sd_gss(k), vfd] = ...
         impulse_err_run_constN(vf, props, origin, I0, num_ite, window_params, false);
+    % Compute resolutions after downsampling, if applicable.
+    fres(k) = (vfd.span(1)-1)/2;
 end
 
 % Compute minimum resolution needed when smoothers are applied. First row
@@ -170,9 +169,9 @@ for dim = dims
     figure;
     errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
     hold on
-    errorbar(fres, dI_box(dim,:), dI_box_sd(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
     hold on
-    errorbar(fres, dI_gss(dim,:), dI_gss_sd(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
     
     legend({'unfiltered', ...
         'box-filtered', ...
