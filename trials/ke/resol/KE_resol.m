@@ -1,6 +1,8 @@
 function [fres, dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss] = ...
     KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, ...
         num_ite, window_params, display_plots)
+% Compute the signed errors of KE computations at various resolutions as
+% specified with smoothing options.
 
 % Radius of vortex.
 fr = l*vr;
@@ -79,20 +81,20 @@ min_res = -1*ones(2, 2);
 
 % Lowest feature resolutions to achieve the desired error level.
 try
-    min_res(1,1) = fres(find(dK0 < err_level, 1));
+    min_res(1,1) = fres(find(abs(dK0) < err_level, 1));
 catch
 end
 try
-    min_res(1,2) = fres(find(bias_gss < err_level, 1));
+    min_res(1,2) = fres(find(abs(bias_gss) < err_level, 1));
 catch
 end
 
 % try
-%     min_res(2,1) = fres(find(dK_box < err_level, 1));
+%     min_res(2,1) = fres(find(abs(dK_box) < err_level, 1));
 % catch
 % end
 try
-    min_res(2,2) = fres(find(dK_gss < err_level, 1));
+    min_res(2,2) = fres(find(abs(dK_gss) < err_level, 1));
 catch
 end
 
@@ -111,6 +113,7 @@ if ~exist('display_plots', 'var') || ~display_plots
     return
 end
 
+% Whether error is to be plotted with sign (can be both).
 plot_signed = 1;
 plot_abs = 0;
 
