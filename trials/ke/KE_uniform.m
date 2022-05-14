@@ -1,14 +1,18 @@
-% Presume 'sp' is defined.
-% sp = 0.05;
-[x, y, z, u, v, w, Mag] = hill_vortex_3D(sp, 1, 1, 1);
+% Sample effective regions uniformly from the overall measurement volume
+% and plot KE error with respect to KE noise.
+%
+% Derek Li, June 2021
+
+% Presume 'sp' (spacing), 'fr' (feature radius) are defined.
+[x, y, z, u, v, w, Mag] = hill_vortex_3D(sp, fr, 1, 1);
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 
 % Minimal and maximal volume dimensions.
-vol_range = [floor(2/3*vf.getDims())' floor(vf.getDims() - 1)'];
+vol_range = [floor(1/4*vf.getDims())' floor(1/2*vf.getDims())'];
 % Randomly sample effective regions.
 num_ite = 10;
 % Introduce noise proportionally.
-props = 0: 0.1: 1.5;
+props = 0: 0.1: 3;
 
 % Containers for data over iterations.
 dK = zeros(length(props), num_ite);
@@ -21,9 +25,9 @@ for i = 1: num_ite
     range = randRange(vf.dims, vol_range);
     vf.setRange(range)
     
-    % Run script for KE error samrpling.
+    % Run script for KE error sampling.
     [dK(:,i), dK_box(:,i), dK_gss(:,i), bias_box(i), bias_gss(i)] = ...
-        KE_uniform_err_run(vf, range, props);
+        KE_err_run(vf, props);
 
 %     pause
 %     close all
@@ -59,4 +63,3 @@ legend('box-filtered', 'Gaussian-filtered', ...
     'Interpreter', 'latex')
 xlabel('Unfiltered $\left|\frac{\delta K}{K}\right|$')
 ylabel('Filtered $\left|\frac{\delta K}{K}\right|$')
-title(strcat('Normalized Spacing:', {' '}, string(sp)))

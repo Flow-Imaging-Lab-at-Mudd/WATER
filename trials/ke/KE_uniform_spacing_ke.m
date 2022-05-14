@@ -4,7 +4,7 @@ fr = 1;
 
 for sp = sps
     KE_uniform
-    title(strcat('Normalized Spacing:', {' '}, string(sp)))
+    title(strcat('Normalized Spacing $s = $', {' '}, string(sp)))
     saveas(gcf, strcat('C:\Users\derek\flow\trials\ke\resol\global-ke\mild-noise\unit\0.66-1L\', 's=', string(sp), '.jpg'))
     close
 end

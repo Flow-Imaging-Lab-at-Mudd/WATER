@@ -1,21 +1,15 @@
-% Presume 'sp' (spacing), 'fr' (feature radius) are defined.
-% sp = 0.05;
-% fr = 1;
-[x, y, z, u, v, w, Mag] = hill_vortex_3D(sp, fr, 1, 1);
+function KE_focus_feature(sp, fr, props)
+% 'sp' is normalized spacing of Hill's Vortex.
+% 'fr' is the feature radius of the vortex.
+
+[x, y, z, u, v, w, ~] = hill_vortex_3D(sp, fr, 1, 1);
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 
-% Span of feature in indices.
-fs = 2 * floor(fr ./ vf.resol) + 1;
-fs = min([fs; vf.getDims()], [], 1);
-% Feature is at the center of the grid. Random range intersects the feature.
-% Proportions of random region to central vortex feature.
-region_props = [2/3 3/2];
-vol_range = [floor(region_props(1)*fs)' ...
-    floor(min([region_props(2)*fs; vf.getDims()-1], [], 1))'];
+% Focus on the global region with the freestream velocity subtracted.
+vf.addVelocity(-vf.U(1,1,1,:));
+
 % Randomly sample effective regions.
 num_ite = 10;
-% Introduce noise proportionally.
-props = 0: 0.1: 3;
 
 % Containers for data over iterations.
 dK = zeros(length(props), num_ite);
@@ -24,30 +18,11 @@ dK_gss = zeros(length(props), num_ite);
 bias_box = zeros(1, num_ite);
 bias_gss = zeros(1, num_ite);
 
-% vf.setRange([floor(vf.getDims()/2 - fs/2); floor(vf.getDims()/2 + fs/2)]')
-% vf.plotVector(vf.U_e, 0, '')
-
 for i = 1: num_ite
-    % Random range.
-    range = randRange(vf.dims, vol_range);
-    span = range(:,2) - range(:,1);
-    % Anchor with randomness. No longer vectorized here.
-    shift_prop = 1/3;
-    left_idx = floor(vf.getDims()/2 - fs/2) + randi(int32(1/2*shift_prop*[-fs(1) fs(1)]));
-    % Ensure not exceeding index range.
-    left_idx = max([ones(1, 3); left_idx])';
-    right_idx = min([vf.getDims()' left_idx+span], [], 2);
-    range = [left_idx right_idx];
-    
-%     % Ensure intersection.
-%     vf.plotVector(vf.U_e, 0, '$\vec{u}$');
-    
     % Run script for KE error sampling.
     [dK(:,i), dK_box(:,i), dK_gss(:,i), bias_box(i), bias_gss(i)] = ...
         KE_err_run(vf, props);
 
-%     pause
-%     close all
 end
 
 % Global smoother error as a function of kinetic energy plot.

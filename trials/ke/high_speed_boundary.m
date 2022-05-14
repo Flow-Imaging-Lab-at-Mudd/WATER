@@ -1,3 +1,16 @@
+% This file shows the conspicuous effect of smoothing when a high region of
+% speed is present. The experimental dataset is assumed, and we cannot
+% easily assess whether oversmoothing has occurred here but only that the
+% velocity is smoothed to a considerably higher extent when a high-speed
+% region is present.
+
+% Load data. Use the first available frame.
+fdr = 'C:\Users\derek\flow\data\L18_Run1\';
+data = dir(fdr);
+
+frame_fdrs(i) = strcat(data(i).name, '\');
+load(strcat(fdr, frame_fdrs(-2 + 3*i), '\3DPIV_postprocessed_results_calibrated.mat'), ...
+    'x', 'y', 'z', 'u', 'v', 'w')
 vf = VelocityField.import_grid_separate(x,y,z,u,v,w);
 vf.data.speed = sqrt(sum(vf.U.^2, 4));
 
