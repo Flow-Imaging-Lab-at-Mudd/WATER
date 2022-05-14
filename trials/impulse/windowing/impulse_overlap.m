@@ -1,28 +1,29 @@
 function [di, di_box, di_gss, di0, mag_bias_box, mag_bias_gss, di_sd, di_box_sd, di_gss_sd] = ...
-    impulse_winsize(vf, I0, origin, props, windows, overlap, display_plots)
-% Vary the window size used in downsampling and present its effect on error.
+    impulse_overlap(vf, I0, origin, props, window, overlaps, display_plots)
+% Vary the overlap ratio used in downsampling and present its effect on error.
 %
 % April, 2022
 
-if ~isvector(windows)
-    error('Uniform windows expected!')
+if ~isvector(overlaps)
+    error('Uniform overlaps ratios expected!')
 end
-% Assume uniform windows in x, y, z.
-windows_count = length(windows);
+
+% Assume uniform overlap ratios in x, y, z.
+ops_count = length(overlaps);
 
 % Number of repetitions for noise trial.
-num_ite = 5;
+num_ite = 10;
 
 % Containers for error data at different window sizes.
-dI = zeros(3, windows_count, num_ite);
-dI0 = zeros(3, windows_count);
-dI_box = zeros(3, windows_count, num_ite);
-dI_gss = zeros(3, windows_count, num_ite);
-bias_box = zeros(3, windows_count);
-bias_gss = zeros(3, windows_count);
+dI = zeros(3, ops_count, num_ite);
+dI0 = zeros(3, ops_count);
+dI_box = zeros(3, ops_count, num_ite);
+dI_gss = zeros(3, ops_count, num_ite);
+bias_box = zeros(3, ops_count);
+bias_gss = zeros(3, ops_count);
 
-for k = 1: windows_count
-    vfd = vf.downsample(windows(k), overlap, 0);
+for k = 1: ops_count
+    vfd = vf.downsample(window, overlaps(k), 0);
     for i = 1: num_ite
         % Run script for impulse error sampling.
         [dI(:,k,i), ~, dI_box(:,k,i), ~, dI_gss(:,k,i), ~, bias_box(:,k), ...
@@ -65,37 +66,37 @@ dim_str = {'x', 'y', 'z'};
 for dim = dims
     % Plot of baseline resolution error.
     figure;
-    scatter(windows, dI0(dim,:), 'k', 'filled')
-    xticks(windows)
-    xlabel('Window size')
+    scatter(overlaps, dI0(dim,:), 'k', 'filled')
+    xticks(overlaps)
+    xlabel('Overlap ratio of window')
     ylabel('Normalized error')
     title(sprintf('Windowing resolution error in $\\hat{%s}$', dim_str{dim}))
     
     % Plot of filter errors.
     figure;
-    scatter(windows, dI0(dim,:), 'k', 'filled')
+    scatter(overlaps, dI0(dim,:), 'k', 'filled')
     hold on
-    scatter(windows, bias_box(dim,:), 'r', 'filled')
+    scatter(overlaps, bias_box(dim,:), 'r', 'filled')
     hold on
-    scatter(windows, bias_gss(dim,:), 'b', 'filled')
+    scatter(overlaps, bias_gss(dim,:), 'b', 'filled')
     
-    xticks(windows)
+    xticks(overlaps)
     legend({'windowing', 'box', 'Gaussian'})
-    xlabel('Window size')
+    xlabel('Overlap ratio of window')
     ylabel('Normalized error')
     title(sprintf('Filter errors in $\\hat{%s}$', dim_str{dim}))
     
     % Plot of mean errors.
     figure;
-    errorbar(windows, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    errorbar(overlaps, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    errorbar(windows, dI_box(dim,:), dI_box_sd(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    errorbar(overlaps, dI_box(dim,:), dI_box_sd(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
-    errorbar(windows, dI_gss(dim,:), dI_gss_sd(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    errorbar(overlaps, dI_gss(dim,:), dI_gss_sd(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     
-    xticks(windows)
+    xticks(overlaps)
     legend({'unfiltered', 'box', 'Gaussian'})
-    xlabel('Window size')
+    xlabel('Overlap ratio of window')
     ylabel('Normalized error')
     title(sprintf('Error in $\\hat{%s}$ with noise', dim_str{dim}))
 end
@@ -103,36 +104,36 @@ end
 %%%%%%%%%%% Magnitude plots %%%%%%%%%%%%%%
 % Plot of windowing error.
 figure;
-scatter(windows, di0, 'k', 'filled')
-xticks(windows)
-xlabel('Window size')
+scatter(overlaps, di0, 'k', 'filled')
+xticks(overlaps)
+xlabel('Overlap ratio of window')
 ylabel('Normalized error')
 title('Windowing resolution error of impulse')
 
 % Plot of bias.
 figure;
-scatter(windows, di0, 'k', 'filled')
+scatter(overlaps, di0, 'k', 'filled')
 hold on
-scatter(windows, mag_bias_box, 'r', 'filled')
+scatter(overlaps, mag_bias_box, 'r', 'filled')
 hold on
-scatter(windows, mag_bias_gss, 'b', 'filled')
+scatter(overlaps, mag_bias_gss, 'b', 'filled')
 
-xticks(windows)
+xticks(overlaps)
 legend({'windowing', 'box', 'Gaussian'})
-xlabel('Window size')
+xlabel('Overlap ratio of window')
 ylabel('Normalized error')
 title('Baseline impulse resolution error of filters')
 
 % Plot of mean absolute errors.
 figure;
-errorbar(windows, di, di_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+errorbar(overlaps, di, di_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
 hold on
-errorbar(windows, di_box, di_box_sd, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+errorbar(overlaps, di_box, di_box_sd, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
 hold on
-errorbar(windows, di_gss, di_gss_sd, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+errorbar(overlaps, di_gss, di_gss_sd, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 
-xticks(windows)
+xticks(overlaps)
 legend({'unfiltered', 'box', 'Gaussian'})
-xlabel('Window size')
+xlabel('Overlap ratio of window')
 ylabel('Normalized error')
 title('Impulse error with noise')
