@@ -1,13 +1,17 @@
 function [dI_mean, dI_sd, dI_mean_box, dI_sd_box, dI_mean_gss, dI_sd_gss, ...
-    bias_box, bias_gss, dI0] = impulse_err_stats(vf, props, origin, I0)
+    bias_box, bias_gss, dI0] = impulse_err_stats(vf, props, origin, I0, window_params)
 % See impulse_err_run.m for a description of the computation performed. This
 % function is a wrapper which extracts the average of absolute errors over
 % the different levels of noises, if applicable.
 %
 % Derek Li, March 2022
 
+if ~exist('window_params', 'var')
+    window_params = [];
+end
+    
 % Complete error data.
-[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, I0, 1);
+[dI, dI_box, dI_gss, bias_box, bias_gss] = impulse_err_run(vf, props, origin, I0, 1, window_params);
 
 % Consider only absolute error.
 abs_dI = abs(dI);
