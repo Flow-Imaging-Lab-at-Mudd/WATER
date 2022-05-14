@@ -183,10 +183,18 @@ classdef VelocityField < handle
         end
         
         function V = subtract3Vector(V, v)
-            % Subtract the vector to 'v' from every vector on the 3D grid of the
-            % 4D array 'V'.
+            % Subtract the vector 'v' from every vector on the 3D grid of the
+            % 4D array 'V', whose 4th dimension contains the vectors.
             
             V = VelocityField.operate3Vector(V, v, @minus);
+        end
+        
+        function D = dot3Vector(V, v)
+            % Take the dot product of every vector on the grid with the
+            % given vector 'v'. The result is a 3D array.
+            
+            D = VelocityField.operate3Vector(V, v, @times);
+            D = sum(D, 4);
         end
         
         function V = operateGridwise(V, r, op)
@@ -219,10 +227,8 @@ classdef VelocityField < handle
             dims = size(X);
             dims = dims(1:3);
             
-            Base = dimen(base, dims);
-            Orth = dimen(orth, dims);
-            
-            onplane = abs(dot(X - Base, Orth, 4)) < repmat(tol, dims);
+            onplane = abs(VelocityField.dot3Vector(VelocityField.subtract3Vector(X, base), ...
+                orth)) < tol;
             % Expand this logical 3D matrix indicating membership on plane to
             % the size of the last dimension for direct point-wise multiplication.
             on = zeros([dims sz]);
