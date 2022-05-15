@@ -58,7 +58,7 @@ errorbar(props, dI(3,:), dI_sd(3,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth
 legend({'kinetic energy', 'impulse'})
 xlabel('Windowing size')
 ylabel('Normalized error')
-title(sprintf('Unfiltered error with noise with $o=%.2f$', overlap))
+title(sprintf('Unfiltered error with noise'))
 
 if savePlot
     try
@@ -78,7 +78,7 @@ errorbar(props, dI_gss(3,:), dI_sd_gss(3,:), 'ko', 'MarkerFaceColor', 'blue', 'L
 legend({'kinetic energy', 'impulse'})
 xlabel('Windowing size')
 ylabel('Normalized error')
-title(sprintf('Filtered error with noise with $o=%.2f$', overlap))
+title(sprintf('Filtered error with noise'))
 
 if savePlot
     try
