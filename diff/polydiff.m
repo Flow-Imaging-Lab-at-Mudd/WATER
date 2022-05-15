@@ -1,7 +1,7 @@
 function [F, P] = polydiff(n)
 % Derive symbolically finite difference formulas by interpolating 'n'
 % uniformly spaced points to obtain a n-1 order polynomial, which is then
-% differentiated. F[n-1, n, n] consists of differentiation upon to the n-1
+% diferentiated. F[n-1, n, n] consists of differentiation upon to the n-1
 % order, difference formula at each of the n pivots, and the correspoinding
 % n coefficients of y/h^k, in ascending order.
 %

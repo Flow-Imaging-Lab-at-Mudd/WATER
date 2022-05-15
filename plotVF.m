@@ -10,8 +10,6 @@ function plt = plotVF(X, Y, scale, range)
 % Note this plotting zooms in on the rectangular region specified by range.
 
 if ndims(X) ~= 4 || ndims(Y) ~= 4 || ~isequal(size(X), size(Y))
-    size(X)
-    size(Y)
     error('4D formatted vector field required!')
 end
 

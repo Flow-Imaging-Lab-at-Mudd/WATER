@@ -1,5 +1,4 @@
 function [X, Y, Z, u, v, w] = Hill_VortexY(sp, a, u0, rem)
-
 % This function outputs synthetic 3D vortex ring flow fields at a
 % user-specified resolution
 % Vortex rings generated have a velocity field matching that of Hill's
