@@ -1,8 +1,8 @@
 function [fres, dI, dI_box, dI_gss, dI0, bias_box, bias_gss, di, di_box, ...
     di_gss, di0, mag_bias_box, mag_bias_gss, dI_sd, dI_sd_box, dI_sd_gss, ...
-    di_sd, di_sd_box, di_sd_gss, vfd] = ...
+    di_sd, di_sd_box, di_sd_gss, vfds] = ...
     impulse_resol(l, vr, u0, min_fres, max_fres, fres_inc, origin, props, err_level, ...
-        num_ite, window_params, show_plot)
+        num_ite, window_params, show_plot, vfds)
 % Variation of error with feature resolution. Parameters held constant are
 % 'fr', 'origin', and 'props'. At low resolutions, depending on whether the
 % spacing perfectly divides the (-1, 1) region, e.g. s = 0.1 does, s = 0.3
@@ -13,13 +13,21 @@ function [fres, dI, dI_box, dI_gss, dI0, bias_box, bias_gss, di, di_box, ...
 % the error over various noise levels are averaged, supposing more than one
 % nonzero noise level is given in props, the average does not include the
 % baseline error with no noise.
-% 
-% Derek Li, June 2021
 
 % Radius of vortex.
 fr = l*vr;
 % Desired feature resolutions.
 fres = min_fres: fres_inc: max_fres;
+
+% If a cell array of VelocityField objects are given, assume they are of
+% the appropriate resolutions and already downsampled.
+if ~exist('vfds', 'var')
+    vfds = cell(1, length(fres));
+else
+    % Non-trivial windowing parameters will be ignored if an array of VFs
+    % is provided.
+    window_params = [];
+end
 
 % Configure windowing parameters, if applicable.
 windowing = false;
@@ -78,12 +86,6 @@ di0 = zeros(1, sps_count);
 mag_bias_box = zeros(1, sps_count);
 mag_bias_gss = zeros(1, sps_count);
 
-% Containers for data across all runs.
-% Errors here are mean absolute errors.
-err = zeros(3, sps_count, num_ite);
-err_box = zeros(3, sps_count, num_ite);
-err_gss = zeros(3, sps_count, num_ite);
-
 bias_box = zeros(3, sps_count, 1);
 bias_gss = zeros(3, sps_count, 1);
 
@@ -91,11 +93,16 @@ bias_gss = zeros(3, sps_count, 1);
 dI0 = zeros(3, sps_count);
 
 for k = 1: sps_count
-    % Construct Hill vortex with specified resolution.
-    [x, y, z, u, v, w] = Hill_Vortex(spr(k), l, vr, u0, 1);
-    vf = VelocityField.importCmps(x, y, z, u, v, w);
-    % Focus on vortical region.
-    vf.setRangePosition(fr*repmat([-1 1], 3, 1))
+    % Generate VF of appropriate resolution if necessary.
+    if isempty(vfds{k})
+        % Construct Hill vortex with specified resolution.
+        [x, y, z, u, v, w] = Hill_Vortex(spr(k), l, vr, u0, 1);
+        vf = VelocityField.importCmps(x, y, z, u, v, w);
+        % Focus on vortical region.
+        vf.setRangePosition(fr*repmat([-1 1], 3, 1));
+    else
+        vf = vfds{k};
+    end
     
     [dI(:,k), dI_box(:,k), dI_gss(:,k), dI0(:,k), bias_box(:,k), bias_gss(:,k), ...
         dI_sd(:,k), dI_sd_box(:,k), dI_sd_gss(:,k), di(:,k), di_box(:,k), di_gss(:,k), ...
@@ -103,6 +110,8 @@ for k = 1: sps_count
         impulse_err_run_constN(vf, props, origin, I0, num_ite, window_params, false);
     % Compute resolutions after downsampling, if applicable.
     fres(k) = (vfd.span(1)-1)/2;
+    % Store this vf to return.
+    vfds{k} = vfd;
 end
 
 % Compute minimum resolution needed when smoothers are applied. First row
@@ -206,9 +215,9 @@ title(strcat('Magnitude of Smoother Bias at $r = $', {' '}, string(fr)))
 figure;
 errorbar(fres, di, di_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 hold on
-errorbar(fres, di_box, di_box_sd, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+errorbar(fres, di_box, di_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
 hold on
-errorbar(fres, di_gss, di_gss_sd, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+errorbar(fres, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
 hold on
 
 legend({'unfiltered', ...
@@ -217,5 +226,5 @@ legend({'unfiltered', ...
     'Interpreter', 'latex')
 xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
 ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Mean Error Magnitude at $\delta u = $', ...
-        string(props(2)*100), '\% at $r = $', {' '}, string(fr)))
+title(strcat('Mean Error Magnitude at $\delta u = ', ...
+        string(props(2)*100), '$\% at $r = $', {' '}, string(fr)))

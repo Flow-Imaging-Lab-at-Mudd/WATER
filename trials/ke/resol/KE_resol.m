@@ -1,6 +1,6 @@
-function [fres, dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss] = ...
+function [fres, dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss, vfds] = ...
     KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, ...
-        num_ite, window_params, display_plots)
+        num_ite, window_params, display_plots, vfds)
 % Compute the signed errors of KE computations at various resolutions as
 % specified with smoothing options.
 
@@ -8,6 +8,16 @@ function [fres, dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, d
 fr = l*vr;
 % Desired feature resolutions.
 fres = min_fres: fres_inc: max_fres;
+
+% If a cell array of VelocityField objects are given, assume they are of
+% the appropriate resolutions and already downsampled.
+if ~exist('vfds', 'var')
+    vfds = cell(1, length(fres));
+else
+    % Non-trivial windowing parameters will be ignored if an array of VFs
+    % is provided.
+    window_params = [];
+end
 
 % Configure windowing parameters, if applicable.
 windowing = false;
@@ -62,16 +72,24 @@ len_unit = 1e-3;
 K0 = Hill_KE(density, len_unit, fr, u0);
 
 for k = 1: sps_count
-    % Construct Hill vortex with specified resolution.
-    [x, y, z, u, v, w] = Hill_Vortex(spr(k), l, vr, u0, 1);
-    vf = VelocityField.importCmps(x, y, z, u, v, w);
-    % Focus on vortical region.
-    vf.setRangePosition(fr*repmat([-1 1], 3, 1))
+    % Generate VF of appropriate resolution if necessary.
+    if isempty(vfds{k})
+        % Construct Hill vortex with specified resolution.
+        [x, y, z, u, v, w] = Hill_Vortex(spr(k), l, vr, u0, 1);
+        vf = VelocityField.importCmps(x, y, z, u, v, w);
+        % Focus on vortical region.
+        vf.setRangePosition(fr*repmat([-1 1], 3, 1))
+    else
+        vf = vfds{k};
+    end
+    
     % Windowing is performed within error trial.
     [dK(k), dK_box(k), dK_gss(k), dK0(k), bias_box(k), bias_gss(k), ...
         dK_sd(k), dK_sd_box(k), dK_sd_gss(k), vfd] = ...
             KE_err_run_constN(vf, props, K0, KEf, num_ite, window_params);
     fres(k) = (vfd.span(1)-1)/2;
+    % Store this vf to return.
+    vfds{k} = vfd;
 end
 
 % Compute minimum resolution needed when smoothers are applied. First row
@@ -109,7 +127,7 @@ fprintf('Minimum resolution for %.0f%% noise-propagated error: \n', err_level*10
 fprintf('Gaussian: %d \n', min_res(2,2))
 
 %%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%
-if ~exist('display_plots', 'var') || ~display_plots
+if ~display_plots
     return
 end
 
