@@ -1,5 +1,5 @@
 function [dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dK_sd, dK_sd_box, dK_sd_gss] = ...
-    KE_overlap(vf, K0, KEf, props, window, overlaps, display_plots)
+    KE_overlap(vf, K0, KEf, props, winsize, overlaps, display_plots)
 % Vary the overlap used in downsampling and present its effect on error.
 
 if ~isvector(overlaps)
@@ -28,7 +28,7 @@ dK0 = zeros(ops_count, 1);
 for k = 1: ops_count
     [dK(k), dK_box(k), dK_gss(k), dK0(k), bias_box(k), bias_gss(k), ...
         dK_sd(k), dK_sd_box(k), dK_sd_gss(k), vfd] = ...
-            KE_err_run_constN(vf, props, K0, KEf, num_ite, [window, overlaps(k)]);
+            KE_err_run_constN(vf, props, K0, KEf, num_ite, [winsize, overlaps(k)]);
         disp(vfd.dims)
 end
 
