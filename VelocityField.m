@@ -829,12 +829,18 @@ classdef VelocityField < handle
             vf.fontsize = fsize;
         end
         
-        function plt = plotVector(vf, V, noise, title_str)
+        function plt = plotVector(vf, V, noise, title_str, varargin)
             % Make a quiver plot of the given vector field over the range
             % of interest on the current grid. 'V' can be either substted
             % already from the entire grid or be equal to 'vf.X' in
             % dimension, which will be subsetted automatically based on
-            % 'vf.range'.
+            % 'vf.range'. 'varargin' takes in typical name value pairs of
+            % quiver3 options as passed into the Matlab quiver3 function.
+            %
+            % Note that if the plot is desired to be generated on a new
+            % figure, that must be manually created before invoking this
+            % function.
+            
             
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetField(V);
@@ -844,7 +850,7 @@ classdef VelocityField < handle
                 noise = vf.subsetField(noise);
             end
             
-            plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale);
+            plt = plotVF(vf.X_e, V + noise, vf.plotter.quiverScale, vf.range, varargin{:});
             title(title_str, 'FontSize', vf.fontsize)
         end
         
@@ -943,9 +949,10 @@ classdef VelocityField < handle
         end
         
         function plt = plotPlaneVector(vf, V, eq, noise, title_str)
-            % Plots an arbitrary plane in 3D space given either three
-            % non-colinear points or a normal vector + base position paris
-            % formula, stored as column vectors in a matrix.
+            % Plots an arbitrary plane in 3D space given as a 
+            % (normal vector, base position) pair, stored as column vectors
+            % in the matrix eq. To obtain such a definition of a plane from
+            % three non-colinear points, use vf.getPlaneEq().
             
             if ~isequal(size(V, 1:3), vf.span)
                 V = vf.subsetField(V);

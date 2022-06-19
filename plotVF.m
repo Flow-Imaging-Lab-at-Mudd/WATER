@@ -1,4 +1,4 @@
-function plt = plotVF(X, Y, scale, range)
+function plt = plotVF(X, Y, scale, range, varargin)
 % Customized plotting funnction for vector fields organized as 4D matrices.
 % X is the matrix of positions on the grid, and Y the corresponding field.
 % Note that the meshgrid indices of a 4D matrix is (y, x, z).
@@ -7,6 +7,9 @@ function plt = plotVF(X, Y, scale, range)
 % indices on the grid that corresponds to the rectangular region to be
 % plotted.
 %
+% 'varargs' takes in typical name value pairs of quiver3 options as passed
+% into the Matlab quiver3 function.
+% 
 % Note this plotting zooms in on the rectangular region specified by range.
 
 if ndims(X) ~= 4 || ndims(Y) ~= 4 || ~isequal(size(X), size(Y))
@@ -23,8 +26,10 @@ if ~isequal(size(X), range * [-1 1]' + 1)
     Y = Y(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
 end
 
-plt = figure;
-quiver3(X(:,:,:,1), X(:,:,:,2), X(:,:,:,3), Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3), scale)
+disp(varargin{1,1})
+disp(varargin{1,2})
+
+plt = quiver3(X(:,:,:,1), X(:,:,:,2), X(:,:,:,3), Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3), scale, varargin{:});
 xlabel('$x$')
 ylabel('$y$')
 zlabel('$z$')
