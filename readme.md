@@ -1,6 +1,9 @@
 # 3D PIV fields--manipulation, visualization, and analysis of random synthetic noise
 ![openvf](https://github.com/epicderek/flow/blob/master/illu/openfv.jpg)
 
+## Installation
+startup.m sets up necessary path structures for the library
+
 ## Data Structure
 
 ```matlab
