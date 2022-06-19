@@ -26,9 +26,6 @@ if ~isequal(size(X), range * [-1 1]' + 1)
     Y = Y(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
 end
 
-disp(varargin{1,1})
-disp(varargin{1,2})
-
 plt = quiver3(X(:,:,:,1), X(:,:,:,2), X(:,:,:,3), Y(:,:,:,1), Y(:,:,:,2), Y(:,:,:,3), scale, varargin{:});
 xlabel('$x$')
 ylabel('$y$')
