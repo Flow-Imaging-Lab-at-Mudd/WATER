@@ -6,8 +6,8 @@ function [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, rem)
 %
 % Inputs:
 % spr: spacing between vectors (normalized by vortex ring radius).
-% l: total length of field, same for three dimensions.
-% vr: normalized vortical radius.
+% l: total length (radius) of field, same for three dimensions.
+% vr: normalized vortical radius (by total length l).
 % u0: freestream velocity outside the vortex ring region (in z direction,
 % same direction as vortex ring axis), must be nonzero
 % rem: remove free stream velocity.
@@ -22,7 +22,7 @@ function [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, rem)
 
 % range of values for x,y,z
 % permits different scaling of z-direction resolution using z_factor input
-sp = l*spr;
+sp = l*vr*spr;
 x = -l: sp: l;
 y = -l: sp: l;
 z = -l: sp: l;
