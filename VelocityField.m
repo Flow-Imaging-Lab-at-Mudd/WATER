@@ -1116,6 +1116,70 @@ classdef VelocityField < handle
             end
         end
         
+        function flux = impulse_flux(vf, origin, with_noise, out)
+            % computes the impulse flux on the surfaces of the volume
+            
+            % 'origin' specifies the arbitrary reference point used in
+            % computing impulse. If not specified, it is assumed to be the
+            % origin implied in the current coordinates.
+            
+            % 'out' specifies the format for returning quantities:
+            % 'sum' returns the total impulse flux over all surfaces
+            % of the volume
+            % 'faces' returns the impulse flux on each face in the
+            % order: [LEFT RIGHT BOTTOM TOP BACK FRONT]
+            
+            if ~isequal(size(origin), [3 1])
+                error('Invalid origin')
+            end
+            
+            if ~exist('origin', 'var')
+                origin = [0 0 0]';
+            end
+            
+            if ~exist('out', 'var')
+                out = 'sum';
+            end
+            
+            if with_noise
+                I = vf.fluid.density/2 * ...
+                    cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
+                    vf.vorticity(1), 4)*vf.scale.len;
+           
+            else
+                I = vf.fluid.density/2 * ...
+                    cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
+                    vf.vort_e, 4)*vf.scale.len;
+            end
+            
+            fluxX = (vf.scale.len)^3*intCubicSurf_flux(vf, vf.U_e.*I(:,:,:,1), out);
+            fluxY = (vf.scale.len)^3*vf.scale.len*intCubicSurf_flux(vf, vf.U_e.*I(:,:,:,2), out);
+            fluxZ = (vf.scale.len)^3*vf.scale.len*intCubicSurf_flux(vf, vf.U_e.*I(:,:,:,3), out);
+            
+            switch out
+                case 'sum'
+                    flux = [sum(fluxX,'omitnan'); sum(fluxY,'omitnan'); sum(fluxZ,'omitnan')];
+                case 'faces'
+                    flux = [fluxX; fluxY; fluxZ];
+            end
+        end
+        
+        function flux = kineticEnergy_flux(vf, with_noise, out)
+            % computes the energy flux on the surfaces of the volume
+                       
+            % 'out' specifies the format for returning quantities:
+            % 'sum' returns the total impulse flux over all surfaces
+            % of the volume
+            % 'faces' returns the impulse flux on each face in the
+            % order: [LEFT RIGHT BOTTOM TOP BACK FRONT]
+            
+            K = sum(1/2*vf.fluid.density * vf.scale.len^2 * ...
+                (vf.U_e + with_noise*vf.N_e).^2, 4, 'omitnan');
+            
+            flux = (vf.scale.len)^3*intCubicSurf_flux(vf, vf.U_e.*K, out);
+
+        end
+        
         
         
         %%%%%%%%%%%%%%%%%%% Differential Methods %%%%%%%%%%%%%%%%%%%%%%
@@ -1338,13 +1402,22 @@ classdef VelocityField < handle
                [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all', 'omitnan'));
        end
        
-       function flux = intCubicSurf_flux(vf, V)
+       function flux = intCubicSurf_flux(vf, V, out)
            % Compute the flux on the six faces of the cube as defined by
            % the current effective region by the given vector field 'V'.
            % The indices of 'V' are assumed to match that of X_e.
            
+           % output 'sum' returns the total flux over all surfaces
+           % of the volume
+           % output 'faces' returns the impulse flux on each face in the
+           % order: [LEFT RIGHT BOTTOM TOP BACK FRONT]
+           
            if ~isequal(vf.span, size(V, 1:3))
                error('Mismatching Grids Dimensions!')
+           end
+           
+           if ~exist('out', 'var')
+               out = 'sum';
            end
            
            % Left face.
@@ -1360,7 +1433,12 @@ classdef VelocityField < handle
            % Front face.
            flux_front = sum(V(:,:,vf.ascLim(3,2),3)*abs(vf.xsp)*abs(vf.ysp), 'all', 'omitnan');
            
-           flux = flux_left + flux_right + flux_top + flux_bottom + flux_front + flux_back;
+           switch out
+               case 'sum'
+                    flux = flux_left + flux_right + flux_top + flux_bottom + flux_front + flux_back;
+               case 'faces'
+                    flux = [flux_left flux_right flux_top flux_bottom flux_front flux_back];
+           end
        end
        
        function crs = intCubicSurf_cross(vf, V)
