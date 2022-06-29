@@ -1125,7 +1125,7 @@ classdef VelocityField < handle
             
             % 'out' specifies the format for returning quantities:
             % 'sum' returns the total impulse flux over all surfaces
-            % of the volume
+            % of the volume as column vector [Ix Iy Iz]';
             % 'faces' returns the impulse flux on each face in the
             % order: [LEFT RIGHT BOTTOM TOP BACK FRONT]
             
