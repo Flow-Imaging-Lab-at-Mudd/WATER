@@ -1484,6 +1484,89 @@ classdef VelocityField < handle
            
            crs = squeeze(left + right + bottom + top + back + front);
        end
+       
+       function crs = intCubicSurf_doublecross(vf, x, U)
+           % Compute the integral of the cross product x x (n x u), where
+           % n is the normal vector on one of the six faces of the
+           % effective cube. 'x' and 'U' are expected as a standard 4D array, whose
+           % indices are assumed to match that of X_e.
+           
+           if ~isequal(vf.span, size(x, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           if ~isequal(vf.span, size(U, 1:3))
+               error('Mismatching Grids Dimensions!')
+           end
+           
+           % Left face.
+           nL(:,:,:,1) = -1;
+           nL(:,:,:,2) = 0;
+           nL(:,:,:,3) = 0;
+           nL = repmat(nL,size(U,1:3));
+           n_crs_u = cross(nL, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+           
+           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,1),:,:)); 
+           left = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           
+           % Right face.
+           nR(:,:,:,1) = 1;
+           nR(:,:,:,2) = 0;
+           nR(:,:,:,3) = 0;
+           nR = repmat(nR,size(U,1:3));
+           n_crs_u = cross(nR, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+           
+           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,2),:,:)); 
+           right = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           
+           % Bottom face.
+           nBo(:,:,:,1) = 0;
+           nBo(:,:,:,2) = -1;
+           nBo(:,:,:,3) = 0;
+           nBo = repmat(nBo,size(U,1:3));
+           n_crs_u = cross(nBo, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+           
+           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,1),:,:,:)); 
+           bottom = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           
+           % Top face.
+           nT(:,:,:,1) = 0;
+           nT(:,:,:,2) = 1;
+           nT(:,:,:,3) = 0;
+           nT = repmat(nT,size(U,1:3));
+           n_crs_u = cross(nT, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+           
+           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,2),:,:,:));
+           top = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+
+           % Back face.
+           nBa(:,:,:,1) = 0;
+           nBa(:,:,:,2) = 0;
+           nBa(:,:,:,3) = -1;
+           nBa = repmat(nBa,size(U,1:3));
+           n_crs_u = cross(nBa, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+           
+           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,1),:));
+           back = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
+
+           % Front face.
+           nF(:,:,:,1) = 0;
+           nF(:,:,:,2) = 0;
+           nF(:,:,:,3) = 1;
+           nF = repmat(nF,size(U,1:3));
+           n_crs_u = cross(nF, U, 4);
+           x_crs_n_crs_u = cross(x,n_crs_u, 4);
+         
+           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,2),:));
+           front = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
+           
+           crs = squeeze(left + right + bottom + top + back + front);
+       end
         
     end
 end
