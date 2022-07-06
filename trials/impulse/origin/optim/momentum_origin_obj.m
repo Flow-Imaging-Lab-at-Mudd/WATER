@@ -1,6 +1,5 @@
-function [err, derv] = momentum_origin_obj(origin, vf)
-% Objective function for the two integral equations that determine the
-% Ringuette objective origin, given in (De Voria, 2014).
+function [err] = momentum_origin_obj(origin, vf)
+% Objective function for the derivative moment transform of momentum
 % 
 % Derek Li, July 2021
 
@@ -18,9 +17,11 @@ X_rel = VelocityField.operate3Vector(vf.X_e, origin, @minus);
 
 % Remainder of the momentum identity, norm to be
 % minimized.
-rem1 = 2*dv*squeeze(sum(U, [1 2 3], 'omitnan')) - ...
-    dv*squeeze(sum(cross(X_rel, vort, 4), [1 2 3], 'omitnan')) + ...
-    vf.intCubicSurf_doublecross(X_rel, U);
+momentum = dv*squeeze(sum(U, [1 2 3], 'omitnan'));
+impulse = 0.5*dv*squeeze(sum(cross(X_rel, vort, 4), [1 2 3], 'omitnan'));
+flux = 0.5*vf.intCubicSurf_doublecross(X_rel, U);
+
+rem1 = momentum - impulse + flux;
 
 r1 = norm(rem1);
 
