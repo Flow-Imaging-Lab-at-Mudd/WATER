@@ -14,7 +14,10 @@ u0 = 1;
 
 vf = VelocityField.importCmps(x, y, z, u, v, w);
 % Zoom in on vortical region.
-vf.setRangePosition(fr*repmat([-1 1], 3, 1))
+range = fr*repmat([-1 1], 3, 1);
+range(3,1)=0;
+vf.setRangePosition(range);
+
 
 % % Use experimental vortex.
 % load(sprintf('%s%s', folder, '\data\turbulent_vortex_post.mat'))
@@ -54,10 +57,11 @@ err0_box = zeros(props_count, num_ite, 3);
 err0_gss = zeros(props_count, num_ite, 3);
 
 % Minimization options.
-min_opt = optimoptions(@fminunc,'Algorithm','trust-region','SpecifyObjectiveGradient',true);
+%min_opt = optimoptions(@fminunc,'Algorithm','trust-region','SpecifyObjectiveGradient',true);
+min_opt = optimoptions(@fminunc,'Algorithm','quasi-newton','SpecifyObjectiveGradient',false,'Display','iter');
 origin0 = [0 0 0]';
-% % Central location for experimental vortex.
-% origin0 = [-8 10 -21]';
+err0=objective_origin_obj(origin0, vf); 
+[bestorigin,err0,exitflag,~] = fminunc(@(o) objective_origin_obj(o, vf), origin0, min_opt);
 
 % Identify objective origin under different proportions of noise.
 for i = 1: props_count

@@ -6,12 +6,12 @@ classdef VelocityField < handle
     properties
         % Imported fields.
         
-        % 4D matrix of position vectors on grid.
+        % 4D or 5D matrix of position vectors on grid.
         X
-        % 4D matrix of velocity vectors on grid.
+        % 4D or 5D matrix of velocity vectors on grid.
         U
         
-        % 4D matrix of vorticity vectors derived from velocity.
+        % 4D or 5D matrix of vorticity vectors derived from velocity.
         vort
         
         % X, U subsetted into region of interest by vf.range.
@@ -115,16 +115,16 @@ classdef VelocityField < handle
                 minimal = 0;
             end
             
-            dims = [size(x) 3];  
+            dims = [size(x,1:3) 3 size(x,4)];  
             % Pack positions and velocities compactly as 3-vectors in extra dimension.
             X = zeros(dims);
-            X(:,:,:,1) = x;
-            X(:,:,:,2) = y;
-            X(:,:,:,3) = z;
+            X(:,:,:,1,:) = x;
+            X(:,:,:,2,:) = y;
+            X(:,:,:,3,:) = z;
             U = zeros(dims);
-            U(:,:,:,1) = u;
-            U(:,:,:,2) = v;
-            U(:,:,:,3) = w;
+            U(:,:,:,1,:) = u;
+            U(:,:,:,2,:) = v;
+            U(:,:,:,3,:) = w;
             
             vf = VelocityField(X, U, minimal);
         end
@@ -167,12 +167,12 @@ classdef VelocityField < handle
             % Perform binary operation defined by 'op' on each 3-vector of
             % the 4D matrix 'V' with the given 3-vector 'v'.
             
-            if ndims(V) ~= 4 || size(V, 4) ~= 3
-                error('Proper 4D matrix expected!')
+            if ~(ndims(V) == 4 || ndims(V) == 5) || size(V, 4) ~= 3
+                error('Proper 4D or 5D matrix expected!')
             end
-            V(:,:,:,1) = op(V(:,:,:,1), v(1));
-            V(:,:,:,2) = op(V(:,:,:,2), v(2));
-            V(:,:,:,3) = op(V(:,:,:,3), v(3));
+            V(:,:,:,1,:) = op(V(:,:,:,1,:), v(1));
+            V(:,:,:,2,:) = op(V(:,:,:,2,:), v(2));
+            V(:,:,:,3,:) = op(V(:,:,:,3,:), v(3));
         end
         
         function V = add3Vector(V, v)
@@ -341,8 +341,8 @@ classdef VelocityField < handle
             % derived quantities from the velocity field, currently only
             % the vorticity field.
             
-            if ~isequal(ndims(X), 4) || ~isequal(size(X, 4), 3)
-                error('Invalid grids: 4D matrices required!')
+            if ~(isequal(ndims(X), 4) || isequal(ndims(X),5)) || ~isequal(size(X, 4), 3)
+                error('Invalid grids: 4D or 5D matrices required!')
             end
             
             vf.X = X;
@@ -621,7 +621,7 @@ classdef VelocityField < handle
             % internal format of vf.range = [j_0 j_f; i_0 i_f; k_0 k_f].
             % Both scalar and vector fields allowed.
             v = V(vf.range(1,1): vf.range(1,2), ...
-                vf.range(2,1): vf.range(2,2), vf.range(3,1): vf.range(3,2), :);
+                vf.range(2,1): vf.range(2,2), vf.range(3,1): vf.range(3,2), :, :);
         end
 
         %%%%%%%%%%%%%%%%%%%%% Coordinate Helpers %%%%%%%%%%%%%%%%%%%%%
@@ -1254,19 +1254,25 @@ classdef VelocityField < handle
                     case 1
                         for j = 1: size(F, 1)
                             for k = 1: size(F, 3)
-                                dF(j,:,k,d) = D*reshape(F(j,:,k,d), [], 1);
+                                for l = 1: size(F,5)
+                                    dF(j,:,k,d,l) = D*reshape(F(j,:,k,d,l), [], 1);
+                                end
                             end
                         end
                     case 2
                         for i = 1: size(F, 2)
                             for k = 1: size(F, 3)
-                                dF(:,i,k,d) = D*reshape(F(:,i,k,d), [], 1);
+                                for l = 1 : size (F,5)
+                                    dF(:,i,k,d,l) = D*reshape(F(:,i,k,d,l), [], 1);
+                                end
                             end
                         end
                     case 3
                         for j = 1: size(F, 1)
                             for i = 1: size(F, 2)
-                                dF(j,i,:,d) = D*reshape(F(j,i,:,d), [], 1);
+                                for l = 1 : size (F, 5)
+                                    dF(j,i,:,d,l) = D*reshape(F(j,i,:,d,l), [], 1);
+                                end
                             end
                         end
                 end
@@ -1292,10 +1298,17 @@ classdef VelocityField < handle
                     grad(:,:,:,j) = vf.diff(F, j, 1);
                 end
             % Otherwise a vector field.
-            else
+            elseif ndims(F) == 4
                 for i = 1: size(F, 4)
                     for j = 1: 3
                         grad(:,:,:,i,j) = vf.diff(F(:,:,:,i), j, 1);
+                    end
+                end
+            % time-resolved field
+            elseif ndims(F) == 5
+                for i = 1:size(F, 4)
+                    for j = 1: 3
+                        grad(:,:,:,i,:,j) = vf.diff(F(:,:,:,i,:), j, 1);
                     end
                 end
             end
@@ -1347,12 +1360,12 @@ classdef VelocityField < handle
                 return
             end
             % 3D velocity field.
-            C(:,:,:,1) = vf.diff(F(:,:,:,3), 2, 1) - ...
-                vf.diff(F(:,:,:,2), 3, 1);
-            C(:,:,:,2) = vf.diff(F(:,:,:,1), 3, 1) - ...
-                vf.diff(F(:,:,:,3), 1, 1);
-            C(:,:,:,3) = vf.diff(F(:,:,:,2), 1, 1) - ...
-                vf.diff(F(:,:,:,1), 2, 1);
+            C(:,:,:,1,:) = vf.diff(F(:,:,:,3,:), 2, 1) - ...
+                vf.diff(F(:,:,:,2,:), 3, 1);
+            C(:,:,:,2,:) = vf.diff(F(:,:,:,1,:), 3, 1) - ...
+                vf.diff(F(:,:,:,3,:), 1, 1);
+            C(:,:,:,3,:) = vf.diff(F(:,:,:,2,:), 1, 1) - ...
+                vf.diff(F(:,:,:,1,:), 2, 1);
         end
         
         
@@ -1394,12 +1407,12 @@ classdef VelocityField < handle
                error('Mismatching Grids Dimensions!')
            end
            
-           vec = abs(vf.ysp*vf.zsp)*([-1 0 0]'*sum(S(:,vf.ascLim(1,1),:), 'all', 'omitnan') + ...
-               [1 0 0]'*sum(S(:,vf.ascLim(1,2),:), 'all', 'omitnan')) + ...
-               abs(vf.xsp*vf.zsp)*([0 -1 0]'*sum(S(vf.ascLim(2,1),:,:), 'all', 'omitnan') + ...
-               [0 1 0]'*sum(S(vf.ascLim(2,2),:,:), 'all', 'omitnan')) + ...
-               abs(vf.xsp*vf.ysp)*([0 0 -1]'*sum(S(:,:,vf.ascLim(3,1)), 'all', 'omitnan') + ...
-               [0 0 1]'*sum(S(:,:,vf.ascLim(3,2)), 'all', 'omitnan'));
+           vec = abs(vf.ysp*vf.zsp)*([-1 0 0]'.*squeeze(sum(S(:,vf.ascLim(1,1),:,:), [1 2 3], 'omitnan'))' + ...
+               [1 0 0]'.*squeeze(sum(S(:,vf.ascLim(1,2),:,:), [1 2 3], 'omitnan'))') + ...
+               abs(vf.xsp*vf.zsp)*([0 -1 0]'.*squeeze(sum(S(vf.ascLim(2,1),:,:,:), [1 2 3], 'omitnan'))' + ...
+               [0 1 0]'.*squeeze(sum(S(vf.ascLim(2,2),:,:,:), [1 2 3], 'omitnan'))') + ...
+               abs(vf.xsp*vf.ysp)*([0 0 -1]'.*squeeze(sum(S(:,:,vf.ascLim(3,1),:), [1 2 3], 'omitnan'))' + ...
+               [0 0 1]'.*squeeze(sum(S(:,:,vf.ascLim(3,2),:), [1 2 3], 'omitnan'))');
        end
        
        function flux = intCubicSurf_flux(vf, V, out)
@@ -1500,72 +1513,78 @@ classdef VelocityField < handle
            end
            
            % Left face.
-           nL(:,:,:,1) = -1;
-           nL(:,:,:,2) = 0;
-           nL(:,:,:,3) = 0;
-           nL = repmat(nL,size(U,1:3));
+           nL = zeros(size(U));
+           nL(:,:,:,1,:) = -1;
+           nL(:,:,:,2,:) = 0;
+           nL(:,:,:,3,:) = 0;
+           
            n_crs_u = cross(nL, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
            
-           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,1),:,:)); 
-           left = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,1),:,:,:)); 
+           left = squeeze(abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan'));
            
            % Right face.
-           nR(:,:,:,1) = 1;
-           nR(:,:,:,2) = 0;
-           nR(:,:,:,3) = 0;
-           nR = repmat(nR,size(U,1:3));
+           nR = zeros(size(U));
+           nR(:,:,:,1,:) = 1;
+           nR(:,:,:,2,:) = 0;
+           nR(:,:,:,3,:) = 0;
+           
            n_crs_u = cross(nR, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
            
-           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,2),:,:)); 
-           right = abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(:,vf.ascLim(1,2),:,:,:)); 
+           right = squeeze(abs(vf.ysp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan'));
            
            % Bottom face.
-           nBo(:,:,:,1) = 0;
-           nBo(:,:,:,2) = -1;
-           nBo(:,:,:,3) = 0;
-           nBo = repmat(nBo,size(U,1:3));
+           nBo = zeros(size(U));
+           nBo(:,:,:,1,:) = 0;
+           nBo(:,:,:,2,:) = -1;
+           nBo(:,:,:,3,:) = 0;
+      
            n_crs_u = cross(nBo, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
            
-           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,1),:,:,:)); 
-           bottom = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,1),:,:,:,:)); 
+           bottom = squeeze(abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan'));
            
            % Top face.
-           nT(:,:,:,1) = 0;
-           nT(:,:,:,2) = 1;
-           nT(:,:,:,3) = 0;
-           nT = repmat(nT,size(U,1:3));
+           nT = zeros(size(U));
+           nT(:,:,:,1,:) = 0;
+           nT(:,:,:,2,:) = 1;
+           nT(:,:,:,3,:) = 0;
+  
            n_crs_u = cross(nT, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
            
-           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,2),:,:,:));
-           top = abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(vf.ascLim(2,2),:,:,:,:));
+           top = squeeze(abs(vf.xsp)*abs(vf.zsp)*sum(crs_pd, [1 2], 'omitnan'));
 
            % Back face.
-           nBa(:,:,:,1) = 0;
-           nBa(:,:,:,2) = 0;
-           nBa(:,:,:,3) = -1;
-           nBa = repmat(nBa,size(U,1:3));
+           nBa = zeros(size(U));
+           nBa(:,:,:,1,:) = 0;
+           nBa(:,:,:,2,:) = 0;
+           nBa(:,:,:,3,:) = -1;
+ 
            n_crs_u = cross(nBa, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
            
-           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,1),:));
-           back = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,1),:,:));
+           back = squeeze(abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan'));
 
            % Front face.
-           nF(:,:,:,1) = 0;
-           nF(:,:,:,2) = 0;
-           nF(:,:,:,3) = 1;
-           nF = repmat(nF,size(U,1:3));
+           nF = zeros(size(U));
+           nF(:,:,:,1,:) = 0;
+           nF(:,:,:,2,:) = 0;
+           nF(:,:,:,3,:) = 1;
+       
            n_crs_u = cross(nF, U, 4);
            x_crs_n_crs_u = cross(x,n_crs_u, 4);
          
-           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,2),:));
-           front = abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan');
+           crs_pd = squeeze(x_crs_n_crs_u(:,:,vf.ascLim(3,2),:,:));
+           front = squeeze(abs(vf.xsp)*abs(vf.ysp)*sum(crs_pd, [1 2], 'omitnan'));
            
-           crs = squeeze(left + right + bottom + top + back + front);
+           crs = left + right + bottom + top + back + front;
        end
         
     end

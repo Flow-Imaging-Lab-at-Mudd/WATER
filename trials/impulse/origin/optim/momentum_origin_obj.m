@@ -8,8 +8,7 @@ dv = abs(vf.xsp*vf.ysp*vf.zsp);
 
 % Noisy velocity.
 U = vf.U_e + vf.N_e;
-% Noisy velocity gradient.
-ugrad = vf.gradient(U);
+
 % Noisy vorticity.
 vort = vf.vorticity(1);
 % Relative position to the given origin.
@@ -28,12 +27,12 @@ r1 = norm(rem1);
 err = r1;
 
 % Compute gradient for this objective function.
-derv = zeros(3, 1);
-% Identity matrix used for diff indexing.
-I = eye(3);
-
-for i = 1: 3
-    derv1 = rem1'/r1 * cross(I(:,i), squeeze(dv*sum(vort, [1 2 3], 'omitnan')) + ...
-        vf.intCubicSurf_cross(U));
-    derv(i) = derv1;
-end
+% derv = zeros(3, 1);
+% % Identity matrix used for diff indexing.
+% I = eye(3);
+% 
+% for i = 1: 3
+%     derv1 = rem1'/r1 * cross(I(:,i), squeeze(dv*sum(vort, [1 2 3], 'omitnan')) + ...
+%         vf.intCubicSurf_cross(U));
+%     derv(i) = derv1;
+% end
