@@ -21,7 +21,7 @@ if ~exist('range', 'var')
 end
 
 % Subset region plotted.
-if ~isequal(size(X), range * [-1 1]' + 1)
+if ~isequal(size(X, 1:3), [range * [-1 1]' + 1]')
     X = X(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
     Y = Y(range(1,1): range(1,2), range(2,1): range(2,2), range(3,1): range(3,2), :);
 end
