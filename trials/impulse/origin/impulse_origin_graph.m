@@ -9,7 +9,7 @@
 savefig = false;
 
 % Paremeters of vortex.
-spr = 0.1;
+spr = 0.05;
 l = 1;
 vr = 1;
 % Feature radius.
@@ -33,11 +33,9 @@ vf.setRangePosition(fr*repmat([-1 1], 3, 1))
 % Consider stochatic effect of noise introduction.
 num_ite = 5;
 % Proportional noise. For biases to be properly computed, must include 0.
-props = [0 2];
+props = [0 1.5];
 props_count = size(props, 2);
 
-% Mean speed.
-u_mean = vf.meanSpeed(0, 0);
 
 % Theoretical momentum.
 I0 = Hill_Impulse(vf.fluid.density, vf.scale.len, fr, u0);
@@ -52,8 +50,8 @@ i0 = I0(3);
 % Sample origins uniformly from the grid. This is done by making another
 % velocity field, which is only used for plotting. The positions of this
 % velocity field are the origins.
-osp = 1 * ones(1, 3);
-oends = [-1 1; -1 1; -1 1];
+osp = 0.25 * ones(1, 3);
+oends = 1.25*repmat([-1 1], 3, 1);
 
 % % Experimental.
 % oends = [-30 20; -15 35; -45 -5];
@@ -77,7 +75,7 @@ for n = 1: num_ite
     % This section parallels impulse_err_run.m
     for p = 1: props_count
         vf.clearNoise()
-        N = vf.noise_uniform(props(p)*u_mean);
+        N = vf.noise_uniform(props(p)*u0);
         for j = 1: vfp.dims(1)
             for i = 1: vfp.dims(2)
                 for k = 1: vfp.dims(3)
@@ -107,29 +105,30 @@ for n = 1: num_ite
     end
 end
 
-% Normalize.
-err = abs(err) / i0;
-err_box = abs(err_box) / i0;
-err_gss = abs(err_gss) / i0;
+% Normalize absolute error.
+err0 = err / i0;
+err0_box = err_box / i0;
+err0_gss = err_gss / i0;
 
 % Extract bias from a 0 noise level.
 bias_ori = squeeze(err(:,:,:,:,1,1));
 bias_box = squeeze(err_box(:,:,:,:,1,1));
 bias_gss = squeeze(err_gss(:,:,:,:,1,1));
 
-% Average over noise proportions and trials.
-err = squeeze(mean(err, [5 6]));
-err_box = squeeze(mean(err_box, [5 6]));
-err_gss = squeeze(mean(err_gss, [5 6]));
-
-% Take magnitude.
-mag_err = squeeze(sqrt(sum(err.^2, 4)));
-mag_err_box = squeeze(sqrt(sum(err_box.^2, 4)));
-mag_err_gss = squeeze(sqrt(sum(err_gss.^2, 4)));
-
+% Compute bias magnitude.
 mag_bias_ori = squeeze(sqrt(sum(bias_ori.^2, 4)));
 mag_bias_box = squeeze(sqrt(sum(bias_box.^2, 4)));
 mag_bias_gss = squeeze(sqrt(sum(bias_gss.^2, 4)));
+
+% Mean error magnitudes.
+mag_err = squeeze(mean(sqrt(sum(err.^2, 4)), 6));
+mag_err_box = squeeze(mean(sqrt(sum(err_box.^2, 4)), 6));
+mag_err_gss = squeeze(mean(sqrt(sum(err_gss.^2, 4)), 6));
+
+% Average over trials.
+err = mean(abs(err0), 6);
+err_box = mean(abs(err0_box), 6);
+err_gss = mean(abs(err0_gss), 6);
 
 %%%%%%%%%%%%%%%% Dimensional Plots %%%%%%%%%%%%%%%%%
 
@@ -231,18 +230,18 @@ if savePlot
 end
 
 % Noise added.
-vfp.plotScalar(mag_err, 0, ...
+vfp.plotScalar(mag_err(:,:,:,2), 0, ...
     strcat('Magnitude of unfiltered error'));
 if savePlot
     saveas(gcf, strcat(img_fdr, 'err-unf.fig'))
 end
 % Smoothed.
-vfp.plotScalar(mag_err_box, 0, ...
+vfp.plotScalar(mag_err_box(:,:,:,2), 0, ...
     strcat('Magnitude of mean error after box smoothing'));
 if savePlot
     saveas(gcf, strcat(img_fdr, 'err-box.fig'))
 end
-vfp.plotScalar(mag_err_gss, 0, ...
+vfp.plotScalar(mag_err_gss(:,:,:,2), 0, ...
     strcat('Magnitude of mean error after Gaussian smoothing'));
 if savePlot
     saveas(gcf, strcat(img_fdr, 'err-gss.fig'))
