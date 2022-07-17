@@ -1,4 +1,5 @@
-function [dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dKsd, dKsd_box, dKsd_gss, vf] = ...
+function [dK, dK_box, dK_gss, dK0, bias_box, bias_gss, dKsd, dKsd_box, dKsd_gss, vf, ...
+    dKm, dKm_box, dKm_gss, dKmsd, dKmsd_box, dKmsd_gss] = ...
     KE_err_run(vf, props, K0, KEf, num_ite, window_params, display_plots)
 % An noise-propagation trial of computing KE after introducing specified
 % levels of noise.
@@ -66,14 +67,26 @@ dK = dK / K0;
 dK_box = dK_box / K0;
 dK_gss = dK_gss / K0;
 
+% Error magnitudes.
+dKm = abs(dK);
+dKm_box = abs(dK_box);
+dKm_gss = abs(dK_gss);
+
 % Average across trials.
 dKsd = std(dK, 0, 2);
 dKsd_box = std(dK_box, 0, 2);
 dKsd_gss = std(dK_gss, 0, 2);
-
 dK = mean(dK, 2);
 dK_box = mean(dK_box, 2);
 dK_gss = mean(dK_gss, 2);
+
+% Average over magnitudes.
+dKmsd = std(dKm, 0, 2);
+dKmsd_box = std(dKm_box, 0, 2);
+dKmsd_gss = std(dKm_gss, 0, 2);
+dKm = mean(dKm, 2);
+dKm_box = mean(dKm_box, 2);
+dKm_gss = mean(dKm_gss, 2);
 
 % Baseline resolution errors.
 dK0 = dK(1);
@@ -81,51 +94,55 @@ bias_box = dK_box(1);
 bias_gss = dK_gss(1);
 
 %%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%
-% Font size for plots.
-fsize = 10;
 
-if ~exist('display_plots', 'var') || ~display_plots
+if ~exist('display_plots', 'var') || (isinteger(display_plots) && ~display_plots)
     return
 end
 
-plot_signed_err = 1;
-if plot_signed_err
-    figure;
-    errorbar(props, dK, dKsd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-    hold on
-    errorbar(props, dK_box, dKsd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-    hold on
-    errorbar(props, dK_gss, dKsd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+% Font.
+font = 'Times New Roman';
+fontSize = 10;
+
+if ismember('signed', display_plots)
+%     figure;
+%     errorbar(props, dK, dKsd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+%     hold on
     
-    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
-    xlabel('$\frac{|\delta u|}{\bar{u}}$')
-    ylabel('$\frac{\delta K}{K}$')
-    title('Normalized KE Error')
-    ax = gca;
-    ax.FontSize = fsize;
+    if num_ite == 1
+%         scatter(props, dK, 'filled', 'k')
+%         hold on
+        scatter(props, dK_box, 'filled', 'r')
+        hold on
+        scatter(props, dK_gss, 'filled', 'b')
+    else
+%         errorbar(props, dK, dKsd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+%         hold on
+        errorbar(props, dK_box, dKsd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+        hold on
+        errorbar(props, dK_gss, dKsd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    end
+    
+    legend({'box-filtered', 'Gaussian-filtered'})
+%     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
+    xlabel('Noise proportion', 'FontName', font, 'FontSize', fontSize)
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title('(a) Signed kinetic energy error', 'FontName', font, 'FontSize', fontSize)
 end
 
 %%%%%%%%%%%%%%%%%% Plot absolute KE error %%%%%%%%%%%%%%%%%%%%%
-plot_abs_err = 1;
-if plot_abs_err
-    abs_dK = abs(dK);
-    abs_dK_box = abs(dK_box);
-    abs_dK_gss = abs(dK_gss);
-    abs_dKd = abs(dKsd);
-    abs_dKd_box = abs(dKsd_box);
-    abs_dKd_gss = abs(dKsd_gss);
     
-    figure;
-    errorbar(props, abs_dK, abs_dKd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-    hold on
-    errorbar(props, abs_dK_box, abs_dKd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-    hold on
-    errorbar(props, abs_dK_gss, abs_dKd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+if ismember('mag', display_plots)
     
-    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
-    xlabel('$\frac{|\delta u|}{\bar{u}}$')
-    ylabel('$|\frac{\delta K}{K}|$')
-    title('Absolute KE Error')
-    ax = gca;
-    ax.FontSize = fsize;
+%     figure;
+%     errorbar(props, dKm, dKmsd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+%     hold on
+    errorbar(props, dKm_box, dKmsd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    hold on
+    errorbar(props, dKm_gss, dKmsd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    
+    legend({'box-filtered', 'Gaussian-filtered'})
+%     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+    xlabel('Noise proportion', 'FontName', font, 'FontSize', fontSize)
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title('(b) Magnitude of kinetic energy error', 'FontName', font, 'FontSize', fontSize)
 end

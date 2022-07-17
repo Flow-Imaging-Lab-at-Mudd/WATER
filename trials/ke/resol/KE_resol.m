@@ -30,7 +30,7 @@ end
 % Generate range of spacings for evenly spaced feature resolutions.
 if ~windowing
     % Global spacing of downsampled data.
-    sps = zeros(1, floor((max_fres-1)/fres_inc) + 1);
+    sps = zeros(1, floor((max_fres-min_fres)/fres_inc) + 1);
     % Minimal feature resolution.
     sps(1) = fr / min_fres;
     for i = 2: size(sps, 2)
@@ -57,6 +57,13 @@ dK_box = zeros(sps_count, 1);
 dK_sd_box = zeros(sps_count, 1);
 dK_gss = zeros(sps_count, 1);
 dK_sd_gss = zeros(sps_count, 1);
+% Error magnitudes.
+dKm = zeros(sps_count, 1);
+dKm_sd = zeros(sps_count, 1);
+dKm_box = zeros(sps_count, 1);
+dKm_sd_box = zeros(sps_count, 1);
+dKm_gss = zeros(sps_count, 1);
+dKm_sd_gss = zeros(sps_count, 1);
 
 % Resolution errors.
 dK0 = zeros(sps_count, 1);
@@ -85,8 +92,9 @@ for k = 1: sps_count
     
     % Windowing is performed within error trial.
     [dK(k), dK_box(k), dK_gss(k), dK0(k), bias_box(k), bias_gss(k), ...
-        dK_sd(k), dK_sd_box(k), dK_sd_gss(k), vfd] = ...
-            KE_err_run_constN(vf, props, K0, KEf, num_ite, window_params);
+        dK_sd(k), dK_sd_box(k), dK_sd_gss(k), vfd, ...
+        dKm(k), dKm_box(k), dKm_gss(k), dKm_sd(k), dKm_sd_box(k), dKm_sd_gss(k)] = ...
+            KE_err_run_constN(vf, props, K0, KEf, num_ite, window_params, {});
     fres(k) = (vfd.span(1)-1)/2;
     % Store this vf to return.
     vfds{k} = vfd;
@@ -108,11 +116,11 @@ catch
 end
 
 % try
-%     min_res(2,1) = fres(find(abs(dK_box) < err_level, 1));
+%     min_res(2,1) = fres(find(abs(dKm_box) < err_level, 1));
 % catch
 % end
 try
-    min_res(2,2) = fres(find(abs(dK_gss) < err_level, 1));
+    min_res(2,2) = fres(find(abs(dKm_gss) < err_level, 1));
 catch
 end
 
@@ -127,73 +135,61 @@ fprintf('Minimum resolution for %.0f%% noise-propagated error: \n', err_level*10
 fprintf('Gaussian: %d \n', min_res(2,2))
 
 %%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%
-if ~display_plots
+if isempty(display_plots)
     return
 end
 
-% Whether error is to be plotted with sign (can be both).
-plot_signed = 1;
-plot_abs = 0;
+% Font.
+font = 'Times New Roman';
+fontSize = 10;
 
-if plot_signed
+if ismember('bias', display_plots)
     % Smoother bias plot.
-    figure;
+%     figure;
     scatter(fres, dK0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
     scatter(fres, bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
     scatter(fres, bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     
-    legend({'imperfect resolution', 'box-filtered', 'Gaussian-filtered'})
-    xlabel(strcat('Feature Resolution'))
-    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-    title(strcat('Resolution errors at $r = $', {' '}, string(fr)))
+    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
+    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title('(a) Resolution error of kinetic energy')
 end
 
-if plot_abs
-    % Smoother bias plot.
-    figure;
-    scatter(fres, abs(dK0), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-    hold on
-    scatter(fres, abs(bias_box), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-    hold on
-    scatter(fres, abs(bias_gss), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-    
-    legend({'imperfect resolution', 'box-filtered', 'Gaussian-filtered'})
-    xlabel(strcat('Feature Resolution'))
-    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-    title(strcat('Absolute resolution errors at $r = $', {' '}, string(fr)))
-end
-
-% Mean error plot.
-if plot_signed
-    figure;
-    errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-    hold on
+if ismember('signed', display_plots)
+    % Mean error plot of signed error.
+%     figure;
+%     errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+%     hold on
     errorbar(fres, dK_box, dK_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
     hold on
     errorbar(fres, dK_gss, dK_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
     
-    legend({'unfiltered', ...
-        'box-filtered', ...
-        'Gaussian-filtered'})
-    xlabel(strcat('Feature Resolution'))
-    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-    title(sprintf('Mean error at $\\delta u = %.0f$\\%% at $r = %.0f$', string(props(2)*100), string(fr)))
+    legend({'box-filtered', 'Gaussian-filtered'})
+%     legend({'unfiltered', ...
+%         'box-filtered', ...
+%         'Gaussian-filtered'})
+    xlabel(strcat('Feature resolution'))
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title('(c) Kinetic energy error under noise', 'FontName', font, 'FontSize', fontSize)
 end
 
-if plot_abs
-    figure;
-    errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+if ismember('mag', display_plots)
+    % Mean error plot.
+%     figure;
+%     errorbar(fres, dKm, dKm_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+%     hold on
+    errorbar(fres, dKm_box, dKm_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
     hold on
-    errorbar(fres, dK_box, dK_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-    hold on
-    errorbar(fres, dK_gss, dK_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    errorbar(fres, dKm_gss, dKm_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
     
-    legend({'unfiltered', ...
-        'box-filtered', ...
-        'Gaussian-filtered'})
-    xlabel(strcat('Feature Resolution'))
-    ylabel(strcat('$\left|\frac{\delta K}{K}\right|$'))
-    title(sprintf('Absolute mean error at $\\delta u = %.0f$\\%% at $r = %.0f$', string(props(2)*100), string(fr)))
+    legend({'box-filtered', 'Gaussian-filtered'})
+%     legend({'unfiltered', ...
+%         'box-filtered', ...
+%         'Gaussian-filtered'})
+    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title('(b) Kinetic energy error magnitude under noise', 'FontName', font, 'FontSize', fontSize)
 end
