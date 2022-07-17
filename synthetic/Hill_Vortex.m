@@ -18,7 +18,7 @@ function [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, rem)
 % u,v,w: Arrays of velocity components in meshgrid format
 
 % Written by Leah Mendelson 5/1/14
-% Modified by Derek Li 2/6/2022
+% Modified by Derek Li 2/6/22
 
 % range of values for x,y,z
 % permits different scaling of z-direction resolution using z_factor input
@@ -48,7 +48,7 @@ R = sqrt((x-xc).^2 + (y-yc).^2 + (z-zc).^2);
 r = sqrt((x-xc).^2 + (y-zc).^2);
 theta = atan2(y, x);
 
-% Interior velocityt field.
+% Interior velocity field.
 % Velocity in z direction.
 w = 3/2*u0*(1 - (2*r.^2 + z.^2)/a^2);
 % Velocity in planar radial direction.
