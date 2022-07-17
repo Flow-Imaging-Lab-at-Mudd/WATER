@@ -1,8 +1,8 @@
 function [fres, dI, dI_box, dI_gss, dI0, bias_box, bias_gss, di, di_box, ...
     di_gss, di0, mag_bias_box, mag_bias_gss, dI_sd, dI_sd_box, dI_sd_gss, ...
-    di_sd, di_sd_box, di_sd_gss, vfds] = ...
+    di_sd, di_sd_box, di_sd_gss, vfds, t] = ...
     impulse_resol(l, vr, u0, min_fres, max_fres, fres_inc, origin, props, err_level, ...
-        num_ite, window_params, show_plot, vfds)
+        num_ite, window_params, display_plot, vfds)
 % Variation of error with feature resolution. Parameters held constant are
 % 'fr', 'origin', and 'props'. At low resolutions, depending on whether the
 % spacing perfectly divides the (-1, 1) region, e.g. s = 0.1 does, s = 0.3
@@ -40,7 +40,7 @@ end
 % Generate range of spacings for evenly spaced feature resolutions.
 if ~windowing
     % Global spacing of downsampled data.
-    sps = zeros(1, floor((max_fres-1)/fres_inc) + 1);
+    sps = zeros(1, floor((max_fres-min_fres)/fres_inc) + 1);
     % Minimal feature resolution.
     sps(1) = fr / min_fres;
     for i = 2: size(sps, 2)
@@ -107,7 +107,7 @@ for k = 1: sps_count
     [dI(:,k), dI_box(:,k), dI_gss(:,k), dI0(:,k), bias_box(:,k), bias_gss(:,k), ...
         dI_sd(:,k), dI_sd_box(:,k), dI_sd_gss(:,k), di(:,k), di_box(:,k), di_gss(:,k), ...
         di0(k), mag_bias_box(k), mag_bias_gss(k), di_sd(k), di_sd_box(k), di_sd_gss(k), vfd] = ...
-        impulse_err_run_constN(vf, props, origin, I0, num_ite, window_params, false);
+        impulse_err_run_constN(vf, props, origin, I0, num_ite, window_params, {});
     % Compute resolutions after downsampling, if applicable.
     fres(k) = (vfd.span(1)-1)/2;
     % Store this vf to return.
@@ -150,81 +150,96 @@ fprintf('Gaussian: %d \n', min_res(2,2))
 
 %%%%%%%%%%%%%%%% Dimensional Plots %%%%%%%%%%%%%%%%%
 % Dimension, i.e., x, y, z, to plot, specified correspondingly by 1, 2, 3.
-dims = [];
+dims = [3];
 dim_str = {'x', 'y', 'z'};
 
-if ~exist('show_plot', 'var') || ~show_plot
+if ~display_plot
     return
 end
 
+% Font.
+font = 'Times New Roman';
+fontSize = 10;
+
+% Handles to figures to return.
+axes = {};
+
+figure;
+t = tiledlayout(1, 2);
+
 for dim = dims
     % Smoother bias plot.
-    figure;
+%     figure;
+    nexttile;
     scatter(fres, dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
     scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
     hold on
     scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
     
-    legend({'imperfect resolution', ...
-        'box-filtered', ...
-        'Gaussian-filtered'}, ...
-        'Interpreter', 'latex')
-    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', dim_str{dim}, '$ Smoother Bias at $r = $', {' '}, string(fr)))
+    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
     
-    % Mean error plot.
-    figure;
-    errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
-    hold on
-    errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-    hold on
-    errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+%     legend({'unfiltered', ...
+%         'box-filtered', ...
+%         'Gaussian-filtered'}, ...
+%         'Interpreter', 'latex')
+    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
+    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    title(sprintf('(a) Impulse resolution error in $\\hat{%s}$', string(dim_str{dim})), 'FontName', font, 'FontSize', fontSize)
+    axes{end+1} = gca;
     
-    legend({'unfiltered', ...
-        'box-filtered', ...
-        'Gaussian-filtered'}, ...
-        'Interpreter', 'latex')
-    xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-    ylabel(strcat('$\left|\frac{\delta I_', string(dim_str{dim}), '}{I}\right|$'))
-    title(strcat('$', string(dim_str{dim}), '$ Mean Error at $\delta u = $', ...
-        string(props(2)*100), '\% at $r = $', {' '}, string(fr)))
+%     % Mean error plot.
+%     figure;
+%     errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
+%     hold on
+%     errorbar(fres, dI_box(dim,:), dI_sd_box(dim,:), 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+%     hold on
+%     errorbar(fres, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+%     
+%     legend({'unfiltered', ...
+%         'box-filtered', ...
+%         'Gaussian-filtered'}, ...
+%         'Interpreter', 'latex')
+%     xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
+%     ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+%     title(sprintf('Impulse error in $\\hat{%s}$ under noise', string(dim_str{dim})), 'FontName', font, 'FontSize', fontSize)
 end
 
 
 %%%%%%%%%%%%%%%%%%% Magnitude Plots %%%%%%%%%%%%%%%%%%%%
 
-% Smoother bias plot.
-figure;
-scatter(fres, di0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-hold on
-scatter(fres, mag_bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-hold on
-scatter(fres, mag_bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-hold on
-
-legend({'box filtered', ...
-    'Gaussian-filtered'}, ...  
-    'Interpreter', 'latex')
-xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Magnitude of Smoother Bias at $r = $', {' '}, string(fr)))
+% % Smoother bias plot.
+% figure;
+% scatter(fres, di0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+% hold on
+% scatter(fres, mag_bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+% hold on
+% scatter(fres, mag_bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+% hold on
+% 
+% legend({'unfiltered', 'box filtered', ...
+%     'Gaussian-filtered'}, ...  
+%     'Interpreter', 'latex')
+%     xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
+%     ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+% title('Impulse resolution error magnitude')
 
 % Mean error plot.
-figure;
+% figure;
+nexttile;
 errorbar(fres, di, di_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 hold on
-errorbar(fres, di_box, di_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
-hold on
-errorbar(fres, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-hold on
+errorbar(fres, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+% hold on
+% errorbar(fres, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
 
-legend({'unfiltered', ...
-    'box-filtered', ...
-    'Gaussian-filtered'}, ...  
-    'Interpreter', 'latex')
-xlabel(strcat('Feature Resolution $\frac{r}{s}$'))
-ylabel('$\left|\frac{\delta I}{I}\right|$')
-title(strcat('Mean Error Magnitude at $\delta u = ', ...
-        string(props(2)*100), '$\% at $r = $', {' '}, string(fr)))
+legend({'unfiltered', 'box-filtered'}, 'Interpreter', 'latex')
+
+% legend({'unfiltered', ...
+%     'box-filtered', ...
+%     'Gaussian-filtered'}, ...  
+%     'Interpreter', 'latex')
+xlabel('Feature resolution')
+ylabel('Proportional error')
+title('(b) Impulse error magnitude under noise')
+axes{end+1} = gca;
