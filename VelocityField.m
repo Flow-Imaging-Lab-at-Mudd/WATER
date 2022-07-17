@@ -1099,10 +1099,6 @@ classdef VelocityField < handle
                 error('Invalid origin')
             end
             
-            if ~exist('origin', 'var')
-                origin = [0 0 0]';
-            end
-            
             if with_noise
                 I = squeeze(vf.fluid.density/2 * ...
                     sum(cross(VelocityField.subtract3Vector(vf.X_e, origin), ...
