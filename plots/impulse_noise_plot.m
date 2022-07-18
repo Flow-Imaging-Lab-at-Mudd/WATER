@@ -37,11 +37,11 @@ axA = gca;
 axA.FontName = font;
 axA.FontSize = fontSize;
 
-xlim([0 3])
+xlim([-0.1 3.1])
 ylim([0 0.25])
 
-axA.XLabel.FontSize = 1.75*fontSize;
-axA.YLabel.FontSize = 1.75*fontSize;
+axA.XLabel.FontSize = 1.5*fontSize;
+axA.YLabel.FontSize = 1.5*fontSize;
 axA.YLabel.Rotation = 0;
 axA.YLabel.Position(1) = axA.YLabel.Position(1)-0.3;
 
@@ -57,11 +57,11 @@ axB = gca;
 axB.FontName = font;
 axB.FontSize = fontSize;
 
-xlim([0 3])
+xlim([-0.1 3.1])
 ylim([0 0.25])
 
-axB.XLabel.FontSize = 1.75*fontSize;
-axB.YLabel.FontSize = 1.75*fontSize;
+axB.XLabel.FontSize = 1.5*fontSize;
+axB.YLabel.FontSize = 1.5*fontSize;
 axB.YLabel.Rotation = 0;
 axB.YLabel.Position(1) = axB.YLabel.Position(1)-0.3;
 
@@ -71,4 +71,4 @@ fig = gcf;
 fig.Units = 'centimeters';
 fig.Position(3) = 11.9;
 fig.Position(4) = 7;
-exportgraphics(fig,'HillNoise.pdf','ContentType','vector','BackgroundColor','None')
+exportgraphics(fig,'HillImpulseNoise.pdf','ContentType','vector','BackgroundColor','None')
