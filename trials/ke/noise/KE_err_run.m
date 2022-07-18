@@ -49,6 +49,7 @@ dK_gss = zeros(length(props), num_ite);
 % Plot energy estimation error for small and large values of noise.
 for i = 1: size(props, 2)
     for j = 1: num_ite
+        disp(['Iteration ' num2str(j)])
         vf.clearNoise();
         N = vf.noise_uniform(props(i)*u_mean);
         dK(i,j) = KEf(vf, 1) - K0;
