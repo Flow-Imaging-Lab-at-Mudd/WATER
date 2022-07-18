@@ -6,6 +6,9 @@ function [dI, dI_box, dI_gss, dI0, bias_box, bias_gss, ...
 %
 % April, 2022
 
+font = 'Arial';
+fontSize = 8;
+
 if ~isvector(winsizes)
     error('Uniform windows expected!')
 end
@@ -40,6 +43,7 @@ di_sd_gss = zeros(1, win_count);
 mag_bias_gss = zeros(1, win_count);
 
 for k = 1: win_count
+    disp(['Window size ' num2str(k)])
     [dI(:,k), dI_box(:,k), dI_gss(:,k), dI0(:,k), bias_box(:,k), bias_gss(:,k), ...
         dI_sd(:,k), dI_sd_box(:,k), dI_sd_gss(:,k), ...
         di(:,k), di_box(:,k), di_gss(:,k), di0(:,k), mag_bias_box(:,k), mag_bias_gss(:,k), ...
@@ -63,12 +67,12 @@ if ismember('dim', display_plots)
 %             figure;
             axes{end+1} = scatter(winsizes, dI0(dim,:), 'k', 'filled');
             xticks(winsizes)
-            xlabel('Window size')
-            ylabel('$\frac{\delta I_z}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
+            xlabel('Window size (voxels)','fontName',font,'fontSize',fontSize,'interpreter','none')
+            ylabel('$\frac{\delta I}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0,'fontSize',1.5*fontSize)
             title('Impulse windowing resolution error in $\hat{z}$')
             % Log plot.
             ax = gca;
-            ax.XScale = 'log';
+            %ax.XScale = 'log';
             xlim([winsizes(1)/2 winsizes(end)*2])
         end
         
@@ -82,14 +86,14 @@ if ismember('dim', display_plots)
             scatter(winsizes, bias_gss(dim,:), 'b', 'filled', 'Marker', '^')
             
             xticks(winsizes)
-            legend({'unfiltered', 'Gaussian'})
+            legend({'Unfiltered', 'Gaussian'},'fontName',font,'fontSize',fontSize,'interpreter','none','location','southwest')
 %             legend({'unfiltered', 'box', 'Gaussian'})
-            xlabel('Window size')
-            ylabel('$\frac{\delta I_z}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
+            xlabel('Window size (voxels)','fontName',font,'fontSize',fontSize,'interpreter','none')
+            ylabel('$\frac{\delta I}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0,'fontSize',1.5*fontSize)
             title('Impulse windowing resolution error in $\hat{z}$')
             % Log plot.
             ax = gca;
-            ax.XScale = 'log';
+            %ax.XScale = 'log';
             xlim([winsizes(1)/2 winsizes(end)*2])
         end
         
@@ -103,14 +107,14 @@ if ismember('dim', display_plots)
             errorbar(winsizes, dI_gss(dim,:), dI_sd_gss(dim,:), 'Marker', 'x', 'MarkerEdgeColor', 'blue', 'LineStyle', 'none')
             
             xticks(winsizes)
-            legend({'unfiltered', 'Gaussian'})
+            legend({'Unfiltered', 'Gaussian'})
 %             legend({'unfiltered', 'box', 'Gaussian'})
-            xlabel('Window size')
-            ylabel('$\frac{\delta I_z}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
+            xlabel('Window size (voxels)','fontName',font,'fontSize',fontSize,'interpreter','none')
+            ylabel('$\frac{\delta I}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0,'fontSize',1.5*fontSize)
             title('Impulse error in $\hat{z}$ under noise')
             % Log plot.
             ax = gca;
-            ax.XScale = 'log';
+            %ax.XScale = 'log';
         end
     end
 end
@@ -147,14 +151,14 @@ if ismember('mag', display_plots)
     hold on
     axes{end+1} = errorbar(winsizes, di_gss, di_sd_gss, 'Marker', '^', 'MarkerFaceColor', 'blue', 'Color', 'blue', 'LineWidth', 1, 'LineStyle', 'none');
     xticks(winsizes)
-    legend({'unfiltered', 'Gaussian'})
+    legend({'Unfiltered', 'Gaussian'})
 %     legend({'unfiltered', 'box', 'Gaussian'})
     xlabel('Window size')
     ylabel('$\frac{|\delta \vec{I}|}{|\vec{I}|}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
     title('Impulse error magnitude under noise')
     % Log plot.
     ax = gca;
-    ax.XScale = 'log';
+    %ax.XScale = 'log';
     xlim([winsizes(1)/2 winsizes(end)*2])
 end
 
