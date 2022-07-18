@@ -32,19 +32,12 @@ nexttile
 impulse_err_run(vf2, props, [0 0 0]', I0, 20, [], {'mag'});
 
 % figure formatting
-title('(a) \kappa = 10','FontName',font,'FontSize',fontSize,'Interpreter','tex','FontWeight','normal')
+title('(a) $\kappa = 10','FontName',font,'FontSize',fontSize,'Interpreter','tex','FontWeight','normal')
 axA = gca;
-axA.FontName = font;
-axA.FontSize = fontSize;
-
+%axA.FontName = font;
+%axA.FontSize = fontSize;
 xlim([0 3])
 ylim([0 0.25])
-
-axA.XLabel.FontSize = 1.75*fontSize;
-axA.YLabel.FontSize = 1.75*fontSize;
-axA.YLabel.Rotation = 0;
-axA.YLabel.Position(1) = axA.YLabel.Position(1)-0.3;
-
 
 nexttile
 num_ite = 20;
@@ -52,23 +45,12 @@ num_ite = 20;
 impulse_err_run(vf, props, [0 0 0]', I0, 20, [], {'mag'});
 
 % figure formatting
-title('(b) \kappa = 20','FontName',font,'FontSize',fontSize,'Interpreter','tex','FontWeight','normal')
+title('(b) $\kappa = 20$','FontName',font,'FontSize',fontSize,'Interpreter','tex','FontWeight','normal')
 axB = gca;
-axB.FontName = font;
-axB.FontSize = fontSize;
-
+%axB.FontName = font;
+%axB.FontSize = fontSize;
 xlim([0 3])
 ylim([0 0.25])
 
-axB.XLabel.FontSize = 1.75*fontSize;
-axB.YLabel.FontSize = 1.75*fontSize;
-axB.YLabel.Rotation = 0;
-axB.YLabel.Position(1) = axB.YLabel.Position(1)-0.3;
-
-
 % figure sizing and export
 fig = gcf;
-fig.Units = 'centimeters';
-fig.Position(3) = 11.9;
-fig.Position(4) = 7;
-exportgraphics(fig,'HillNoise.pdf','ContentType','vector','BackgroundColor','None')

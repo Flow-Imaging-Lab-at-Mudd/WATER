@@ -154,7 +154,7 @@ if ismember('dim', display_plots)
             %         err_mean_box = mean(dI_box(dim,:));
             %         yline(err_mean_box, '-')
             hold on
-            errorbar(props, dI_gss(dim,:), dI_sd_gss(dim,:), 'k^', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+            errorbar(props, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
             %         hold on
             %         err_mean_gss = mean(dI_gss(dim,:));
             %         yline(err_mean_gss, '-')
@@ -214,17 +214,15 @@ if ismember('mag', display_plots)
 %     figure;
     errorbar(props, di, di_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    %errorbar(props, di, abs(di_LL-di), di_UL-di, 'go', 'MarkerFaceColor', 'black', 'LineWidth', 1)
-    %errorbar(props, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
- 
-    errorbar(props, di_gss, di_sd_gss, 'k^', 'MarkerFaceColor', 'blue', 'Color','blue','LineWidth', 1)
+    errorbar(props, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    hold on
+    errorbar(props, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 %     hold on
 %     yline(mag_bias_box, '-', 'Color', 'r')
 %     hold on
 %     yline(mag_bias_gss, '-', 'Color', 'b')
 
-    %legend({'Unfiltered', 'Box', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','Location','Northwest')
-    legend({'Unfiltered', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','Location','Northwest')
+    legend({'Unfiltered', 'Box', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','Location','Northwest')
     
 %     legend({'unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
 %         sprintf('box $\\kappa = %.3f$', string(mag_bias_box)), ...
