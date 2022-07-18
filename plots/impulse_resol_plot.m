@@ -17,12 +17,12 @@ props = [0 1.5];
 % Desired level of error.
 err_level = 0.1;
 % Iterations.
-num_ite = 10;
+num_ite = 20;
 
 % Resolutions.
-min_fres = 20;
-fres_inc = 20;
-max_fres = 160;
+min_fres = 4;
+fres_inc = 2;
+max_fres = 26;
 
 % Vortex parameters.
 density = 1000;
@@ -36,6 +36,12 @@ I0 = Hill_Impulse(density, len_unit, r, u0, r);
     di_gss, di0, mag_bias_box, mag_bias_gss, dI_sd, dI_box_sd, dI_gss_sd,...
     di_sd, di_box_sd, di_gss_sd, vfds, t] = ...
     impulse_resol(l, vr, u0, min_fres, max_fres, fres_inc, origin, props, err_level, num_ite, window_params, true);
+
+fig = gcf;
+fig.Units = 'centimeters';
+fig.Position(3) = 11.9;
+fig.Position(4) = 7;
+exportgraphics(fig,'HillImpulseRes.pdf','ContentType','vector','BackgroundColor','None')
 
 % % Organize into tiles.
 % figure;

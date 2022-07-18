@@ -79,6 +79,7 @@ len_unit = 1e-3;
 K0 = Hill_KE(density, len_unit, fr, u0);
 
 for k = 1: sps_count
+    disp(['Spacing ' num2str(k)])
     % Generate VF of appropriate resolution if necessary.
     if isempty(vfds{k})
         % Construct Hill vortex with specified resolution.
@@ -140,22 +141,24 @@ if isempty(display_plots)
 end
 
 % Font.
-font = 'Times New Roman';
-fontSize = 10;
+font = 'Arial';
+fontSize = 8;
 
 if ismember('bias', display_plots)
     % Smoother bias plot.
 %     figure;
-    scatter(fres, dK0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    h11=scatter(fres, dK0, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1);
     hold on
-    scatter(fres, bias_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    h12=scatter(fres, bias_box, 'r*', 'LineWidth', 1);
     hold on
-    scatter(fres, bias_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-    
-    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
-    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
-    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
-    title('(a) Resolution error of kinetic energy')
+    h13=scatter(fres, bias_gss, 'b^', 'filled', 'LineWidth', 1);
+    xlim([2 28])
+    ylim([-0.35 0.05]);
+    legend([h11,h12,h13],{'Unfiltered', 'Box', 'Gaussian'},'interpreter','none','location','southeast')
+    xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
+    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    title('(a) Kinetic energy error','FontName',font,'FontSize',fontSize,'interpreter','latex','fontweight','normal')
+    box on
 end
 
 if ismember('signed', display_plots)
@@ -163,17 +166,19 @@ if ismember('signed', display_plots)
 %     figure;
 %     errorbar(fres, dK, dK_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 %     hold on
-    errorbar(fres, dK_box, dK_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    h1=errorbar(fres, dK_box, dK_sd_box, 'r*', 'MarkerFaceColor','red', 'LineWidth', 1);
     hold on
-    errorbar(fres, dK_gss, dK_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    h2=errorbar(fres, dK_gss, dK_sd_gss, 'b^', 'MarkerFaceColor','blue', 'LineWidth', 1);
     
-    legend({'box-filtered', 'Gaussian-filtered'})
+    legend([h1,h2],{'Box', 'Gaussian'},'interpreter','none','location','southeast')
 %     legend({'unfiltered', ...
 %         'box-filtered', ...
 %         'Gaussian-filtered'})
-    xlabel(strcat('Feature resolution'))
-    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
-    title('(c) Kinetic energy error under noise', 'FontName', font, 'FontSize', fontSize)
+        xlim([2 28])
+        ylim([-0.35 0.05]);
+    xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
+    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 end
 
 if ismember('mag', display_plots)
@@ -181,15 +186,16 @@ if ismember('mag', display_plots)
 %     figure;
 %     errorbar(fres, dKm, dKm_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 %     hold on
-    errorbar(fres, dKm_box, dKm_sd_box, 'ko', 'MarkerFaceColor','red', 'LineWidth', 1)
+    errorbar(fres, dKm_box, dKm_sd_box, 'r*', 'MarkerFaceColor','red', 'LineWidth', 1)
     hold on
-    errorbar(fres, dKm_gss, dKm_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
-    
-    legend({'box-filtered', 'Gaussian-filtered'})
+    errorbar(fres, dKm_gss, dKm_sd_gss, 'b^', 'MarkerFaceColor','blue', 'LineWidth', 1)
+    xlim([2 28])
+    ylim([-0.025 0.35]);
+    legend({'Box', 'Gaussian'},'interpreter','none')
 %     legend({'unfiltered', ...
 %         'box-filtered', ...
 %         'Gaussian-filtered'})
-    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
-    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
-    title('(b) Kinetic energy error magnitude under noise', 'FontName', font, 'FontSize', fontSize)
+    xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
+    ylabel('$\frac{|\delta (KE)|}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 end

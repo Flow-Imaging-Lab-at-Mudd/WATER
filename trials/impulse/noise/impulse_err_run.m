@@ -50,6 +50,7 @@ dI_gss = zeros(3, props_count, num_ite);
 % Plot energy estimation error for small and large values of noise.
 for i = 1: props_count
     for j = 1: num_ite
+        disp(['Iteration ' num2str(j)])
         vf.clearNoise();
         N = vf.noise_uniform(props(i)*u_mean);        
 %         dI(:,i,j) = vf.impulse(origin, 1) - I0;
@@ -86,10 +87,16 @@ end
 
 dI_sd = std(dI, 0, 3);
 di_sd = std(di, 0, 2);
+di_LL = min(di,[],2);
+di_UL = max(di,[],2);
 dI_sd_box = std(dI_box, 0, 3);
 di_sd_box = std(di_box, 0, 2);
+di_LL_box = min(di_box,[],2);
+di_UL_box = max(di_box,[],2);
 dI_sd_gss = std(dI_gss, 0, 3);
 di_sd_gss = std(di_gss, 0, 2);
+di_LL_gss = min(di_gss,[],2);
+di_UL_gss = max(di_gss,[],2);
 
 dI = squeeze(mean(dI, 3));
 di = mean(di, 2);
@@ -114,8 +121,8 @@ end
 % indicating the plots to be generated.
 
 % Font settings.
-font = 'Times New Roman';
-fontSize = 10;
+font = 'Arial';
+fontSize = 8;
 
 % Dimension, i.e., x, y, z, to plot, specified correspondingly by 1, 2, 3.
 dims = [3];
@@ -148,19 +155,19 @@ if ismember('dim', display_plots)
             %         err_mean_box = mean(dI_box(dim,:));
             %         yline(err_mean_box, '-')
             hold on
-            errorbar(props, dI_gss(dim,:), dI_sd_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+            errorbar(props, dI_gss(dim,:), dI_sd_gss(dim,:), 'k^', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
             %         hold on
             %         err_mean_gss = mean(dI_gss(dim,:));
             %         yline(err_mean_gss, '-')
         end
-        legend({'unfiltered', 'Gaussian-filtered'})
+        legend({'Unfiltered', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none')
         %         legend({'unfiltered error', ...
         %             'box-filtered $\vec{u}$', ...
         %             strcat('box mean $\frac{\delta I_y}{I} = $', string(err_mean_box)), ...
         %             'Gaussian-filtered $\vec{u}$', ...
         %             strcat('Gaussian mean $\frac{\delta I_y}{I} = $', string(err_mean_gss))})
-        xlabel('Noise proportion', 'FontName', font, 'FontSize', fontSize)
-        ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+        xlabel('$\frac{\delta u}{u_0}$', 'FontName', font, 'FontSize', fontSize)
+        ylabel('$\frac{\delta I}{I}$', 'FontName', font, 'FontSize', fontSize)
         title(sprintf('Impulse error in $z$'))
     end
 end
@@ -190,7 +197,7 @@ if plot_abs
 %         err_mean_gss = mean(abs_dI_gss(dim,:));
 %         yline(err_mean_gss, '-')
         
-        legend({'unfiltered error', 'Gaussian-filtered'}, 'FontName', font)
+        legend({'Unfiltered', 'Gaussian'}, 'FontName',font,'FontSize',fontSize, 'Interpreter','none')
 %         legend({'unfiltered error', ...
 %             strcat('unfiltered mean $|\frac{\delta I_y}{I}| = $', string(err_mean0)), ...
 %             'box-filtered $\vec{u}$', ...
@@ -208,22 +215,24 @@ if ismember('mag', display_plots)
 %     figure;
     errorbar(props, di, di_sd, 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    errorbar(props, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
-    hold on
-    errorbar(props, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    %errorbar(props, di, abs(di_LL-di), di_UL-di, 'go', 'MarkerFaceColor', 'black', 'LineWidth', 1)
+    %errorbar(props, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+ 
+    errorbar(props, di_gss, di_sd_gss, 'k^', 'MarkerFaceColor', 'blue', 'Color','blue','LineWidth', 1)
 %     hold on
 %     yline(mag_bias_box, '-', 'Color', 'r')
 %     hold on
 %     yline(mag_bias_gss, '-', 'Color', 'b')
 
-    legend({'unfiltered error', 'box-filtered', 'Gaussian-filtered'})
+    %legend({'Unfiltered', 'Box', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','Location','Northwest')
+    legend({'Unfiltered', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','Location','Northwest')
     
 %     legend({'unfiltered error', 'box-filtered', 'Gaussian-filtered', ...
 %         sprintf('box $\\kappa = %.3f$', string(mag_bias_box)), ...
 %         sprintf('Gaussian $\\kappa = %.3f$', string(mag_bias_gss))})
     
-    xlabel('Noise proportion', 'FontName', font, 'FontSize', fontSize)
-    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
+    xlabel('$\frac{\delta u}{u_0}$', 'FontName', font, 'FontSize', 2*fontSize)
+    ylabel('$\frac{|\delta I|}{I}$', 'FontName', font, 'FontSize', 2*fontSize)
     title('Magnitude of impulse error')
 end
 

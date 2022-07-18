@@ -93,6 +93,7 @@ bias_gss = zeros(3, sps_count, 1);
 dI0 = zeros(3, sps_count);
 
 for k = 1: sps_count
+    disp(['Spacing ' num2str(k)])
     % Generate VF of appropriate resolution if necessary.
     if isempty(vfds{k})
         % Construct Hill vortex with specified resolution.
@@ -158,8 +159,8 @@ if ~display_plot
 end
 
 % Font.
-font = 'Times New Roman';
-fontSize = 10;
+font = 'Arial';
+fontSize = 8;
 
 % Handles to figures to return.
 axes = {};
@@ -173,21 +174,26 @@ for dim = dims
     nexttile;
     scatter(fres, dI0(dim,:), 'ko', 'MarkerFaceColor', 'black', 'LineWidth', 1)
     hold on
-    scatter(fres, bias_box(dim,:), 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+    scatter(fres, bias_box(dim,:), 'r*', 'LineWidth', 1)
     hold on
-    scatter(fres, bias_gss(dim,:), 'ko', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+    scatter(fres, bias_gss(dim,:), 'b^','filled', 'LineWidth', 1)
     
-    legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
+    legend({'Unfiltered', 'Box', 'Gaussian'}, 'Interpreter', 'none','Location','northeast')
     
 %     legend({'unfiltered', ...
 %         'box-filtered', ...
 %         'Gaussian-filtered'}, ...
 %         'Interpreter', 'latex')
-    xlabel('Feature resolution', 'FontName', font, 'FontSize', fontSize)
-    ylabel('Proportional error', 'FontName', font, 'FontSize', fontSize)
-    title(sprintf('(a) Impulse resolution error in $\\hat{%s}$', string(dim_str{dim})), 'FontName', font, 'FontSize', fontSize)
+    xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
+    ylabel('$\frac{\delta I}{I}$', 'FontName', font, 'FontSize', 1.5*fontSize)
+    title('(a) Axial impulse error', 'FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
+    xlim([2 28])
+    ylim([-0.041 0.041])
     axes{end+1} = gca;
-    
+    axes{end}.YLabel.Rotation = 0;
+    axes{end}.YLabel.Position(1) = axes{end}.YLabel.Position(1)-0.1;
+    box on
+
 %     % Mean error plot.
 %     figure;
 %     errorbar(fres, dI(dim,:), dI_sd(dim,:), 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
@@ -229,17 +235,16 @@ end
 nexttile;
 errorbar(fres, di, di_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 hold on
-errorbar(fres, di_box, di_sd_box, 'ko', 'MarkerFaceColor', 'red', 'LineWidth', 1)
+%errorbar(fres, di_box, di_sd_box, '*', 'Color', 'red', 'LineWidth', 1)
 % hold on
-% errorbar(fres, di_gss, di_sd_gss, 'ko', 'MarkerFaceColor','blue', 'LineWidth', 1)
+errorbar(fres, di_gss, di_sd_gss, '^', 'Color','blue','MarkerFaceColor','blue','LineWidth', 1)
 
-legend({'unfiltered', 'box-filtered'}, 'Interpreter', 'latex')
-
-% legend({'unfiltered', ...
-%     'box-filtered', ...
-%     'Gaussian-filtered'}, ...  
-%     'Interpreter', 'latex')
-xlabel('Feature resolution')
-ylabel('Proportional error')
-title('(b) Impulse error magnitude under noise')
+legend({'Unfiltered', 'Gaussian'}, 'Interpreter', 'none')
+%legend({'Unfiltered', 'Box', 'Gaussian'}, 'Interpreter', 'none')
+xlim([2 28])
+xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
+ylabel('$\frac{|\delta I|}{I}$', 'FontName', font, 'FontSize', 1.5*fontSize)
+title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 axes{end+1} = gca;
+axes{end}.YLabel.Rotation = 0;
+axes{end}.YLabel.Position(1) = axes{end}.YLabel.Position(1)-1.3;
