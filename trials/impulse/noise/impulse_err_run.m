@@ -50,6 +50,7 @@ dI_gss = zeros(3, props_count, num_ite);
 % Plot energy estimation error for small and large values of noise.
 for i = 1: props_count
     for j = 1: num_ite
+        disp(['Iteration ' num2str(j)])
         vf.clearNoise();
         N = vf.noise_uniform(props(i)*u_mean);        
 %         dI(:,i,j) = vf.impulse(origin, 1) - I0;

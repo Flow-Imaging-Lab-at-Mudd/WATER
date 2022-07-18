@@ -186,7 +186,7 @@ for dim = dims
 %         'Interpreter', 'latex')
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
     ylabel('$\frac{\delta I}{I}$', 'FontName', font, 'FontSize', 1.5*fontSize)
-    title('(a) Axial impulse error', 'FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
+    title('(a) Axial impulse resolution error', 'FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
     xlim([2 28])
     ylim([-0.041 0.041])
     axes{end+1} = gca;
@@ -237,7 +237,7 @@ errorbar(fres, di, di_sd, 'ko', 'MarkerFaceColor','black', 'LineWidth', 1)
 hold on
 %errorbar(fres, di_box, di_sd_box, '*', 'Color', 'red', 'LineWidth', 1)
 % hold on
-errorbar(fres, di_gss, di_sd_gss, '^', 'Color','blue','MarkerFaceColor','blue','LineWidth', 1)
+errorbar(fres, di_gss, di_sd_gss, '^', 'Color','blue','MarkerFaceColor','black''LineWidth', 1)
 
 legend({'Unfiltered', 'Gaussian'}, 'Interpreter', 'none')
 %legend({'Unfiltered', 'Box', 'Gaussian'}, 'Interpreter', 'none')
@@ -247,4 +247,4 @@ ylabel('$\frac{|\delta I|}{I}$', 'FontName', font, 'FontSize', 1.5*fontSize)
 title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 axes{end+1} = gca;
 axes{end}.YLabel.Rotation = 0;
-axes{end}.YLabel.Position(1) = axes{end}.YLabel.Position(1)-1.3;
+axes{end}.YLabel.Position(1) = axes{end}.YLabel.Position(1)-0.3;
