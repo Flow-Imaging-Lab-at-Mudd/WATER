@@ -52,7 +52,7 @@ props = [0 1.5];
 figure;
 t = tiledlayout(1,2);
 
-font = 'Arial',
+font = 'Arial';
 fontSize = 8;
 
 % Compute baseline resolution errors.

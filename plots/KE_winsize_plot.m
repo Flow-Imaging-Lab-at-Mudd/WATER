@@ -2,14 +2,18 @@
 % to windowing size.
 
 clear
+close all
 startup;
 
 % Constant parameters.
-l = 1.125;
-vr = 8/9;
+%l = 1.125;
+l = 447/320;
+vr = 320/447;
 r = l*vr;
 u0 = 1;
-spr = 1/256;
+spr = 1/160;
+
+kappa = r/spr;
 
 % Number of vectors in the end which windowing does not sample from.
 drem = @(n,w,o) mod((n-w),round((1-o)*w));
@@ -38,18 +42,22 @@ props = [0 1.5];
 figure;
 t = tiledlayout(1,2);
 
+font = 'Arial';
+fontSize = 8;
+
 % Compute baseline resolution errors.
 nexttile
 KE_winsize(vf, K0, KEf, props, winsizes, overlap, 1, {'resol'});
-title('(a) Kinetic energy windowing resolution error')
+title('(a)','fontName',font,'fontSize',fontSize,'interpreter','none','fontWeight','normal')
 % Empirically fixed.
 ylim([-0.15 0])
 box on
+xlim([winsizes(1)-2 winsizes(end)+2])
 % % Compute error magnitude under noise.
 % nexttile
 % impulse_winsize(vf, I0, origin, props, winsizes, overlap, 10, {'mag'}, KEf);
 % title('(b) Impulse error magnitude under noise')
-ylim([-0.15 0])
+%ylim([-0.15 0])
 % box on
 
 % Compute windowing errors of different overlaps.
@@ -57,7 +65,7 @@ nexttile;
 % o = 0.25.
 % winsizes1 = [16 32 50 73];
 [~, ~, ~, ~, ~, ~, ~, ~, ~, ax] = KE_winsize(vf, K0, KEf, props, winsizes, 0.25, 1, {'win'});
-ax{1}.Marker = 'o';
+ax{1}.Marker = 's';
 ax{1}.MarkerFaceColor = 'none';
 ax{1}.MarkerEdgeColor = 'black';
 hold on
@@ -71,12 +79,21 @@ hold on
 % o = 0.75.
 % winsizes3 = [16 32 42 64];
 [~, ~, ~, ~, ~, ~, ~, ~, ~, ax] = KE_winsize(vf, K0, KEf, props, winsizes, 0.75, 1, {'win'});
-ax{1}.Marker = '*';
+ax{1}.Marker = 'v';
 ax{1}.MarkerFaceColor = 'none';
 ax{1}.MarkerEdgeColor = 'black';
-title('(b) Kinetic energy windowing resolution error with varying overlaps')
-legend({'$o=0.25$', '$o=0.5$', '$o=0.75$'})
+title('(b)','fontName',font,'fontSize',fontSize,'interpreter','none','fontWeight','normal')
+legend({'o=0.25', 'o=0.5', 'o=0.75'},'fontName',font,'fontSize',fontSize-1,'interpreter','none','location','southwest')
+
 % ylim([-0.17 0])
 box on
 xticks(winsizes)
+xlim([winsizes(1)-2 winsizes(end)+2])
+
+fig = gcf;
+fig.Units = 'centimeters';
+fig.Position(3) = 11.9;
+fig.Position(4) = 6.5;
+exportgraphics(fig,'HillKEWin.pdf','ContentType','vector','BackgroundColor','None')
+
 % xticks(unique([winsizes1 winsizes2 winsizes3]))
