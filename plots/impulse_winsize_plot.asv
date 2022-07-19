@@ -41,8 +41,6 @@ overlap = 0.5;
 % dimensions.
 downsampled_dim(vf.dims(1), winsizes, overlap);
 kappaWin = r./(winsizes*spr*(1-overlap));
-kappaWin25 = r./(winsizes*spr*(1-0.25));
-kappaWin75 = r./(winsizes*spr*(1-0.75));
 
 % Noise level.
 props = [0 1.5];
@@ -61,7 +59,7 @@ impulse_winsize(vf, I0, origin, props, winsizes, overlap, 1, {'dim', 'resol'});
 title('(a)','fontName',font,'fontSize',fontSize,'interpreter','none','fontWeight','normal')
 legend({'Unfiltered', 'Gaussian'},'fontName',font,'fontSize',fontSize-1,'interpreter','none','location','southwest')
 % Empirically fixed.
-
+%ylim([-0.04 0.04])
 box on
 % % Compute error magnitude under noise.
 % nexttile
@@ -104,5 +102,5 @@ xlim([winsizes(1)-2 winsizes(end)+2])
 fig = gcf;
 fig.Units = 'centimeters';
 fig.Position(3) = 11.9;
-fig.Position(4) = 5.5;
-exportgraphics(fig,'HillImpulseWin.pdf','ContentType','vector','BackgroundColor','None')
+fig.Position(4) = 6;
+%exportgraphics(fig,'HillImpulseNoise.pdf','ContentType','vector','BackgroundColor','None')
