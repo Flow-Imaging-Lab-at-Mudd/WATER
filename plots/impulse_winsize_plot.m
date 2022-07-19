@@ -6,11 +6,13 @@ close all
 startup;
 
 % Constant parameters.
-l = 1.125;
-vr = 8/9;
+%l = 1.125;
+l = 448/420;
+vr = 420/448;
 r = l*vr;
 u0 = 1;
-spr = 1/256;
+spr = 1/210;
+kappa = r/spr;
 %spr = 1/128;
 
 % Number of vectors in the end which windowing does not sample from.

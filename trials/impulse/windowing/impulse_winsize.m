@@ -161,4 +161,4 @@ if ismember('mag', display_plots)
     %ax.XScale = 'log';
     xlim([winsizes(1)/2 winsizes(end)*2])
 end
-
+end
