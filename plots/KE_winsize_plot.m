@@ -50,7 +50,7 @@ nexttile
 KE_winsize(vf, K0, KEf, props, winsizes, overlap, 1, {'resol'});
 title('(a)','fontName',font,'fontSize',fontSize,'interpreter','none','fontWeight','normal')
 % Empirically fixed.
-ylim([-0.15 0])
+ylim([-0.25 0])
 box on
 xlim([winsizes(1)-2 winsizes(end)+2])
 % % Compute error magnitude under noise.
@@ -85,7 +85,7 @@ ax{1}.MarkerEdgeColor = 'black';
 title('(b)','fontName',font,'fontSize',fontSize,'interpreter','none','fontWeight','normal')
 legend({'o=0.25', 'o=0.5', 'o=0.75'},'fontName',font,'fontSize',fontSize-1,'interpreter','none','location','southwest')
 
-% ylim([-0.17 0])
+ylim([-0.25 0])
 box on
 xticks(winsizes)
 xlim([winsizes(1)-2 winsizes(end)+2])
