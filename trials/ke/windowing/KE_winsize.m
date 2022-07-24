@@ -38,17 +38,20 @@ end
 % Handle for figures to return.
 axes = {};
 
+font = 'Arial';
+fontSize = 8;
+
 % Plot of baseline resolution error.
 if ismember('win', display_plots)
     % figure;
     axes{end+1} = scatter(winsizes, dK0, 'k', 'filled');
     xticks(winsizes)
-    xlabel('Window size')
-    ylabel('$\frac{\delta K}{K}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
+    xlabel('Window size (voxels)','fontName',font,'fontSize',fontSize,'interpreter','none')
+    ylabel('$\frac{\delta KE}{KE}$', 'HorizontalAlignment', 'right', 'Rotation', 0,'fontsize',1.5*fontSize)
     title('Kinetic energy windowing resolution error')
     % Log plot.
     ax = gca;
-    ax.XScale = 'log';
+    %ax.XScale = 'log';
     xlim([winsizes(1)/2 winsizes(end)*2])
 end
 
@@ -62,14 +65,14 @@ if ismember('resol', display_plots)
     scatter(winsizes, bias_gss, 'b', 'filled', 'Marker', '^')
     
     xticks(winsizes)
-    legend({'unfiltered', 'Gaussian'})
+    legend({'Unfiltered', 'Gaussian'},'location','northeast','fontname',font,'fontsize',fontSize-1,'interpreter','none')
     %             legend({'unfiltered', 'box', 'Gaussian'})
-    xlabel('Window size')
-    ylabel('$\frac{\delta K}{K}$', 'HorizontalAlignment', 'right', 'Rotation', 0)
+    xlabel('Window size (voxels)','fontName',font,'fontSize',fontSize,'interpreter','none')
+    ylabel('$\frac{\delta KE}{KE}$', 'HorizontalAlignment', 'right', 'Rotation', 0,'fontsize',1.5*fontSize)
     title('Kinetic energy windowing resolution error')
     % Log plot.
     ax = gca;
-    ax.XScale = 'log';
+    %ax.XScale = 'log';
     xlim([winsizes(1)/2 winsizes(end)*2])
 end
 
