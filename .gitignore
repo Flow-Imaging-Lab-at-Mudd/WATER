@@ -1,1 +1,6 @@
+# Legacy files for vector operation.
+dimen.m
+CylVF.m
+legacy/
+convnfft_lib/inplaceprod.mexw64
 plots/*.pdf
