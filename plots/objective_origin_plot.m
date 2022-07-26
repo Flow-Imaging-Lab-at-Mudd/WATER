@@ -94,7 +94,7 @@ fig = gcf;
 fig.Units = 'centimeters';
 fig.Position(3) = 17.4;
 fig.Position(4) = 7.5;
-exportgraphics(fig,'ObjectiveOrigin.pdf','ContentType','vector','BackgroundColor','None')
+%exportgraphics(fig,'ObjectiveOrigin.pdf','ContentType','vector','BackgroundColor','None')
 %%%%%%%%%%%%%%%% Residual plots %%%%%%%%%%%%%%%%
 
 % Font.
@@ -156,7 +156,7 @@ for i = 1: length(noise_idx)
     hold on
 end
 %hold off
-xlabel('$\frac{|\delta\vec{\epsilon}|}{I}$', 'FontSize', 1.5*fontSize)
+xlabel('$\frac{|\vec{\epsilon}|}{I}$', 'FontSize', 1.5*fontSize)
 ylabel('$\frac{|\delta\vec{I}|}{I}$', 'FontSize', 1.5*fontSize)
 lgd = repmat(props(noise_idx), 2, 1);
 
@@ -171,8 +171,8 @@ lin1=plot(dE,dIobj,'k');
 lin2=plot(dE,dInat,'k--');
 
 %legend(num2cell(strcat('$\delta u=', string(lgd(:)), '$')));
-legend([h1{1},h1{2},h1{3},m1,m2,lin1,lin2],{'\deltau = 0.5',...
-    '\deltau = 1.5','\deltau= 2.5','Objective x_o','Centroid x_o',...
+legend([h1{1},h1{2},h1{3},m1,m2,lin1,lin2],{'\deltau = 0.5u_0',...
+    '\deltau = 1.5u_0','\deltau= 2.5u_0','Objective x_o','Centroid x_o',...
     'Objective fit','Centroid fit'},...
     'FontName',font,'Interpreter','tex','location','eastoutside');
 
