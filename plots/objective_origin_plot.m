@@ -64,7 +64,7 @@ dot_size = 20;
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, squeeze(res_unf(noise_idx,:,1)*vf.fluid.density*vf.scale.len^4/i0), 'filled')
 
 cb = colorbar;
-cb.Label.String = '$\frac{|\delta\vec{\epsilon}|\rho}{I}$';
+cb.Label.String = '$\frac{|\delta\vec{\epsilon}|}{I}$';
 cb.Label.Interpreter = 'latex';
 cb.Label.FontSize = cbfontsize;
 cb.Label.Rotation = 0;
@@ -94,7 +94,7 @@ fig = gcf;
 fig.Units = 'centimeters';
 fig.Position(3) = 17.4;
 fig.Position(4) = 7.5;
-%exportgraphics(fig,'ObjectiveOrigin.pdf','ContentType','vector','BackgroundColor','None')
+exportgraphics(fig,'ObjectiveOrigin.pdf','ContentType','vector','BackgroundColor','None')
 %%%%%%%%%%%%%%%% Residual plots %%%%%%%%%%%%%%%%
 
 % Font.
@@ -111,7 +111,7 @@ hold on
 errorbar(props, mean_err0_unf, err0m_unf_sd, 'd', 'Color', 'blue', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
 xlabel('$\frac{\delta u}{u_0}$', 'FontSize', 1.5*fontSize)
 ylabel('$\frac{|\delta \vec{I}|}{I}$', 'FontSize', 1.5*fontSize)
-legend({'Objective x_o', 'Natural x_o'},'FontName',font,'FontSize',fontSize,'Interpreter','tex','Location','northwest')
+legend({'Objective x_o', 'Centroid x_o'},'FontName',font,'FontSize',fontSize,'Interpreter','tex','Location','northwest')
 title('(a)', 'FontName', font, 'FontSize', fontSize, 'interpreter', 'none', 'fontweight', 'normal')
 ax = gca;
 ax.YLabel.Rotation = 0;
@@ -172,8 +172,8 @@ lin2=plot(dE,dInat,'k--');
 
 %legend(num2cell(strcat('$\delta u=', string(lgd(:)), '$')));
 legend([h1{1},h1{2},h1{3},m1,m2,lin1,lin2],{'\deltau = 0.5',...
-    '\deltau = 1.5','\deltau= 2.5','Objective x_o','Natural x_o',...
-    'Objective fit','Natural fit'},...
+    '\deltau = 1.5','\deltau= 2.5','Objective x_o','Centroid x_o',...
+    'Objective fit','Centroid fit'},...
     'FontName',font,'Interpreter','tex','location','eastoutside');
 
 
