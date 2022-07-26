@@ -1,4 +1,6 @@
 # Wake Analysis Tools and ERror--manipulation, visualization, and analysis of 3D PIV fields
+
+## Part of the OpenFV project
 ![openvf](https://github.com/epicderek/flow/blob/master/illu/openfv.jpg)
 
 ## Installation
