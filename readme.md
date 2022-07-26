@@ -1,4 +1,4 @@
-# 3D PIV fields--manipulation, visualization, and analysis of random synthetic noise
+# Wake Analysis Tools and ERror--manipulation, visualization, and analysis of 3D PIV fields
 ![openvf](https://github.com/epicderek/flow/blob/master/illu/openfv.jpg)
 
 ## Installation
