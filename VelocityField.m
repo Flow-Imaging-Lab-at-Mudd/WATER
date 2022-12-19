@@ -749,19 +749,36 @@ classdef VelocityField < handle
             vf.n_e = sqrt(sum(vf.N_e.^2, 4));
         end
         
-        function N_e = noise_uniform(vf, mag)
-            % Add uniform noise to the effective region.
+        function N_e = noise_uniform(vf, nmag)
+            % Add uniform noise to the effective region. Customized scaling
+            % can be specified by a noise magnitude field of either the
+            % dimension of the grid or the dimension of the velocity field.
             
             % Option for adding noise with magnitude defined per position.
-            if isequal(size(mag), vf.span)
-                mag(:,:,:,2) = mag;
-                mag(:,:,:,3) = mag(:,:,:,1);
+            if isequal(size(nmag), vf.span)
+                nmag(:,:,:,2) = nmag;
+                nmag(:,:,:,3) = nmag(:,:,:,1);
             end
             dims = (vf.range(:,2) - vf.range(:,1) + 1)';
-            N_e = (rand([dims 3])*2 - 1) .* mag/sqrt(3);
+            N_e = (rand([dims 3])*2 - 1) .* nmag/sqrt(3);
             vf.N_e = vf.N_e + N_e;
             vf.N(vf.range(1,1):vf.range(1,2), vf.range(2,1):vf.range(2,2), ...
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
+        end
+        
+        function [N_e, ugn_max] = noise_uniform_ugscaled(vf, nmax)
+            % Add uniform noise scaled by the normalized (by its maximal
+            % value) norm of the velocity gradient. 'nmax' specifies the
+            % maximum magnitude of the noise added. As for the uniform
+            % case, the components of the noise field are independent.
+            % For the particular case of a Hill's vortex, nmax = α*u0.
+            
+            % Use the pure velocity gradient (without noise) for scaling.
+            ug = vf.velocityGradient(0);
+            ugn = sqrt(squeeze(sum(ug.^2, [4 5])));
+            % Find the maximum norm.
+            ugn_max = max(ugn, [], 'all');
+            N_e = vf.noise_uniform(nmax*ugn/ugn_max);
         end
         
         function N_e = noise_wgn(vf, sd, snr)
@@ -874,8 +891,8 @@ classdef VelocityField < handle
             dif = sort(vf.range(:,2) - vf.range(:,1), 2);
             dot_size = 40^(sum(dif ~= 0)-1)/(dif(1)*dif(2));
             
-            plt = figure;
-            scatter3(X(:,1), X(:,2), X(:,3), dot_size, S + noise, 'filled');
+%             plt = figure;
+            plt = scatter3(X(:,1), X(:,2), X(:,3), dot_size, S + noise, 'filled');
             
             colorbar
             xlabel('$x$', 'FontSize', vf.fontsize)
@@ -1055,9 +1072,15 @@ classdef VelocityField < handle
             title(title_str)
         end
         
-        %%%%%%%%%%%%%%%%%%% Solvers of Derived Quantities %%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%% Solvers of Physical Quantities %%%%%%%%%%%%%%%%%%
         % Some of these quantities, e.g. vorticity, is pre-computed during
         % initialization from the position and velocity field given.
+        
+        function ugrad = velocityGradient(vf, with_noise)
+            % Compute the gradient tensor of the velocity field.
+            
+            ugrad = vf.gradient(vf.U_e + with_noise*vf.N_e);
+        end
         
         function vort = vorticity(vf, with_noise)
             % Compute the vorticity field with unit. NaN values in velocity
@@ -1233,7 +1256,7 @@ classdef VelocityField < handle
         
         function dF = diff(vf, F, dim, diff_order)
             % Differentiate the given scalar or vector field 'F' with
-            % respect to change in 'dim' dimension, using polynomial
+            % respect to change in the 'dim' dimension, using polynomial
             % interpolant of order 'n'.
             
             % Order of accuracy.
@@ -1300,16 +1323,15 @@ classdef VelocityField < handle
                         grad(:,:,:,i,j) = vf.diff(F(:,:,:,i), j, 1);
                     end
                 end
-            % time-resolved field
+            % Time-resolved field.
             elseif ndims(F) == 5
-                for i = 1:size(F, 4)
+                for i = 1: size(F, 4)
                     for j = 1: 3
                         grad(:,:,:,i,:,j) = vf.diff(F(:,:,:,i,:), j, 1);
                     end
                 end
             end
         end
-        
         
         function div = div(vf, V)
             % Compute the divergence of the vector in the set region of
