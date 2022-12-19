@@ -137,7 +137,17 @@ classdef VelocityField < handle
             
             global PDF
             global rootFolder
-            load(strcat(rootFolder, '\diff\finite-differences.mat'), 'PDF')
+            try
+                load(strcat(rootFolder, '\diff\finite-differences.mat'), 'PDF')
+            catch ME
+           
+                if (strcmp(ME.identifier, 'MATLAB:load:couldNotReadFile'))
+                    warning('Regenerating rootFolder directory');
+                    rootFolder = fileparts(which(mfilename)); 
+                    load(strcat(rootFolder, '\diff\finite-differences.mat'), 'PDF');
+                end
+                    
+            end
             l = 1;
         end
         

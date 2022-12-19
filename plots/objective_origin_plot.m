@@ -1,12 +1,19 @@
 %%%%%%%%%%%%%%%%%% Scatter plot of objective origins %%%%%%%%%%%%%%%%%%%
+close all
+clear
+
 % Font size for title.
-fsize = 12;
+
+fontName = 'Arial';
 % Noise level chosen to be plotted.
 noise_idx = 7;
 
+load('objective-momentum.mat');
+fsize = 8;
+
 % Unfiltered.
 figure;
-t = tiledlayout(1,2);
+t = tiledlayout(1,2,'TileSpacing','compact');
 
 % There is an OUTLIER in this dataset for 150% noise which is manually
 % removed for the presentation of the graph. This will be verbally
@@ -28,18 +35,26 @@ dot_size = 20;
 origins = squeeze(origin_unf(noise_idx,:,:));
 % scatter3(origin_unf1(:,1), origin_unf1(:,2), origin_unf1(:,3), dot_size, mag_err_unf1, 'filled')
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, mag_err_unf(noise_idx,:), 'filled')
-cbfontsize = 12;
+cbfontsize = 1.5*fsize;
 
 cb = colorbar;
 cb.Label.String = '$\frac{|\delta\vec{I}|}{I}$';
 cb.Label.Interpreter = 'latex';
 cb.Label.FontSize = cbfontsize;
 cb.Label.Rotation = 0;
+cb.Label.Units = 'normalized';
+cb.Label.Position = [0.75 1.125 0];
 
-xlabel('$x$')
-ylabel('$y$')
-zlabel('$z$')
-title('(a) Error of objective origins', 'FontSize', fsize)
+xlabel('X/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+ylabel('Y/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+zlabel('Z/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+text(-2.5,2,2.9,'(a)', 'FontSize', fsize,'FontName',fontName,'Interpreter','none','fontWeight','normal')
+xlim([-2 2]);
+ylim([-2 2]);
+zlim([-2 2]);
+xticks([-2:1:2]);
+yticks([-2:1:2]);
+zticks([-2:1:2]);
 axis square
 
 nexttile;
@@ -49,15 +64,23 @@ dot_size = 20;
 scatter3(origins(:,1), origins(:,2), origins(:,3), dot_size, squeeze(res_unf(noise_idx,:,1)*vf.fluid.density*vf.scale.len^4/i0), 'filled')
 
 cb = colorbar;
-cb.Label.String = '$\frac{|\delta\vec{\epsilon}|\rho}{I}$';
+cb.Label.String = '$\frac{|\delta\vec{\epsilon}|}{I}$';
 cb.Label.Interpreter = 'latex';
 cb.Label.FontSize = cbfontsize;
 cb.Label.Rotation = 0;
+cb.Label.Units = 'normalized';
+cb.Label.Position = [0.75 1.125 0];
 
-xlabel('$x$')
-ylabel('$y$')
-zlabel('$z$')
-title('(b) Residual of momentum identity', 'FontSize', fsize)
+xlabel('X/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+ylabel('Y/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+zlabel('Z/R','fontName',fontName,'FontSize',fsize,'Interpreter','none')
+text(-2.5,2,2.9,'(b)','FontSize', fsize,'FontName',fontName,'Interpreter','none','fontWeight','normal')
+xlim([-2 2]);
+ylim([-2 2]);
+zlim([-2 2]);
+xticks([-2:1:2]);
+yticks([-2:1:2]);
+zticks([-2:1:2]);
 axis square
 
 
@@ -67,28 +90,34 @@ fprintf('Unfilteed: %f\n', err_rel_unf(noise_idx))
 fprintf('Box: %f\n', err_rel_box(noise_idx))
 fprintf('Gaussian: %f\n', err_rel_gss(noise_idx))
 
+fig = gcf;
+fig.Units = 'centimeters';
+fig.Position(3) = 17.4;
+fig.Position(4) = 7.5;
+%exportgraphics(fig,'ObjectiveOrigin.pdf','ContentType','vector','BackgroundColor','None')
 %%%%%%%%%%%%%%%% Residual plots %%%%%%%%%%%%%%%%
 
 % Font.
 font = 'Arial';
-fontSize = 10;
+fontSize = 8;
 
 % Plot of mean errors of objective origins.
 figure;
-t2 = tiledlayout(1,2);
+t2 = tiledlayout(1,2,'TileSpacing','compact','Padding','compact');
 
 nexttile
 errorbar(props, mean_err_unf, errm_unf_sd, 'ko', 'Color', 'green', 'MarkerFaceColor', 'green', 'LineWidth', 1)
 hold on
-errorbar(props, mean_err0_unf, err0m_unf_sd, 's', 'Color', 'blue', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
-xlabel('$\frac{\delta u}{u_0}$', 'FontSize', fontSize)
-ylabel('$\frac{|\delta \vec{I}|}{I}$', 'FontSize', fontSize)
-legend({'objective origin', 'natural origin'})
-title('(a) Impulse errors of objective and natural origins', 'FontName', font, 'FontSize', fontSize, 'interpreter', 'tex', 'fontweight', 'normal')
+errorbar(props, mean_err0_unf, err0m_unf_sd, 'd', 'Color', 'blue', 'MarkerFaceColor', 'blue', 'LineWidth', 1)
+xlabel('$\frac{\delta u}{u_0}$', 'FontSize', 1.5*fontSize)
+ylabel('$\frac{|\delta \vec{I}|}{I}$', 'FontSize', 1.5*fontSize)
+legend({'Objective x_o', 'Centroid x_o'},'FontName',font,'FontSize',fontSize,'Interpreter','tex','Location','northwest')
+title('(a)', 'FontName', font, 'FontSize', fontSize, 'interpreter', 'none', 'fontweight', 'normal')
 ax = gca;
 ax.YLabel.Rotation = 0;
-ax.YLabel.Position(1) = -0.3;
+ax.YLabel.Position(1) = -0.75;
 axis square
+xlim([-0.1 3.1])
 
 % Normalize residual.
 mres_unf = vf.fluid.density*vf.scale.len^4/i0*squeeze(res_unf(:,:,1));
@@ -120,23 +149,47 @@ cols = {'g', 'b', 'r'};
 
 for i = 1: length(noise_idx)
     n = noise_idx(i);
-    scatter(mres_unf(n,:), mag_err_unf(n,:), 'filled', cols{i}, 'o')
+    h1{i}=scatter(mres_unf(n,:), mag_err_unf(n,:), 'filled', cols{i}, 'o');
     hold on
-    scatter(mres0_unf(n,:), mag_err_unf(n,:), 'filled', cols{i}, 'd')
+    h2{i}=scatter(mres0_unf(n,:), mag_err0_unf(n,:), 'filled', cols{i}, 'd');
+    %h2{i}=scatter(mres0_unf(n,:), mag_err_unf(n,:), 'filled', cols{i}, 'd');
     hold on
 end
-hold off
-xlabel('$\frac{|\delta\vec{\epsilon}|\rho}{I}$', 'FontSize', fontSize)
-ylabel('$\frac{|\delta\vec{I}|}{I}$', 'FontSize', fontSize)
+%hold off
+xlabel('$\frac{|\vec{\epsilon}|}{I}$', 'FontSize', 1.5*fontSize)
+ylabel('$\frac{|\delta\vec{I}|}{I}$', 'FontSize', 1.5*fontSize)
 lgd = repmat(props(noise_idx), 2, 1);
-legend(num2cell(strcat('$\delta u=', string(lgd(:)), '$')));
+
+% legend plots and regression lines
+m1 = scatter([NaN NaN],[NaN NaN],'filled','k','o');
+m2 = scatter([NaN NaN],[NaN NaN],'filled','k','d');
+
+dE = [0:.01:.08];
+dIobj = 0.8055*dE + .01483;
+dInat = 1.347*dE - 0.005538;
+lin1=plot(dE,dIobj,'k');
+lin2=plot(dE,dInat,'k--');
+
+%legend(num2cell(strcat('$\delta u=', string(lgd(:)), '$')));
+legend([h1{1},h1{2},h1{3},m1,m2,lin1,lin2],{'\deltau = 0.5u_0',...
+    '\deltau = 1.5u_0','\deltau= 2.5u_0','Objective x_o','Centroid x_o',...
+    'Objective fit','Centroid fit'},...
+    'FontName',font,'Interpreter','tex','location','eastoutside');
+
+
+title('(b)', 'FontName', font, 'FontSize', fontSize, 'interpreter', 'none', 'fontweight', 'normal')
+axis equal
+ylim([0 0.09])
+xlim([0 0.09])
+
 ax = gca;
 ax.YLabel.Rotation = 0;
-ax.YLabel.Position(1) = -0.01;
-title('(b) Momentum identity residual and impulse error', 'FontName', font, 'FontSize', fontSize, 'interpreter', 'tex', 'fontweight', 'normal')
-axis square
+ax.YLabel.Position(1) = -0.02;
+box on
 
-% fig = gcf;
-% fig.Units = 'centimeters';
-% fig.Position(3) = 11.9;
-% fig.Position(4) = 7;
+
+fig = gcf;
+fig.Units = 'centimeters';
+fig.Position(3) = 17.4;
+fig.Position(4) = 7;
+exportgraphics(fig,'OriginComparison.pdf','ContentType','vector','BackgroundColor','None')
