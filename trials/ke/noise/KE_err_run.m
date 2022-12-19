@@ -37,7 +37,8 @@ if isvector(window_params) && length(window_params) == 2
 end
 
 % Set constant maximal magnitude of noise.
-u_mean = vf.meanSpeed(0, 0);
+% Set to 1 (freestream) for Hill's vortex.
+u_mean = 1;
 
 % Error in energy estimation given noise.
 dK = zeros(length(props), num_ite);
@@ -125,8 +126,8 @@ if ismember('signed', display_plots)
     
     legend({'Unfiltered','Box', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','location','northwest')
 %     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'})
-    xlabel('$\frac{\delta u}{u_0}$', 'FontName', font, 'FontSize', fontSize)
-    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',fontSize)
+    xlabel('$\frac{\delta u}{u_0}$', 'FontSize', fontSize)
+    ylabel('$\frac{\delta(K\!E)}{K\!E}$', 'FontSize',fontSize)
     
     title('(a) Signed kinetic energy error', 'FontName', font, 'FontSize', fontSize,'Interpreter','none','FontWeight','normal')
 end
@@ -144,7 +145,7 @@ if ismember('mag', display_plots)
     
     legend({'Box', 'Gaussian'},'FontName',font,'FontSize',fontSize,'Interpreter','none','location','northwest')
 %     legend({'unfiltered', 'box-filtered', 'Gaussian-filtered'}, 'Interpreter', 'latex')
-    xlabel('$\frac{\delta u}{u_0}$', 'FontName', font, 'FontSize', fontSize)
-    ylabel('$\frac{|\delta (KE)|}{KE}$','FontName',font,'FontSize',fontSize)
+    xlabel('$\frac{\delta u}{u_0}$', 'FontSize', fontSize)
+    ylabel('$\frac{|\delta(K\!E)|}{K\!E}$', 'FontSize', fontSize)
     title('(b) Magnitude of kinetic energy error', 'FontName', font, 'FontSize', fontSize,'Interpreter','none','FontWeight','normal')
 end
