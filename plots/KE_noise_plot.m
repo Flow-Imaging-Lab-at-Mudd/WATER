@@ -11,7 +11,7 @@ vr = 1;
 r = l*vr;
 % Radius of vortex.
 spr = 0.05;
-% lower resolution option for supplement
+% lower resolution option for supplement.
 spr2 = 0.1;
 
 [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, 1, 1);
@@ -43,8 +43,8 @@ xlim([-0.1 3.1])
 ylim([-0.05 0.45])
 axA.XLabel.FontSize = 1.5*fontSize;
 axA.YLabel.FontSize = 1.5*fontSize;
-%axA.YLabel.Rotation = 0;
-%axA.YLabel.Position(1) = axA.YLabel.Position(1)-0.025;
+% axA.YLabel.Rotation = 0;
+% axA.YLabel.Position(1) = axA.YLabel.Position(1)-0.025;
 title('(a) \kappa = 20','FontName',font,'FontSize',fontSize,'Interpreter','tex')
 
 num_ite = 20;
@@ -59,8 +59,8 @@ xlim([-0.1 3.1])
 ylim([0 0.11])
 axB.XLabel.FontSize = 1.5*fontSize;
 axB.YLabel.FontSize = 1.5*fontSize;
-%axB.YLabel.Rotation = 0;
-%axB.YLabel.Position(1) = axB.YLabel.Position(1)-0.025;
+% axB.YLabel.Rotation = 0;
+% axB.YLabel.Position(1) = axB.YLabel.Position(1)-0.025;
 title('(b) \kappa = 10','FontName',font,'FontSize',fontSize,'Interpreter','tex')
 
 nexttile
@@ -73,8 +73,8 @@ xlim([-0.1 3.1])
 ylim([0 0.11])
 axC.XLabel.FontSize = 1.5*fontSize;
 axC.YLabel.FontSize = 1.5*fontSize;
-%axC.YLabel.Rotation = 0;
-%axC.YLabel.Position(1) = axC.YLabel.Position(1)-0.025;
+% axC.YLabel.Rotation = 0;
+% axC.YLabel.Position(1) = axC.YLabel.Position(1)-0.025;
 title('(c) \kappa = 20','FontName',font,'FontSize',fontSize,'Interpreter','tex')
 
 fig = gcf;

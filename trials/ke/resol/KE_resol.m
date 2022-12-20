@@ -156,8 +156,11 @@ if ismember('bias', display_plots)
     ylim([-0.35 0.05]);
     legend([h11,h12,h13],{'Unfiltered', 'Box', 'Gaussian'},'interpreter','none','location','southeast')
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{\delta (K\!E)}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(a) Kinetic energy error','FontName',font,'FontSize',fontSize,'interpreter','latex','fontweight','normal')
+    ax = gca;
+    ax.YLabel.Rotation = 0;
+    ax.YLabel.Position(1) = ax.YLabel.Position(1)-2.35;
     box on
 end
 
@@ -177,8 +180,12 @@ if ismember('signed', display_plots)
         xlim([2 28])
         ylim([-0.35 0.05]);
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{\delta (K\!E)}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
+    ax = gca;
+    ax.YLabel.Rotation = 0;
+    ax.YLabel.Position(1) = ax.YLabel.Position(1)-2.35;
+    box on
 end
 
 if ismember('mag', display_plots)
@@ -196,6 +203,10 @@ if ismember('mag', display_plots)
 %         'box-filtered', ...
 %         'Gaussian-filtered'})
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{|\delta (KE)|}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{|\delta (K\!E)|}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
+    ax = gca;
+    ax.YLabel.Rotation = 0;
+    ax.YLabel.Position(1) = ax.YLabel.Position(1)-2.35;
+    box on
 end
