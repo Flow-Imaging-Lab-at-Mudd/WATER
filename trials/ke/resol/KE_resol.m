@@ -153,7 +153,7 @@ if ismember('bias', display_plots)
     hold on
     h13=scatter(fres, bias_gss, 'b^', 'filled', 'LineWidth', 1);
     xlim([2 28])
-    ylim([-0.35 0.05]);
+    ylim([-0.375 0.05]);
     legend([h11,h12,h13],{'Unfiltered', 'Box', 'Gaussian'},'interpreter','none','location','southeast')
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
     ylabel('$\frac{\delta (K\!E)}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)

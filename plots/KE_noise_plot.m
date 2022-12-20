@@ -40,7 +40,7 @@ axA = gca;
 axA.FontName = font;
 axA.FontSize = fontSize;
 xlim([-0.1 3.1])
-ylim([-0.05 0.45])
+ylim([-0.05 0.75])
 axA.XLabel.FontSize = 1.5*fontSize;
 axA.YLabel.FontSize = 1.5*fontSize;
 % axA.YLabel.Rotation = 0;
@@ -56,7 +56,7 @@ axB = gca;
 axB.FontName = font;
 axB.FontSize = fontSize;
 xlim([-0.1 3.1])
-ylim([0 0.11])
+ylim([0 0.18])
 axB.XLabel.FontSize = 1.5*fontSize;
 axB.YLabel.FontSize = 1.5*fontSize;
 % axB.YLabel.Rotation = 0;
@@ -70,7 +70,7 @@ axC = gca;
 axC.FontName = font;
 axC.FontSize = fontSize;
 xlim([-0.1 3.1])
-ylim([0 0.11])
+ylim([0 0.18])
 axC.XLabel.FontSize = 1.5*fontSize;
 axC.YLabel.FontSize = 1.5*fontSize;
 % axC.YLabel.Rotation = 0;

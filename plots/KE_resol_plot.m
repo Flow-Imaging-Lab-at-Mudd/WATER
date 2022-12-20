@@ -41,11 +41,17 @@ t = tiledlayout(1,2);
 nexttile;
 [~, ~, ~, ~, ~, ~, ~, ~, ~, ~, vfds] = KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, num_ite, window_params, {'bias'});
 plot([0 28],[0 0],'k:','LineWidth',0.5,'HandleVisibility','off')
+axA = gca;
+axA.YLabel.Rotation = 0;
+axA.YLabel.Position(1) = -5.5;
 
 % Noise plot.
 nexttile;
 KE_resol(l, vr, u0, min_fres, max_fres, fres_inc, props, err_level, num_ite, window_params, {'signed'}, vfds);
 plot([0 28],[0 0],'k:','LineWidth',0.5,'HandleVisibility','off')
+axB = gca;
+axB.YLabel.Rotation = 0;
+axB.YLabel.Position(1) = -5.5;
 
 fig = gcf;
 fig.Units = 'centimeters';
