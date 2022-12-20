@@ -59,7 +59,8 @@ classdef VelocityField < handle
         % Range for computation and visualization. This region is denoted
         % the Effective Region.
         range
-        % Length of range in 3 dimensions. Row vector.
+        % Length of range in 3 dimensions. Row vector, in (y,x,z)
+        % convention.
         span
         
         % Corresponding limits of position of the current effective region,
@@ -686,7 +687,47 @@ classdef VelocityField < handle
         end
         
         function X = getX(vf, index)
-            X = [vf.get_x(index(1,:)); vf.get_y(index(2,:));  vf.get_z(index(3,:))];
+            X = [vf.get_x(index(1,:)); vf.get_y(index(2,:)); vf.get_z(index(3,:))];
+        end
+        
+        function n = getFlatIndex(vf, idx)
+            % Here 'idx' is in the meshgrid convention (y,x,z), which is
+            % the actual indexing of the arrays. This is because the method
+            % is predominantly used internally.
+            
+            if idx(2) == 0
+                if idx(3) == 0
+                    n = idx(3)*vf.span(1)*vf.span(2);
+                else
+                    n = (idx(3)-1)*(vf.span(1)*vf.span(2)) + idx(2)*vf.span(1);
+                end
+            else
+                n = (idx(3)-1)*(vf.span(1)*vf.span(2)) + (idx(2)-1)*vf.span(1) + idx(1);
+            end
+        end
+        
+        function idx = reshapeIndex(vf, n)
+            % Reshape a 1D index, obtained by collapsing a 3D grid into a
+            % column vector using MATLAB's reshape, into the original 3D
+            % index.
+            
+            idx = zeros([3 1]);
+            r = mod(n, vf.span(1)*vf.span(2));
+            if r == 0
+                idx(1) = vf.span(1);
+                idx(2) = vf.span(2);
+                idx(3) = n/(vf.span(1)*vf.span(2));
+            else
+                idx(3) = floor(n/(vf.span(1)*vf.span(2))) + 1;
+                r2 = mod(r, vf.span(1));
+                if r2 == 0
+                    idx(2) = r/vf.span(1);
+                    idx(1) = vf.span(1);
+                else
+                    idx(2) = floor(r/vf.span(1)) + 1;
+                    idx(1) = r2;
+                end
+            end
         end
         
         function eq = getRegPlaneEq(vf, index)
@@ -716,7 +757,7 @@ classdef VelocityField < handle
         
         %%%%%%%%%%%%%%%%%%%%%% Modify Velocity %%%%%%%%%%%%%%%%%%%%%%
         function addVelocity(vf, U_e)
-            % In place addition of velocity field in the effective region.
+            % In-place addition of velocity field in the effective region.
             
             % Accept constant shift given as a column 3-vector.
             if isequal(size(squeeze(U_e)), [3 1])
@@ -776,7 +817,7 @@ classdef VelocityField < handle
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
         end
         
-        function [N_e, ugn_max] = noise_uniform_ugscaled(vf, nmax)
+        function [N_e, ugn_max, sdu] = noise_uniform_ugscaled(vf, nmax)
             % Add uniform noise scaled by the normalized (by its maximal
             % value) norm of the velocity gradient. 'nmax' specifies the
             % maximum magnitude of the noise added. As for the uniform
@@ -788,7 +829,32 @@ classdef VelocityField < handle
             ugn = sqrt(squeeze(sum(ug.^2, [4 5])));
             % Find the maximum norm.
             ugn_max = max(ugn, [], 'all');
-            N_e = vf.noise_uniform(nmax*ugn/ugn_max);
+            % Combined (over components) magnitude of noise field.
+            du = nmax*ugn/ugn_max;
+            N_e = vf.noise_uniform(du);
+            % For a uniform distribution, sd(X) = (du*2/sqrt(3)).^2/12, in
+            % each dimension.
+            sdu = du.^2/9;
+        end
+        
+        function [] = noise_uniform_localcor(vf, s, sdu)
+            % Matrix of covariant factors.
+            covf = @(ni,nj) vf.corcoeff(s,ni,nj)*sdu(ni(1),ni(2),ni(3))*sdu(nj(1),nj(2),nj(3));
+            Mcov = zeros()
+        end
+        
+        function c = corcoeff_exp(s, ni, nj)
+            % Local correlation factor between two velocity vectors with an
+            % exponential function.
+            
+            c = exp(-s*sum((vf.getX(nj)-vf.getX(ni)).^2)/vf.xsp^2);
+        end
+        
+        function c = corcoeff_tri(win, op, ni, nj)
+            % Local correlation factor between two velocity vectors with a
+            % triangle function.
+            
+            c = exp(-s*sum((vf.getX(nj)-vf.getX(ni)).^2)/vf.xsp^2);
         end
         
         function N_e = noise_wgn(vf, sd, snr)
