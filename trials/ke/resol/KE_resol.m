@@ -153,10 +153,10 @@ if ismember('bias', display_plots)
     hold on
     h13=scatter(fres, bias_gss, 'b^', 'filled', 'LineWidth', 1);
     xlim([2 28])
-    ylim([-0.35 0.05]);
+    ylim([-0.375 0.05]);
     legend([h11,h12,h13],{'Unfiltered', 'Box', 'Gaussian'},'interpreter','none','location','southeast')
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{\delta (K\!E)}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(a) Kinetic energy error','FontName',font,'FontSize',fontSize,'interpreter','latex','fontweight','normal')
     box on
 end
@@ -177,7 +177,7 @@ if ismember('signed', display_plots)
         xlim([2 28])
         ylim([-0.35 0.05]);
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{\delta (KE)}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{\delta (K\!E)}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 end
 
@@ -196,6 +196,6 @@ if ismember('mag', display_plots)
 %         'box-filtered', ...
 %         'Gaussian-filtered'})
     xlabel('\kappa', 'FontName', font, 'FontSize', 1.25*fontSize,'interpreter','tex')
-    ylabel('$\frac{|\delta (KE)|}{KE}$','FontName',font,'FontSize',1.5*fontSize)
+    ylabel('$\frac{|\delta (K\!E)|}{K\!E}$','FontName',font,'FontSize',1.5*fontSize)
     title('(b) $\frac{\delta u}{u_0}$ = 1.5','FontName', font, 'FontSize', fontSize,'interpreter','latex','fontweight','normal')
 end
