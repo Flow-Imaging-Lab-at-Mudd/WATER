@@ -6,6 +6,6 @@ plots/*.jpg
 dimen.m
 CylVF.m
 legacy/
-convnfft_lib/inplaceprod.
+convnfft_lib/inplaceprod.mexw64
 
 
