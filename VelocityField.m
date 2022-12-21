@@ -690,6 +690,11 @@ classdef VelocityField < handle
             X = [vf.get_x(index(1,:)); vf.get_y(index(2,:)); vf.get_z(index(3,:))];
         end
         
+        function X = getXmesh(vf, index)
+            % Using the meshgrid convention rather than the natural one.
+            X = [vf.get_x(index(2,:)); vf.get_y(index(1,:)); vf.get_z(index(3,:))];
+        end
+        
         function n = getFlatIndex(vf, idx)
             % Here 'idx' is in the meshgrid convention (y,x,z), which is
             % the actual indexing of the arrays. This is because the method
@@ -832,29 +837,59 @@ classdef VelocityField < handle
             % Combined (over components) magnitude of noise field.
             du = nmax*ugn/ugn_max;
             N_e = vf.noise_uniform(du);
-            % For a uniform distribution, sd(X) = (du*2/sqrt(3)).^2/12, in
+            % For a uniform distribution, sd(X) = sqrt((du*2/sqrt(3)).^2/12), in
             % each dimension.
-            sdu = du.^2/9;
+            sdu = du/3;
         end
         
-        function [] = noise_uniform_localcor(vf, s, sdu)
-            % Matrix of covariant factors.
-            covf = @(ni,nj) vf.corcoeff(s,ni,nj)*sdu(ni(1),ni(2),ni(3))*sdu(nj(1),nj(2),nj(3));
-            Mcov = zeros()
+        function [] = noise_localcor(vf, sdu)
+            
+            if prod(size(sdu) == transpose(vf.span)) ~= 1
+                warning('Dimension of standard deviation tensor does not match that of the effective field!')
+            end
+            % Flatten the matrices to compute correlation.
+            sdu = reshape(sdu, [], 1);
+            % Covariance matrix.
+            S = zeros(length(sdu), length(sdu));
+            for i = 1: length(sdu)
+                for j = 1: i
+                    s = sdu(i)*sdu(j)*vf.corcoeff_tri(16, 0.75, i, j);
+                    S(i,j) = s;
+                    if i~=j
+                        S(j,i) = s;
+                    end
+                end
+            end
+            L = chol(S);
+            % Generate noise.
+            N = zeros(size(vf.X_e));
+%             for k = 1: 3
+%                 N(:,:,:,k) = L*
+%             end
         end
         
-        function c = corcoeff_exp(s, ni, nj)
+        function c = corcoeff_exp(vf, s, ni, nj)
             % Local correlation factor between two velocity vectors with an
             % exponential function.
             
             c = exp(-s*sum((vf.getX(nj)-vf.getX(ni)).^2)/vf.xsp^2);
         end
         
-        function c = corcoeff_tri(win, op, ni, nj)
+        function c = corcoeff_tri(vf, win, op, ni, nj)
             % Local correlation factor between two velocity vectors with a
             % triangle function.
             
-            c = exp(-s*sum((vf.getX(nj)-vf.getX(ni)).^2)/vf.xsp^2);
+            r = sqrt(sum((vf.getXmesh(vf.reshapeIndex(nj))-vf.getXmesh(vf.reshapeIndex(ni))).^2));
+            if ~isreal(r)
+                disp('r unreal')
+                disp(r)
+            end
+            overlap = op*win;
+            if r < overlap
+                c = 1 - r/overlap;
+            else
+                c = 0;
+            end
         end
         
         function N_e = noise_wgn(vf, sd, snr)
