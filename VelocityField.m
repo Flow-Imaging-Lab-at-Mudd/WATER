@@ -822,62 +822,93 @@ classdef VelocityField < handle
                 vf.range(3,1):vf.range(3,2), :) = vf.N_e;
         end
         
-        function [N_e, ugn_max, sdu] = noise_uniform_ugscaled(vf, nmax)
+        function [N_e, ugn_max, sdu] = noise_bipart(vf, nmax, win, beta)
+            % Two parameter noise model with the first term scaled by the
+            % norm of the gradient and the second as a constant shift.
             % Add uniform noise scaled by the normalized (by its maximal
             % value) norm of the velocity gradient. 'nmax' specifies the
             % maximum magnitude of the noise added. As for the uniform
             % case, the components of the noise field are independent.
-            % For the particular case of a Hill's vortex, nmax = α*u0.
+            % For the particular case of a Hill's vortex, nmax = α*u0. We
+            % assume here u0 = 1.
             
             % Use the pure velocity gradient (without noise) for scaling.
             ug = vf.velocityGradient(0);
             ugn = sqrt(squeeze(sum(ug.^2, [4 5])));
             % Find the maximum norm.
             ugn_max = max(ugn, [], 'all');
+            % Subtract the constant shift, assuming uniform spacing.
+            sf = 1/vf.xsp;
+            % Infer dt. Assuming u0 = 1 for Hill's vortex.
+            dt = 0.5*win;
+            sduc = beta*sf/dt;
+            % Scaling term of noise. For a uniform distribution, sd(X) =
+            % sqrt((du*2/sqrt(3)).^2/12), in each component, so 3*sd = du.
+            sdumax = 1/3*nmax - sduc;
             % Combined (over components) magnitude of noise field.
-            du = nmax*ugn/ugn_max;
-            N_e = vf.noise_uniform(du);
-            % For a uniform distribution, sd(X) = sqrt((du*2/sqrt(3)).^2/12), in
-            % each dimension.
-            sdu = du/3;
+            if sdumax <= 0
+                sdu = sduc*ones(size(ugn));
+            else
+                sdus = sdumax*ugn/ugn_max;
+                sdu = sdus + sduc;
+            end
+            if any(sdu==0)
+                warning('Replacing zeros in the tensor of noise sds!')
+                sdu(sdu==0)=0.001;
+            end
+            N_e = vf.noise_uniform(3*sdu);
         end
         
-        function [] = noise_localcor(vf, sdu)
+        function N_e = noise_localcor(vf, nmax, win, op, beta)
+            % Introduce locally scaled noise (by the norm of the gradient)
+            % with correlation. The elementary random variables are
+            % uniform.
             
-            if prod(size(sdu) == transpose(vf.span)) ~= 1
-                warning('Dimension of standard deviation tensor does not match that of the effective field!')
-            end
+            [N0, ~, sdu] = vf.noise_bipart(nmax, win, beta);
             % Flatten the matrices to compute correlation.
             sdu = reshape(sdu, [], 1);
             % Covariance matrix.
+            Z = zeros(length(sdu), length(sdu));
             S = zeros(length(sdu), length(sdu));
             for i = 1: length(sdu)
                 for j = 1: i
-                    s = sdu(i)*sdu(j)*vf.corcoeff_tri(16, 0.75, i, j);
+                    z = vf.corcoeff_tri(win, op, i, j);
+                    s = sdu(i)*sdu(j)*z;
+                    Z(i,j) = z;
                     S(i,j) = s;
                     if i~=j
+                        Z(j,i) = z;
                         S(j,i) = s;
                     end
                 end
             end
             L = chol(S);
-            % Generate noise.
-            N = zeros(size(vf.X_e));
-%             for k = 1: 3
-%                 N(:,:,:,k) = L*
-%             end
+            % Find the lower-triangular matrix.
+            L = L';
+            % Indepedent uniform noise vectors, with the same variance as the maximum
+            % variance.
+            nv = (rand([length(sdu) 3])*2 - 1) .* nmax/sqrt(3);
+            % Generate correlated noise.
+            N_e = zeros(size(vf.X_e));
+            for k = 1: 3
+                N_e(:,:,:,k) = reshape(L*nv(:,k), vf.span);
+            end
+            % Superpose initial noise.
+            N_e = N_e + N0;
         end
         
         function c = corcoeff_exp(vf, s, ni, nj)
             % Local correlation factor between two velocity vectors with an
-            % exponential function.
+            % exponential function. Unform spacing across 3D in the
+            % velocity field is assumed. 1D indices are assumed to be
+            % given.
             
-            c = exp(-s*sum((vf.getX(nj)-vf.getX(ni)).^2)/vf.xsp^2);
+            c = exp(-s*sum((vf.getXmesh(vf.reshapeIndex(nj))-vf.getXmesh(vf.reshapeIndex(ni))).^2)/vf.xsp^2);
         end
         
         function c = corcoeff_tri(vf, win, op, ni, nj)
             % Local correlation factor between two velocity vectors with a
-            % triangle function.
+            % triangle function. 1D indices are assumed to be given.
             
             r = sqrt(sum((vf.getXmesh(vf.reshapeIndex(nj))-vf.getXmesh(vf.reshapeIndex(ni))).^2));
             if ~isreal(r)

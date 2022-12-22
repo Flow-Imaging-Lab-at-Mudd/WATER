@@ -8,9 +8,14 @@ l = 1;
 vr = 1;
 fr = l*vr;
 u0 = 1;
-min_fres = 20;
+min_fres = 10;
 spr = 1 / min_fres;
-u_mean = 1;
+u_mean = u0;
+
+% Windowing paramters for 2-parameter noise model.
+beta = 0.25;
+win = 16;
+op = 0.75;
 
 % Noise levels.
 props = [1.5];
@@ -24,7 +29,8 @@ I0mag = norm(I0);
 
 [x, y, z, u, v, w] = Hill_Vortex(spr, l, vr, u0, 1);
 vf = VelocityField.importCmps(x, y, z, u, v, w);
-N = vf.noise_uniform(props(1)*u_mean); 
+% N = vf.noise_uniform(props(1)*u_mean);
+N = vf.noise_localcor(1, win, op, beta);
 
 origin = [0 0 0]';
 
