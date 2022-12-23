@@ -830,11 +830,12 @@ classdef VelocityField < handle
             % maximum magnitude of the noise added. As for the uniform
             % case, the components of the noise field are independent.
             % For the particular case of a Hill's vortex, nmax = α*u0. We
-            % assume here u0 = 1.
+            % assume here u0 = 1. Assume also a = 1, the vortical radius.
             
-            % Use the pure velocity gradient (without noise) for scaling.
-            ug = vf.velocityGradient(0);
-            ugn = sqrt(squeeze(sum(ug.^2, [4 5])));
+            % Use the pure velocity gradient (without noise) for noise scaling.
+%             ug = vf.velocityGradient(0);
+%             ugn = sqrt(squeeze(sum(ug.^2, [4 5])));
+            ugn = Hill_VGL2(1, 1, vf.X);
             % Find the maximum norm.
             ugn_max = max(ugn, [], 'all');
             % Subtract the constant shift, assuming uniform spacing.
