@@ -4,7 +4,9 @@
 ![openvf](https://github.com/epicderek/flow/blob/master/illu/openfv.jpg)
 
 If you use this library for impulse or wake kinetic energy analysis, please cite the following publication in your work:
+
 Li, D. J., & Mendelson, L. (2023). Volumetric measurements of wake impulse and kinetic energy for evaluating swimming performance. Experiments in Fluids, 64(3), 47.
+https://link.springer.com/article/10.1007/s00348-023-03586-y
 
 ## Installation
 startup.m sets up necessary path structures for the library
